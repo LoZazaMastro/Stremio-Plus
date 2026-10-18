@@ -72,6 +72,25 @@ void tests() {
             }
         }
     }
+    {
+        Fixture f(2, 1 << 20, 8); auto* owner = f.peer(); auto* helper = f.peer(1);
+        owner->max_reqs = helper->max_reqs = 512;
+        bt::pick(f.t.get(), owner, 100);
+        helper->has[0] = helper->has[1] = 0;
+        bt::pick(f.t.get(), helper, 101.1);
+        check(helper->reqs.size() == 16, "idle bulk rescue is bounded to sixteen blocks rather than a full 512-block queue");
+        const auto duplicates = f.t->duplicate_requests;
+        bt::pick(f.t.get(), helper, 101.2);
+        check(helper->reqs.size() == 16 && f.t->duplicate_requests == duplicates,
+              "an outstanding rescue batch does not trigger another bulk duplicate scan");
+        const auto request = helper->reqs.front();
+        bt::on_block(f.t.get(), helper, request.piece, request.begin, f.data.data() + request.begin, request.len, 101.3);
+        bt::pick(f.t.get(), helper, 101.3);
+        check(helper->reqs.size() == 15 && f.t->duplicate_requests == duplicates,
+              "one reply does not refill an otherwise busy peer with more bulk duplicates");
+        check(f.t->active.at(int(request.piece)).asked.at(request.begin / bt::kBlock) == 0,
+              "a rescued reply releases both original and duplicate reservations");
+    }
     check(network_attempts == 0, "no network operations attempted by offline policy regressions");
 }
 }

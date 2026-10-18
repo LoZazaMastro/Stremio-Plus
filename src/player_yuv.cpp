@@ -6,6 +6,7 @@
 #include <cstring>
 #include <cstdlib>
 
+#ifndef STREMIO_USE_LIBVLC
 bool Player::pack_yuv(const YuvPicture& pic, Frame& f) {
     if (!pic.y || !pic.u || (!pic.interleaved && !pic.v) || pic.width <= 0 || pic.height <= 0 ||
         pic.width > 8192 || pic.height > 8192) return false;
@@ -30,3 +31,4 @@ bool Player::pack_yuv(const YuvPicture& pic, Frame& f) {
     }
     return true;
 }
+#endif

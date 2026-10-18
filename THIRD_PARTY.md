@@ -1,8 +1,8 @@
 # Third-party code, tools and assets
 
 This project is licensed under the GNU General Public License v3.0 (see
-`LICENSE`), as required by the GPL-licensed code it includes and links (the
-FFmpeg build it uses is GPL-3.0-or-later). It is an unofficial port and is not
+`LICENSE`), as required by the GPL-licensed application, UI and playback code
+it includes and links. It is an unofficial port and is not
 affiliated with or endorsed by Stremio.
 
 ## Code included in this repository
@@ -20,36 +20,44 @@ affiliated with or endorsed by Stremio.
 | `src/hwdec_ps5.cpp` (hardware video decoding), `native/stubs/videodec2.c` | ported from [Nuvio PS5](https://github.com/theghostonline/Nuvio-PS5) (`app/engine/media/src/evo_vdec_native.c`, Husam Osman, itself built on an open-source GPL-3.0 PS5 media player); the libSceVideodec2 structures and call sequence come from there and from [ProsperoLight](https://github.com/blackbearreloaded/ProsperoLight) (BlackBearReloaded) and [SharpProspero](https://github.com/SvenGDK/SharpProspero) (SvenGDK) | GPL-3.0-or-later |
 | `src/netstream.cpp` (several connections for big files) | the approach and sizes of Nuvio PS5's `evo_parallel_io.c` | GPL-3.0-or-later |
 | `src/app_detail.cpp` (torrent stream set-up) | follows the behaviour of `createTorrent` in [stremio-video](https://github.com/Stremio/stremio-video) (Stremio) | MIT |
+| `vendor/vlc-ps5/`, native VLC callback integration in `src/player_vlc*` | [ZiZc3/VLC](https://github.com/ZiZc3/VLC), PS5 port 0.4 of VideoLAN VLC 3.0.24, adapted to Stremio Plus's existing UI and media inputs | GPL-3.0 for the PS5 project; retained file-specific GPL-2.0-or-later compatibility shims and VideoLAN licenses; see `vendor/vlc-ps5/NOTICE.md` |
 
 ## Linked into the app (downloaded at build time, not included here)
 
-The native `eboot.bin` statically links these. All come from the
+The native `eboot.bin` statically links these. The build combines the
 [ps5-payload-sdk](https://github.com/ps5-payload-dev/sdk) and its
 [PacBrew](https://github.com/ps5-payload-dev/pacbrew-repo) packages
-(both GPL-3.0 for their own recipes and code); every library keeps its own
-license:
+(both GPL-3.0 for their own recipes and code) with the pinned VLC source
+dependencies. Every library keeps its own license:
 
 | Component | License |
 | --- | --- |
 | ps5-payload-sdk `libc.a`, start-up code and system-module stubs | GPL-3.0-or-later; FreeBSD-derived parts BSD |
 | ps5-native-app-boilerplate start-up code (`tooling/native/app_crt.cpp`) and the clean-room `sce_module/libc.prx` loader shim shipped with the app | GPL-3.0-or-later |
-| [LLVM](https://llvm.org/) libc++, libc++abi, libunwind | Apache-2.0 WITH LLVM-exception |
-| [SDL2](https://www.libsdl.org/) and libsamplerate | zlib; BSD-2-Clause |
+| [LLVM](https://llvm.org/) libc++, libc++abi and libunwind 18.1.8; compiler-rt builtins 18.1.3 (Ubuntu `1:18.1.3-1`) | Apache-2.0 WITH LLVM-exception |
+| [SDL2 PS5](https://github.com/ps5-payload-dev/SDL) 2.30.12, commit `a47182a20e741e4735d1fcd41e8656bf338b0c72`; libsamplerate 0.2.2 | zlib; BSD-2-Clause |
 | [ps5-homebrew-ui](https://github.com/blackbearreloaded/ps5-homebrew-ui), BlackBearReloaded | GPL-3.0-or-later |
 | [ps5-opengl](https://github.com/blackbearreloaded/ps5-opengl), Mesa, OpenGNM PSBC | GPL-3.0-or-later; component-specific MIT/BSD and other retained notices |
 | [dht](https://github.com/jech/dht) (Juliusz Chroboczek): the built-in torrent engine's DHT | MIT |
-| [FFmpeg](https://ffmpeg.org/) (libavformat, libavcodec, libavutil, libswresample, libswscale), built with `--enable-gpl --enable-version3` | GPL-3.0-or-later |
-| [x264](https://www.videolan.org/developers/x264.html) (pulled in by that FFmpeg build) | GPL-2.0-or-later |
+| [miniupnpc](https://miniupnp.tuxfamily.org/) 2.2.4, UPnP port mapping | BSD-3-Clause |
+| [VLC / libVLC](https://www.videolan.org/vlc/) 3.0.24, VideoLAN and contributors | GPL-2.0-or-later modules; LGPL-2.1-or-later library portions, with retained file-specific notices |
+| [FFmpeg](https://ffmpeg.org/) 8.1.2 (libavformat, libavcodec, libavutil, libswresample, libswscale); native decoder-only build with GPL, version3 and nonfree features disabled | LGPL-2.1-or-later |
+| [dav1d](https://code.videolan.org/videolan/dav1d), AV1 software decoder | BSD-2-Clause |
+| [libebml](https://github.com/Matroska-Org/libebml), [libmatroska](https://github.com/Matroska-Org/libmatroska) | LGPL-2.1-or-later |
+| [libdvbpsi](https://www.videolan.org/developers/libdvbpsi.html) | LGPL-2.1-or-later |
+| [libass](https://github.com/libass/libass) | ISC |
+| [HarfBuzz](https://github.com/harfbuzz/harfbuzz) | MIT-style, with retained component notices |
+| [UTF8-CPP](https://github.com/nemtrif/utfcpp) 3.2.5, HarfBuzz's pinned header dependency | Boost Software License 1.0 |
+| [GnuTLS](https://www.gnutls.org/) library | LGPL-2.1-or-later; retained component notices |
+| [Nettle](https://www.lysator.liu.se/~nisse/nettle/), [GMP](https://gmplib.org/) | LGPL-3.0-or-later / GPL-2.0-or-later dual licensing |
+| [libxml2](https://gitlab.gnome.org/GNOME/libxml2) | MIT |
 | [libcurl](https://curl.se/) | curl license (MIT/X derivative) |
 | [OpenSSL](https://www.openssl.org/) | Apache-2.0 |
 | [libpsl](https://github.com/rockdaboot/libpsl) | MIT; Public Suffix List data MPL-2.0 |
 | [FreeType](https://freetype.org/) | FreeType License (FTL) |
 | [libwebp](https://chromium.googlesource.com/webm/libwebp) and libsharpyuv | BSD-3-Clause |
-| [libpng](http://www.libpng.org/) | libpng License |
 | [zlib](https://zlib.net/) | zlib |
 | [zstd](https://github.com/facebook/zstd) | BSD-3-Clause (dual GPL-2.0) |
-| [xz / liblzma](https://tukaani.org/xz/) | 0BSD / public domain |
-| [bzip2](https://sourceware.org/bzip2/) | bzip2 license (BSD-style) |
 | [GNU libiconv](https://www.gnu.org/software/libiconv/) | LGPL-2.1-or-later |
 | [GNU FriBidi](https://github.com/fribidi/fribidi): right-to-left subtitles (Arabic, Hebrew) | LGPL-2.1-or-later |
 

@@ -272,9 +272,10 @@ void App::flush_settings(bool synchronous) {
 void App::load_progress() {
 	json j;
 	if (!load_json(data_dir_ + "/progress.json", j)) return;
-	const json& items = jobj(j, "items");
-	if (items.is_object()) {
+	const auto load = [&](const json& items, std::map<std::string, Progress>& destination) {
+		if (!items.is_object()) return;
 		for (auto it = items.begin(); it != items.end(); ++it) {
+			if (!it.value().is_object() || it.key().size() > 8192) continue;
 			Progress p;
 			p.type = jstr(it.value(), "type");
 			p.name = jstr(it.value(), "name");
@@ -282,10 +283,27 @@ void App::load_progress() {
 			p.video_id = jstr(it.value(), "video_id");
 			p.time = jnum(it.value(), "time");
 			p.duration = jnum(it.value(), "duration");
-			p.updated = int64_t(jnum(it.value(), "updated"));
-			progress_[it.key()] = p;
+			const auto integer = [&](const char* key, int64_t fallback) {
+				const auto found = it.value().find(key);
+				if (found == it.value().end() || !found->is_number_integer() ||
+				    (found->is_number_unsigned() && found->get<uint64_t>() > uint64_t(INT64_MAX))) return fallback;
+				return found->get<int64_t>();
+			};
+			p.updated = integer("updated", 0);
+			p.download_id = jstr(it.value(), "download_id");
+			p.download_source = jstr(it.value(), "download_source");
+			p.download_prefix = integer("download_prefix", 0);
+			p.download_total = integer("download_total", -1);
+			if (!std::isfinite(p.time) || p.time < 0 || !std::isfinite(p.duration) || p.duration < 0) continue;
+			destination[it.key()] = std::move(p);
 		}
-	}
+	};
+	load(jobj(j, "items"), progress_);
+	load(jobj(j, "videos"), video_progress_);
+	// Existing installs have only one bookmark per series. Seed the new video
+	// map without replacing a newer, independently saved episode bookmark.
+	for (const auto& [media_id, progress] : progress_)
+		video_progress_.try_emplace(video_progress_key(progress.type, media_id, progress.video_id), progress);
 	const json& w = jobj(j, "watched");
 	if (w.is_array())
 		for (auto& v : w)
@@ -295,16 +313,23 @@ void App::load_progress() {
 void App::save_progress() {
 	if (offline_) return;
 	json j;
-	json items = json::object();
-	for (auto& kv : progress_) {
-		items[kv.first] = json{{"type", kv.second.type},         {"name", kv.second.name},
+	const auto save = [](const std::map<std::string, Progress>& entries) {
+		json items = json::object();
+		for (const auto& kv : entries) {
+			items[kv.first] = json{{"type", kv.second.type},         {"name", kv.second.name},
 		                       {"poster", kv.second.poster},     {"video_id", kv.second.video_id},
 		                       {"time", kv.second.time},         {"duration", kv.second.duration},
-		                       {"updated", kv.second.updated}};
-	}
-	j["items"] = items;
+		                       {"updated", kv.second.updated}, {"download_id", kv.second.download_id},
+		                       {"download_source", kv.second.download_source},
+		                       {"download_prefix", kv.second.download_prefix}, {"download_total", kv.second.download_total}};
+		}
+		return items;
+	};
+	j["items"] = save(progress_);
+	j["videos"] = save(video_progress_);
 	j["watched"] = json(std::vector<std::string>(watched_.begin(), watched_.end()));
-	save_json(data_dir_ + "/progress.json", j);
+	if (!save_json(data_dir_ + "/progress.json", j))
+		dlog("Playback progress could not be saved to %s (errno %d)", data_dir_.c_str(), errno);
 }
 
 std::string App::server() const {
@@ -759,6 +784,7 @@ void App::update() {
 	}
 	if (login_visible) login_poll();
 	if (t_visible) torrent_stats_poll();
+	saved_stream_tick();
 	if (watching_ || launch_visible) watch_update();
 	watch_next_episode_tick();
 	// A row whose requests all failed has no success callback to wake it.

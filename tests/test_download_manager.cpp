@@ -1,5 +1,6 @@
 #include "download_manager.h"
 #include "download_transfer.h"
+#include "download_metadata.h"
 
 #include <atomic>
 #include <cerrno>
@@ -400,13 +401,71 @@ void basic_queue(const fs::path& data) {
 	::stat((data / "downloads" / id / "manifest.json").c_str(), &st);
 	check((st.st_mode & 0777) == 0600, "provider credentials are persisted in a private 0600 manifest");
 	::stat((data / "downloads").c_str(), &st);
-	check((st.st_mode & 0777) == 0700, "download directory is private 0700");
+	check((st.st_mode & 0777) == 0777, "download directory retains loader-compatible 0777 permissions");
 	check(bytes(data / "downloads" / id / "manifest.json").find("PRIVATE-DOWNLOAD-TOKEN") != std::string::npos, "exact selected stream headers survive persistence");
 	fs::remove(image);
 	manager.shutdown();
 	check(manager.init(data.string()), "inventory can restart without a server or account request");
 	check(state(manager, id, DownloadState::Complete), "completed local file survives restart");
 	check(manager.find(id)->local_path == completed.local_path && fs::exists(manager.find(id)->logo_path), "restart retains offline playback and artwork independently of art cache");
+	manager.shutdown();
+}
+
+void episode_metadata_and_permissions(const fs::path& data) {
+	fs::create_directories(data);
+	const mode_t original_umask = ::umask(0077);
+	struct ResetMask { mode_t value; ~ResetMask() { ::umask(value); } } reset{original_umask};
+	DownloadManager manager;
+	std::string error;
+	check(manager.init(data.string(), &error), "restrictive umask still permits automatic download storage");
+	auto first = request("episode-metadata");
+	first.media_id = "series:metadata"; first.type = "series"; first.video_id = "opaque:selected";
+	first.title = "A series"; first.season = 0; first.episode = 7; first.episode_title = "The special episode";
+	first.subtitle = "Old incomplete label";
+	const auto id = manager.enqueue(first, error);
+	check(!id.empty(), "selected episode metadata is accepted without requiring a numeric video ID");
+	const auto job = data / "downloads" / id;
+	struct stat root_mode{}, job_mode{}, metadata_mode{};
+	check(::stat((data / "downloads").c_str(), &root_mode) == 0 && (root_mode.st_mode & 07777) == 0777 &&
+		::stat(job.c_str(), &job_mode) == 0 && (job_mode.st_mode & 07777) == 0777,
+		"automatically created root and episode directory are explicitly0777 despite umask0077");
+	check(::stat((job / "manifest.json").c_str(), &metadata_mode) == 0 && (metadata_mode.st_mode & 0777) == 0600,
+		"shared media directories keep source credentials private in their manifest");
+	const auto saved = manager.find(id);
+	check(saved && saved->title == "A series" && saved->subtitle == "S00E07 · The special episode" &&
+		saved->episode_title == "The special episode" && !saved->source_identity.empty(),
+		"published episode includes series title, specials season, episode number and episode title");
+	check(manager.find_matching(first) && manager.find_matching(first)->id == id,
+		"online playback can locate the exact selected download without creating another job");
+	auto different = first; different.episode = 8; different.video_id = "opaque:next";
+	check(!manager.find_matching(different), "the next episode cannot reuse this episode's download");
+	different = first; ++different.stream.file_idx;
+	check(!manager.find_matching(different), "another file from the same torrent is not the same download");
+	different = first; different.stream.request_headers.push_back("X-Different-Source: 1");
+	check(!manager.find_matching(different), "a different authorized source configuration is not silently substituted");
+	manager.shutdown();
+	const auto manifest_before = bytes(job / "manifest.json");
+	const auto unrelated = data / "downloads" / "user-private-directory";
+	fs::create_directory(unrelated); ::chmod(unrelated.c_str(), 0700);
+	::chmod((data / "downloads").c_str(), 0700); ::chmod(job.c_str(), 0700);
+	check(manager.init(data.string(), &error), "restart repairs legacy private download directories automatically");
+	struct stat repaired{};
+	check(::stat(job.c_str(), &repaired) == 0 && repaired.st_ino == job_mode.st_ino &&
+		(repaired.st_mode & 07777) == 0777 && bytes(job / "manifest.json") == manifest_before,
+		"restart repairs permissions without recreating the job or overwriting its manifest");
+	check(::stat(unrelated.c_str(), &repaired) == 0 && (repaired.st_mode & 0777) == 0700,
+		"automatic permission repair leaves unrelated user directories untouched");
+	const auto restored = manager.find(id);
+	check(restored && restored->episode_title == first.episode_title && restored->subtitle == "S00E07 · The special episode" &&
+		restored->source_identity == saved->source_identity,
+		"episode title and stable selected-source identity survive restart without provider metadata");
+	manager.shutdown();
+	auto legacy = json::parse(bytes(job / "manifest.json"));
+	legacy.erase("episode_title"); legacy["subtitle"] = "S0 · E7 · The special episode";
+	write(job / "manifest.json", legacy.dump());
+	check(manager.init(data.string(), &error) && manager.find(id)->episode_title == first.episode_title &&
+		manager.find(id)->subtitle == "S00E07 · The special episode",
+		"older manifests recover their episode title from the previously persisted label");
 	manager.shutdown();
 }
 
@@ -512,7 +571,7 @@ void progress_persistence(const fs::path& data) {
 		paused.at("done") == 6144 && paused.at("total") == 8192,
 		"pause still flushes the latest state and bytes to the manifest");
 	const auto before_resume = manifest_sync_count.load();
-	check(manager.resume(id) && manifest_sync_count.load() > before_resume &&
+	check(until([&] { return manager.resume(id); }) && manifest_sync_count.load() > before_resume &&
 		manifest(job / "manifest.json").at("state") == static_cast<int>(DownloadState::Queued),
 		"resume durably queues the same selected source before starting it");
 	change(running, [](Fake& f) { f.release = true; });
@@ -523,6 +582,73 @@ void progress_persistence(const fs::path& data) {
 	check(complete.at("state") == static_cast<int>(DownloadState::Complete) && complete.at("done") == 8192 &&
 		complete.at("total") == 8192 && complete.at("media_name") == "media.mp4",
 		"completion durably records the final file and exact byte count");
+	manager.shutdown();
+}
+
+void deferred_resume(const fs::path& data) {
+	fs::create_directories(data);
+	const auto running = plan("deferred-resume");
+	change(running, [](Fake& f) { f.release_cancel = false; });
+	DownloadManager manager; std::string error;
+	check(manager.init(data.string()), "deferred resume fixture initializes");
+	const auto id = manager.enqueue(request("deferred-resume", true), error);
+	const auto job = data / "downloads" / id;
+	manager.set_enabled(true);
+	check(until([&] { return inspect(running, [](const Fake& f) { return f.progress_calls > 0; }); }),
+		"deferred resume fixture has one active writer");
+	check(!manager.resume(id), "resume cannot restart an active uncancelled writer");
+	check(manager.pause(id) && until([&] { return inspect(running, [](const Fake& f) { return f.cancel_seen; }); }),
+		"pause publishes its state while the old writer is still cancelling");
+	check(manager.resume(id) && state(manager, id, DownloadState::Queued) &&
+		manifest(job / "manifest.json").at("state") == static_cast<int>(DownloadState::Queued),
+		"resume during cancellation durably queues the same source without waiting for the writer");
+	check(inspect(running, [](const Fake& f) { return f.starts == 1 && !f.returned; }),
+		"a deferred resume never overlaps the original writer");
+	change(running, [](Fake& f) { f.release_cancel = true; });
+	check(until([&] { return inspect(running, [](const Fake& f) { return f.starts == 2 && f.progress_calls > 1; }); }),
+		"the queued source restarts after its previous writer has returned");
+	check(inspect(running, [](const Fake& f) { return f.offset == 4096; }),
+		"deferred resume retains the acknowledged partial bytes");
+
+	change(running, [](Fake& f) { f.release_cancel = false; });
+	check(manager.pause(id) && until([&] { return inspect(running, [](const Fake& f) { return f.cancel_seen; }); }) &&
+		manager.resume(id) && manager.pause(id), "a subsequent pause overrides an accepted deferred resume");
+	change(running, [](Fake& f) { f.release_cancel = true; });
+	check(until([&] { return inspect(running, [](const Fake& f) { return f.returned; }); }) &&
+		state(manager, id, DownloadState::Paused), "overridden resume remains paused when cancellation finishes");
+	check(inspect(running, [](const Fake& f) { return f.starts == 2; }),
+		"overriding the deferred request does not start a third writer");
+	manager.set_enabled(false);
+	check(until([&] { return manager.resume(id); }), "a paused source can be queued again after the explicit override");
+	change(running, [](Fake& f) { f.release_cancel = false; });
+	manager.set_enabled(true);
+	check(until([&] { return inspect(running, [](const Fake& f) { return f.starts == 3; }); }) &&
+		manager.pause(id) && until([&] { return inspect(running, [](const Fake& f) { return f.cancel_seen; }); }),
+		"disable fixture pauses the next writer during cancellation");
+	check(manager.resume(id), "the running job accepts a deferred resume before disabling downloads");
+	manager.set_enabled(false);
+	check(state(manager, id, DownloadState::Paused), "disabling downloads overrides an accepted deferred resume");
+	change(running, [](Fake& f) { f.release_cancel = true; });
+	check(until([&] { return inspect(running, [](const Fake& f) { return f.returned; }); }) &&
+		until([&] { return manager.resume(id); }), "disabled downloads can retain a new explicit resume request");
+	change(running, [](Fake& f) { f.release_cancel = false; });
+	manager.set_enabled(true);
+	check(until([&] { return inspect(running, [](const Fake& f) { return f.starts == 4; }); }) &&
+		manager.pause(id) && until([&] { return inspect(running, [](const Fake& f) { return f.cancel_seen; }); }),
+		"storage failure fixture pauses the next writer during cancellation");
+	fail_sync = EIO;
+	check(!manager.resume(id) && state(manager, id, DownloadState::Paused) &&
+		!manager.find(id)->error.empty(), "a failed deferred resume checkpoint returns an error and stays paused");
+	fail_sync = 0;
+	change(running, [](Fake& f) { f.release_cancel = true; });
+	check(until([&] { return inspect(running, [](const Fake& f) { return f.returned; }); }) &&
+		!manager.storage_available() && state(manager, id, DownloadState::Paused),
+		"a failed resume does not retry the unavailable storage or silently start another writer");
+	manager.shutdown();
+	check(!manifest(job / "manifest.json").value("error", std::string()).empty(),
+		"the failed checkpoint diagnostic survives writer cleanup and restart persistence");
+	check(manager.init(data.string()) && state(manager, id, DownloadState::Paused) &&
+		!manager.find(id)->error.empty(), "restart retains the failed resume reason until the user retries");
 	manager.shutdown();
 }
 
@@ -1126,10 +1252,12 @@ int main(int argc, char** argv) {
 	completion_reconciliation(root / "completion-recovery");
 	transfer_storage_failure(root / "transfer-storage-error");
 	basic_queue(root / "queue");
+	episode_metadata_and_permissions(root / "episode-metadata");
 	crash_and_validation(root / "crash");
 	retry_and_remove(root / "remove");
 	torrent_arbitration(root / "torrent");
 	progress_persistence(root / "progress-persistence");
+	deferred_resume(root / "deferred-resume");
 	progress_metadata_failure(root / "metadata-failure");
 	progressive_leases(root / "progressive");
 	cancelled_unacknowledged_tail(root / "cancelled-tail");

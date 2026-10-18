@@ -14,9 +14,13 @@ case ${1:-ps5} in
         cmake --build "$BUILD_DIR/desktop" --parallel "$BUILD_JOBS"
         echo "Built $BUILD_DIR/desktop/stremio"
         ;;
-    deps) bash "$ROOT/tools/setup-toolchain.sh" ;;
+    deps)
+        bash "$ROOT/tools/setup-toolchain.sh"
+        bash "$ROOT/tools/setup-vlc.sh"
+        ;;
     ps5)
         bash "$ROOT/tools/setup-toolchain.sh"
+        bash "$ROOT/tools/setup-vlc.sh"
         bash "$ROOT/native/build.sh" "${TITLE_ID:-PPSA74126}" "Stremio Plus"
         bash "$ROOT/native/pack.sh" "${TITLE_ID:-PPSA74126}"
         ;;

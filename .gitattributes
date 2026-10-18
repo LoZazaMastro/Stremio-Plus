@@ -16,3 +16,8 @@
 *.huifont binary
 vendor/** linguist-vendored
 third_party/** linguist-vendored
+
+# Preserve verbatim upstream notices and the Windows conversion script.
+app/licenses/ps5-opengl/LICENSES/NanoVG.txt -text
+app/licenses/ps5-opengl/LICENSES/VK-GL-CTS.txt -text
+tools/make_dds.ps1 -text

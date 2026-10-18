@@ -336,8 +336,16 @@ State& state() {
     return *instance;
 }
 
-volatile sig_atomic_t crash_fd = -1;
-volatile sig_atomic_t handling_crash = 0;
+static_assert(std::atomic<unsigned>::is_always_lock_free);
+static_assert(std::atomic<int>::is_always_lock_free);
+static_assert(std::atomic<std::size_t>::is_always_lock_free);
+static_assert(std::atomic<std::uintptr_t>::is_always_lock_free);
+std::atomic<int> crash_fd{-1};
+std::atomic<unsigned> handling_crash{0};
+std::atomic<unsigned> allocation_failures{0};
+std::atomic<std::uintptr_t> last_abort_caller{0}, last_assert_caller{0};
+std::atomic<std::size_t> heap_capacity{0}, heap_used{0}, heap_available{0}, heap_observed_peak{0};
+int crash_rotation_error = 0;
 std::array<struct sigaction, 5> previous_actions{};
 std::array<bool, 5> installed_actions{};
 struct sigaction default_action{};
@@ -347,24 +355,94 @@ bool installed_stack = false;
 char crash_header[256];
 std::size_t crash_header_size = 0;
 
-char* append_literal(char* out, const char* text) {
-    while (*text) *out++ = *text++;
-    return out;
-}
-char* append_hex(char* out, std::uintptr_t value) {
-    static const char digits[] = "0123456789abcdef";
-    out = append_literal(out, "0x");
-    for (int nibble = int(sizeof(value) * 2) - 1; nibble >= 0; --nibble) *out++ = digits[(value >> (nibble * 4)) & 15u];
-    return out;
-}
+struct CrashRecord {
+    char data[1024];
+    std::size_t size = 0;
+
+    void character(char value) {
+        if (size < sizeof(data) - 1) data[size++] = value;
+    }
+    void literal(const char* value) {
+        for (std::size_t i = 0; i < sizeof(data) && value[i]; ++i) character(value[i]);
+    }
+    void header() {
+        for (std::size_t i = 0; i < crash_header_size; ++i) character(crash_header[i]);
+    }
+    void hex(std::uintptr_t value) {
+        static constexpr char digits[] = "0123456789abcdef";
+        literal("0x");
+        for (int nibble = int(sizeof(value) * 2) - 1; nibble >= 0; --nibble)
+            character(digits[(value >> (nibble * 4)) & 15u]);
+    }
+    void number(std::uint64_t value) {
+        char digits[20];
+        unsigned count = 0;
+        do { digits[count++] = char('0' + value % 10); value /= 10; } while (value);
+        while (count) character(digits[--count]);
+    }
+    void signed_number(int value) {
+        if (value < 0) {
+            character('-');
+            number(std::uint64_t(-std::int64_t(value)));
+        } else number(unsigned(value));
+    }
+    void source_text(const char* value, std::size_t limit, bool basename = false) {
+        if (!value) { literal("[unknown]"); return; }
+        std::size_t begin = 0, length = 0;
+        const std::size_t scan_limit = basename ? 512 : limit;
+        while (length < scan_limit && value[length]) {
+            if (basename && (value[length] == '/' || value[length] == '\\')) begin = length + 1;
+            ++length;
+        }
+        // Assertion inputs are source text. Never emit string literals, URLs,
+        // control bytes, or the directory prefix of a source filename.
+        for (std::size_t i = begin; i + 2 < length; ++i) {
+            if (value[i] == ':' && value[i + 1] == '/' && value[i + 2] == '/') {
+                literal("[redacted source text]"); return;
+            }
+        }
+        char quote = 0;
+        bool escaped = false;
+        const auto end = begin + limit < length ? begin + limit : length;
+        for (std::size_t i = begin; i < end; ++i) {
+            const unsigned char c = static_cast<unsigned char>(value[i]);
+            if (quote) {
+                if (!escaped && c == static_cast<unsigned char>(quote)) quote = 0;
+                if (!escaped && c == '\\') escaped = true;
+                else escaped = false;
+            } else if (c == '"' || c == '\'') {
+                quote = char(c);
+                literal("[literal]");
+            } else character(c >= 32 && c < 127 ? char(c) : '?');
+        }
+        if (end < length || length == scan_limit) literal("...");
+    }
+    void cached_heap() {
+        literal(" heap_capacity="); number(heap_capacity.load(std::memory_order_relaxed));
+        literal(" heap_used_snapshot="); number(heap_used.load(std::memory_order_relaxed));
+        literal(" heap_free_snapshot="); number(heap_available.load(std::memory_order_relaxed));
+        literal(" heap_observed_peak="); number(heap_observed_peak.load(std::memory_order_relaxed));
+    }
+    void finish(bool sync) {
+        // Each event is one bounded append on an already open descriptor.
+        // No stdio, allocation, logging locks, or stack unwinding is involved.
+        data[size++] = '\n';
+        const int fd = crash_fd.load(std::memory_order_relaxed);
+        if (fd >= 0) {
+            (void)::write(fd, data, size);
+            if (sync) (void)::fsync(fd);
+        }
+    }
+};
+
 void crash_handler(int signal_number, siginfo_t* info, void* context) {
-    if (!handling_crash) {
-        handling_crash = 1;
-        char line[512];
-        char* out = line;
-        for (std::size_t i = 0; i < crash_header_size; ++i) *out++ = crash_header[i];
-        out = append_literal(out, "signal=");
-        out = append_hex(out, std::uintptr_t(signal_number));
+    if (handling_crash.exchange(1, std::memory_order_relaxed) == 0) {
+        CrashRecord record;
+        record.header();
+        record.literal("signal=");
+        record.hex(std::uintptr_t(signal_number));
+        record.literal(" si_code=");
+        record.signed_number(info ? info->si_code : 0);
         std::uintptr_t pc = 0, sp = 0;
 #if defined(__linux__) && defined(__x86_64__)
         if (context) {
@@ -381,17 +459,17 @@ void crash_handler(int signal_number, siginfo_t* info, void* context) {
 #else
         (void)context;
 #endif
-        out = append_literal(out, " pc="); out = append_hex(out, pc);
-        out = append_literal(out, " sp="); out = append_hex(out, sp);
-        out = append_literal(out, " fault="); out = append_hex(out, info ? reinterpret_cast<std::uintptr_t>(info->si_addr) : 0);
-        out = append_literal(out, " anchor="); out = append_hex(out, reinterpret_cast<std::uintptr_t>(&diagnostics_start));
-        *out++ = '\n';
-        const int fd = crash_fd;
-        if (fd >= 0) {
-            // Pre-opened descriptor, fixed stack buffer, async-signal-safe syscalls.
-            (void)::write(fd, line, std::size_t(out - line));
-            (void)::fsync(fd);
+        record.literal(" pc="); record.hex(pc);
+        record.literal(" sp="); record.hex(sp);
+        if (signal_number == SIGSEGV || signal_number == SIGBUS) {
+            record.literal(" fault=");
+            record.hex(info ? reinterpret_cast<std::uintptr_t>(info->si_addr) : 0);
         }
+        record.literal(" anchor="); record.hex(reinterpret_cast<std::uintptr_t>(&diagnostics_start));
+        record.literal(" abort_caller="); record.hex(last_abort_caller.load(std::memory_order_relaxed));
+        record.literal(" assert_caller="); record.hex(last_assert_caller.load(std::memory_order_relaxed));
+        record.cached_heap();
+        record.finish(true);
     }
     // Preserve the platform's normal fatal-signal handling after saving the
     // small receipt. No allocation, logging framework, locks, or stdio here.
@@ -399,13 +477,65 @@ void crash_handler(int signal_number, siginfo_t* info, void* context) {
     (void)::kill(::getpid(), signal_number);
 }
 
+enum class CrashRecordKind { Nonfatal, Fatal, Unreadable };
+
+CrashRecordKind inspect_crash_record(const char* path, int& error) {
+    // Startup only. Keep the last real fatal receipt across healthy sessions
+    // whose current file contains only heap snapshots or allocation failures.
+    const int fd = ::open(path, O_RDONLY);
+    if (fd < 0) {
+        if (errno == ENOENT) return CrashRecordKind::Nonfatal;
+        error = errno;
+        return CrashRecordKind::Unreadable;
+    }
+    char buffer[4096], prefix[16];
+    std::size_t prefix_size = 0;
+    for (unsigned block = 0; block < 16; ++block) {
+        const auto count = ::read(fd, buffer, sizeof(buffer));
+        if (count <= 0) {
+            error = count < 0 ? errno : 0;
+            (void)::close(fd);
+            return count < 0 ? CrashRecordKind::Unreadable : CrashRecordKind::Nonfatal;
+        }
+        for (ssize_t i = 0; i < count; ++i) {
+            if (buffer[i] == '\n') { prefix_size = 0; continue; }
+            if (prefix_size == sizeof(prefix)) continue;
+            prefix[prefix_size++] = buffer[i];
+            if ((prefix_size == 7 && std::memcmp(prefix, "signal=", 7) == 0) ||
+                (prefix_size == 12 && std::memcmp(prefix, "event=abort ", 12) == 0) ||
+                (prefix_size == 13 && std::memcmp(prefix, "event=assert ", 13) == 0)) {
+                (void)::close(fd);
+                return CrashRecordKind::Fatal;
+            }
+        }
+    }
+    // Unexpectedly large or unreadable files may contain evidence outside the
+    // bounded scan. Preserve them instead of assuming they are safe to truncate.
+    error = EFBIG;
+    (void)::close(fd);
+    return CrashRecordKind::Unreadable;
+}
+
 bool install_crash_capture(const std::string& directory, const std::string& session) {
     const auto current = directory + "/crash-current.txt";
-    struct stat status{};
-    if (::stat(current.c_str(), &status) == 0 && status.st_size > 0) (void)::rename(current.c_str(), (directory + "/crash-last.txt").c_str());
-    crash_fd = ::open(current.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0600);
+    crash_rotation_error = 0;
+    const auto previous = inspect_crash_record(current.c_str(), crash_rotation_error);
+    int flags = O_WRONLY | O_CREAT | O_APPEND;
+    if (previous == CrashRecordKind::Nonfatal) flags |= O_TRUNC;
+    else if (previous == CrashRecordKind::Fatal) {
+        if (::rename(current.c_str(), (directory + "/crash-last.txt").c_str()) == 0) flags |= O_TRUNC;
+        else crash_rotation_error = errno; // Keep the original current file intact.
+    }
+    crash_fd = ::open(current.c_str(), flags, 0600);
     if (crash_fd < 0) return false;
     handling_crash = 0;
+    allocation_failures = 0;
+    last_abort_caller = 0;
+    last_assert_caller = 0;
+    heap_capacity = 0;
+    heap_used = 0;
+    heap_available = 0;
+    heap_observed_peak = 0;
     const int count = std::snprintf(crash_header, sizeof(crash_header), "Stremio Plus %s (%s) build=%s session=%s\n",
                                     STREMIO_VERSION, STREMIO_TITLE_ID, STREMIO_BUILD_ID, session.c_str());
     crash_header_size = count > 0 ? std::min(std::size_t(count), sizeof(crash_header) - 1) : 0;
@@ -520,6 +650,72 @@ void writer_main() {
 }
 } // namespace
 
+extern "C" void stremio_diagnostics_abort(std::uintptr_t caller) {
+    last_abort_caller.store(caller, std::memory_order_relaxed);
+    CrashRecord record;
+    record.header();
+    record.literal("event=abort caller="); record.hex(caller);
+    record.literal(" anchor="); record.hex(reinterpret_cast<std::uintptr_t>(&diagnostics_start));
+    record.cached_heap();
+    record.finish(true);
+}
+
+extern "C" void stremio_diagnostics_assert(const char* function, const char* file, int line,
+                                           const char* expression, std::uintptr_t caller) {
+    last_assert_caller.store(caller, std::memory_order_relaxed);
+    CrashRecord record;
+    record.header();
+    record.literal("event=assert caller="); record.hex(caller);
+    record.literal(" source="); record.source_text(file, 96, true);
+    record.literal(" line="); record.signed_number(line);
+    record.literal(" function="); record.source_text(function, 96);
+    record.literal(" expression="); record.source_text(expression, 256);
+    record.literal(" anchor="); record.hex(reinterpret_cast<std::uintptr_t>(&diagnostics_start));
+    record.finish(true);
+}
+
+extern "C" void stremio_diagnostics_allocation_failure(unsigned operation, std::size_t requested,
+                                                       std::size_t alignment, std::uintptr_t caller) {
+    if (crash_fd.load(std::memory_order_relaxed) < 0) return;
+    unsigned count = allocation_failures.load(std::memory_order_relaxed);
+    // Saturate after eight records. A contending thread may omit a diagnostic,
+    // but never waits for another thread or the regular diagnostics writer.
+    for (unsigned attempt = 0; attempt < 8; ++attempt) {
+        if (count >= 8) return;
+        if (!allocation_failures.compare_exchange_strong(count, count + 1, std::memory_order_relaxed)) continue;
+        const int saved_errno = errno;
+        CrashRecord record;
+        record.header();
+        record.literal("event=allocation_failure ordinal="); record.number(count + 1);
+        record.literal(" operation="); record.number(operation);
+        record.literal(" requested="); record.number(requested);
+        record.literal(" alignment="); record.number(alignment);
+        record.literal(" caller="); record.hex(caller);
+        record.literal(" anchor="); record.hex(reinterpret_cast<std::uintptr_t>(&diagnostics_start));
+        record.cached_heap();
+        record.finish(false);
+        errno = saved_errno;
+        return;
+    }
+}
+
+extern "C" void stremio_diagnostics_heap_snapshot(unsigned checkpoint, std::size_t capacity,
+                                                  std::size_t used, std::size_t available,
+                                                  std::size_t observed_peak, std::uintptr_t caller) {
+    const int saved_errno = errno;
+    heap_capacity.store(capacity, std::memory_order_relaxed);
+    heap_used.store(used, std::memory_order_relaxed);
+    heap_available.store(available, std::memory_order_relaxed);
+    heap_observed_peak.store(observed_peak, std::memory_order_relaxed);
+    CrashRecord record;
+    record.header();
+    record.literal("event=heap_snapshot checkpoint="); record.number(checkpoint);
+    record.literal(" caller="); record.hex(caller);
+    record.cached_heap();
+    record.finish(false);
+    errno = saved_errno;
+}
+
 std::string diagnostics_redact(const std::string& message) {
     return redact_emails_and_tokens(redact_labels(redact_urls(unescape_for_redaction(message))));
 }
@@ -560,12 +756,14 @@ bool diagnostics_start(const std::string& log_directory) {
         s.events = {"events", ".jsonl", s.directory, nullptr, 0};
         if (!s.text.open() || !s.events.open()) { s.text.close(); s.events.close(); return false; }
         s.marker["crash_capture_installed"] = install_crash_capture(s.directory, s.session);
+        s.marker["crash_rotation_error"] = crash_rotation_error;
         if (!write_small(s.directory + "/session.json", json_text(s.marker, 2) + "\n")) {
             close_crash_capture(); s.text.close(); s.events.close(); return false;
         }
         s.running.store(true, std::memory_order_release);
         s.writer = std::thread(writer_main);
         diagnostics_note("session", std::string("Stremio Plus session started; previous shutdown ") + (previous_unclean ? "unclean (crash, forced close, or power loss)." : "clean or first launch."));
+        if (crash_rotation_error) diagnostics_note("diagnostics", "Previous native crash record could not be rotated; retaining crash-current.txt (error " + std::to_string(crash_rotation_error) + ").");
         return true;
     } catch (...) {
         s.running = false;

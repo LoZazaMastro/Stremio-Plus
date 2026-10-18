@@ -69,6 +69,45 @@ bool one_wire_message(const std::string& wire, uint8_t id) {
 }
 
 void run() {
+	#ifdef BT_HEAD_HANDOFF
+	{
+		Requests f; f.resize_blocks(4);
+		f.a->useful_rate = f.b->useful_rate = f.fast->useful_rate = 128 * 1024;
+		for (auto* owner : {f.a, f.b}) for (auto& request : owner->reqs) request.at = f.now - 16;
+		std::fill(f.piece().asked_at.begin(), f.piece().asked_at.end(), f.now - 16);
+		const auto window_a = f.a->max_reqs, window_b = f.b->max_reqs;
+		int room = 8; bt::pick_urgent_duplicates(&f.torrent, f.fast, f.now, room);
+		expect(f.fast->reqs.size() == 1 && room == 7, "only one aged head owner is replaced per urgent picker pass");
+		expect(f.torrent.request_head_handoffs == 1 && f.torrent.timeout_cancels == 0,
+		       "deadline handoff is separate from a whole-peer stall timeout");
+		expect(f.a->reqs.size() + f.b->reqs.size() == 7, "all other productive-owner requests remain in place");
+		expect(f.a->max_reqs == window_a && f.b->max_reqs == window_b && f.a->penalty_until == 0 && f.b->penalty_until == 0,
+		       "late head does not penalize productive tail delivery or reduce learned request windows");
+		f.every_block_ledger();
+	}
+	{
+		Requests f; f.torrent.download_readers.clear();
+		f.a->useful_rate = f.b->useful_rate = f.fast->useful_rate = 128 * 1024;
+		f.a->reqs[0].at = f.b->reqs[0].at = f.piece().asked_at[0] = f.now - 16;
+		int room = 1; bt::pick_urgent_duplicates(&f.torrent, f.fast, f.now, room);
+		expect(room == 0 && f.fast->reqs.size() == 1 && f.torrent.request_head_handoffs == 1,
+		       "playback-only readers retain the deadline rescue for a head held by two productive peers");
+		f.ledger();
+	}
+	{
+		Requests f;
+		f.a->useful_rate = f.b->useful_rate = f.fast->useful_rate = 128 * 1024;
+		f.a->reqs[0].at = f.b->reqs[0].at = f.now - 14;
+		int room = 1; bt::pick_urgent_duplicates(&f.torrent, f.fast, f.now, room);
+		expect(room == 1, "moderate-speed replacement waits for the urgent request deadline");
+		f.untouched();
+		f.piece().asked_at[0] = f.now - 60;
+		f.a->reqs[0].at = f.b->reqs[0].at = f.now - 1;
+		bt::pick_urgent_duplicates(&f.torrent, f.fast, f.now, room);
+		expect(room == 1, "an old aggregate block timestamp never expires fresh individual owners");
+		f.untouched();
+	}
+	#endif
 	{
 		Requests f; int room = 1;
 		bt::pick_urgent_duplicates(&f.torrent, f.fast, f.now, room);

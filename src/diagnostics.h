@@ -3,6 +3,7 @@
 #include <cstdarg>
 #include <string>
 #include "json.hpp"
+#include "diagnostics_native.h"
 
 using json = nlohmann::json;
 

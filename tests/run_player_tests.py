@@ -2,6 +2,8 @@
 """Real Player tests with synthetic media and a protected loopback Range/HLS server."""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import hashlib
+import json
 import os
 import re
 import shlex
@@ -23,9 +25,15 @@ if main_object not in link:
     raise SystemExit('Host link command does not contain the expected main object.')
 test_object = build / 'test_player.cpp.o'
 binary = build / 'test_player'
+flags = (build / 'CMakeFiles/stremio.dir/flags.make').read_text()
+test_flags = []
+for variable in ('CXX_DEFINES', 'CXX_INCLUDES', 'CXX_FLAGS'):
+    match = re.search(r'^' + variable + r' = (.*)$', flags, re.MULTILINE)
+    if match:
+        test_flags.extend(shlex.split(match[1]))
+uses_vlc = any('STREMIO_USE_LIBVLC' in flag for flag in test_flags)
 subprocess.run([
-    link[0], '-std=c++20', '-O1', '-g', '-Wall', '-Wextra', '-Wpedantic', '-Wno-missing-field-initializers',
-    '-D_REENTRANT', '-I' + str(root / 'src'), '-I' + str(root / 'third_party'), '-I/usr/include/SDL2',
+    link[0], *test_flags, '-std=c++20', '-O1', '-g', '-Wall', '-Wextra', '-Wpedantic', '-Wno-missing-field-initializers',
     '-c', str(root / 'tests/test_player.cpp'), '-o', str(test_object),
 ], check=True)
 link[link.index(main_object)] = str(test_object)
@@ -47,15 +55,26 @@ with tempfile.TemporaryDirectory(prefix='stremio-player-') as temporary:
     (fixtures / 'subtitle.srt').write_text(
         '1\n00:00:00,100 --> 00:00:03,000\nPrimo test: è già pronto.\n\n'
         '2\n00:00:03,000 --> 00:00:05,800\nSecondo sottotitolo.\n', encoding='utf-8')
+    (fixtures / 'subtitle.ass').write_text(
+        '[Script Info]\nScriptType: v4.00+\nPlayResX: 640\nPlayResY: 360\n'
+        '[V4+ Styles]\n'
+        'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, '
+        'Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, '
+        'Alignment, MarginL, MarginR, MarginV, Encoding\n'
+        'Style: Default,Arial,28,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1\n'
+        '[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n'
+        'Dialogue: 0,0:00:00.10,0:00:05.80,Default,,0,0,0,,VLC ASS subtitle\n', encoding='utf-8')
     ffmpeg([
         '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=24:duration=6',
         '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:duration=6',
         '-f', 'lavfi', '-i', 'sine=frequency=880:sample_rate=48000:duration=6',
-        '-i', str(fixtures / 'subtitle.srt'), '-map', '0:v', '-map', '1:a', '-map', '2:a', '-map', '3:s',
+        '-i', str(fixtures / 'subtitle.srt'), '-i', str(fixtures / 'subtitle.ass'),
+        '-map', '0:v', '-map', '1:a', '-map', '2:a', '-map', '3:s', '-map', '4:s',
         '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-g', '24', '-pix_fmt', 'yuv420p',
         '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-color_range', 'tv',
-        '-c:a', 'aac', '-b:a', '96k', '-c:s', 'srt',
-        '-metadata:s:a:0', 'language=eng', '-metadata:s:a:1', 'language=ita', '-metadata:s:s:0', 'language=ita',
+        '-c:a', 'aac', '-b:a', '96k', '-c:s:0', 'srt', '-c:s:1', 'copy',
+        '-metadata:s:a:0', 'language=eng', '-metadata:s:a:1', 'language=ita',
+        '-metadata:s:s:0', 'language=ita', '-metadata:s:s:1', 'language=eng',
         str(fixtures / 'multi.mkv'),
     ])
     ffmpeg([
@@ -151,7 +170,7 @@ with tempfile.TemporaryDirectory(prefix='stremio-player-') as temporary:
     try:
         environment = dict(os.environ, SDL_AUDIODRIVER='dummy', NO_PROXY='127.0.0.1,localhost', no_proxy='127.0.0.1,localhost')
         result = subprocess.run([str(binary), str(fixtures), f'http://127.0.0.1:{server.server_port}', str(root / 'app')],
-                                env=environment, text=True, capture_output=True, timeout=95)
+                                env=environment, text=True, capture_output=True, timeout=150)
         (build / 'player-test-output.txt').write_text(result.stdout + result.stderr)
         if result.returncode:
             failure_logs = build / 'player-test-failure-logs'
@@ -179,5 +198,18 @@ with tempfile.TemporaryDirectory(prefix='stremio-player-') as temporary:
             if line.startswith(('PASS ', 'PLAYER_TESTS_OK')):
                 print(line)
         print(f'PASS protected loopback server: {len(records)} requests, Range and HLS header propagation, logs redacted')
+        report = {
+            'result': 'PASS', 'engine': 'libVLC 3.0.24' if uses_vlc else 'FFmpeg reference',
+            'scope': 'Real Player with local generated media, growing local files and authenticated loopback HTTP/HLS',
+            'checks': [line for line in result.stdout.splitlines() if line.startswith(('PASS ', 'PLAYER_TESTS_OK'))],
+            'http_requests': records,
+            'sha256': {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+                       for path in [root / 'tests/test_player.cpp', Path(__file__).resolve(),
+                                    *sorted((root / 'src').glob('player*'))] if path.is_file()},
+        }
+        report_path = root / 'build/tests' / ('vlc-player.json' if uses_vlc else 'player-reference.json')
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(json.dumps(report, indent=2) + '\n')
+        print(report_path)
     finally:
         server.shutdown(); server.server_close(); worker.join()

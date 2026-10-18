@@ -5,6 +5,7 @@
 #include "app.h"
 #include "artcache.h"
 #include "diagnostics.h"
+#include "native_memory.h"
 #include "controller_ambient.h"
 #include "home_ui.h"
 #include "http.h"
@@ -36,6 +37,10 @@ extern "C" {
 #include "ps5_storage.h"
 #include "ui_language.h"
 extern "C" void ps5_load_modules(void);
+#ifdef STREMIO_USE_LIBVLC
+extern "C" void vlc_ps5_vdec_prepare(void);
+extern "C" int vlc_ps5_vdec_queue_status(const char** stage, int* native_code);
+#endif
 #else
 #include "preview_fixture.h"
 #include <EGL/egl.h>
@@ -62,6 +67,18 @@ extern "C" void ps5_load_modules(void);
 
 namespace {
 constexpr int kWidth = 1920, kHeight = 1080;
+
+#ifdef PLATFORM_PS5_NATIVE
+void log_video_memory(const char* phase) {
+    stremio_video_memory_stats memory{};
+    stremio_video_memory_get_stats(&memory);
+    dlog("video memory: phase=%s direct_MiB=%.2f peak_MiB=%.2f mapped=%u retired=%u heap_fallbacks=%llu allocation_failures=%llu release_failures=%llu",
+         phase, double(memory.direct_bytes) / (1 << 20), double(memory.direct_peak_bytes) / (1 << 20),
+         memory.active_mappings, memory.retired_mappings,
+         (unsigned long long)memory.heap_fallbacks, (unsigned long long)memory.allocation_failures,
+         (unsigned long long)memory.release_failures);
+}
+#endif
 
 void boot_step(const char* stage) {
 #ifdef PLATFORM_PS5
@@ -585,6 +602,9 @@ int run_interface(App& app, const Options& o) {
     std::int64_t previous = hui::sys::monotonic_us(), report_start = previous;
     std::uint64_t frames = 0, report_frames = 0;
     bool quit = false, first = true;
+#ifdef PLATFORM_PS5
+    bool first_video_heap_snapshot = true;
+#endif
     int last_video_w = 0, last_video_h = 0;
     while (!quit && !app.wants_exit()) {
         const auto now = hui::sys::monotonic_us();
@@ -612,8 +632,20 @@ int run_interface(App& app, const Options& o) {
         if (feedback.rumble_strength > 0) pad.rumble(feedback.rumble_strength, feedback.rumble_seconds);
         pad.tick(dt);
 #endif
+#ifdef PLATFORM_PS5
+        bool video_uploaded = false;
+#endif
         if (app.take_video_frame(frame)) {
-            if (!video.upload(frame)) diagnostics_note("video", "GPU frame rejected");
+            if (video.upload(frame)) {
+                app.video_frame_presented();
+#ifdef PLATFORM_PS5
+                video_uploaded = true;
+#endif
+            }
+            else {
+                diagnostics_note("video", "GPU frame rejected");
+                app.video_frame_rejected();
+            }
             if (frame.w != last_video_w || frame.h != last_video_h) {
                 last_video_w = frame.w; last_video_h = frame.h;
                 runtime["width"] = frame.w; runtime["height"] = frame.h;
@@ -628,7 +660,17 @@ int run_interface(App& app, const Options& o) {
         if (!app.watching()) video.clear();
         textures.begin_frame(); ui.update(app, dt);
         compose(0, false);
-        if (!surface.swap()) { diagnostics_note("display", "Present failed"); quit = true; }
+        const bool swapped = surface.swap();
+        if (!swapped) { diagnostics_note("display", "Present failed"); quit = true; }
+#ifdef PLATFORM_PS5
+        if (swapped && video_uploaded && first_video_heap_snapshot) {
+            first_video_heap_snapshot = false;
+            stremio_heap_snapshot(STREMIO_HEAP_VIDEO_PRESENTED);
+#ifdef PLATFORM_PS5_NATIVE
+            log_video_memory("first-picture");
+#endif
+        }
+#endif
         if (first) {
             first = false;
             hui::sys::hide_splash_screen();
@@ -642,6 +684,9 @@ int run_interface(App& app, const Options& o) {
             runtime["output_width"] = surface.width; runtime["output_height"] = surface.height;
             diagnostics_set_runtime(runtime);
             dlog("UI frame pacing: %.1f FPS over 30s, %zu draw calls, video=%d", fps, renderer.last_draw_calls(), int(app.watching()));
+#ifdef PLATFORM_PS5_NATIVE
+            log_video_memory(app.watching() ? "playing" : "idle");
+#endif
             report_frames = 0; report_start = now;
         }
     }
@@ -652,8 +697,14 @@ int run_interface(App& app, const Options& o) {
 
 int main(int argc, char** argv) {
 #ifdef PLATFORM_PS5
-    // The supplied framework requires this before application worker creation.
-    // It makes /data/Stremio usable and resolves app/data paths after the grant.
+    // VideoDec2 rejects module/compute-queue creation after the filesystem
+    // helper changes the process credentials. Prepare both under the title's
+    // original credentials, as required by the VLC PS5 decoder.
+    HwDecoder::load_module();
+#ifdef STREMIO_USE_LIBVLC
+    if (HwDecoder::available()) vlc_ps5_vdec_prepare();
+#endif
+    // Resolve application/data paths before starting application workers.
     auto native_storage = ps5_prepare_storage();
 #endif
     boot_step("entered application main");
@@ -695,10 +746,18 @@ int main(int argc, char** argv) {
         diagnostics_note("sdl", message ? message : "");
     }, nullptr);
 #ifdef PLATFORM_PS5
-    boot_step("loading system and decoder modules");
+    dlog("hwdec: module prepared before filesystem setup: %s",
+         HwDecoder::available() ? "loaded" : "unavailable");
+#ifdef STREMIO_USE_LIBVLC
+    const char* queue_stage = nullptr;
+    int queue_code = 0;
+    const int queue_status = vlc_ps5_vdec_queue_status(&queue_stage, &queue_code);
+    dlog("hwdec: pre-storage compute queue status=%d stage=%s rc=0x%08x",
+         queue_status, queue_stage ? queue_stage : "unknown", unsigned(queue_code));
+#endif
+    boot_step("loading system modules");
     ps5_load_modules();
-    HwDecoder::load_module();
-    boot_step("system and decoder modules ready");
+    boot_step("system modules ready");
 #endif
     int result = 1;
     boot_step("initializing SDL audio and events");
@@ -727,6 +786,7 @@ int main(int argc, char** argv) {
             initialized = app.init(o.base, o.data, !o.snapshot.empty());
             if (initialized) {
 #ifdef PLATFORM_PS5
+                stremio_heap_snapshot(STREMIO_HEAP_APP_INITIALIZED);
                 if (!diagnostics_ready) app.notify(app.ui_language == "it"
                     ? "Log non disponibili in /data/Stremio. Verifica elfldr e accesso al filesystem."
                     : "Logs unavailable in /data/Stremio. Check elfldr and filesystem access.", 12);

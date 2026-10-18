@@ -2,6 +2,7 @@
 """Bind packaged binaries to the complete source and asset tree that built them."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -20,7 +21,7 @@ def file_hash(path):
 
 def sources(root):
     result = {}
-    for name in ('src', 'native', 'vendor', 'third_party', 'tools', 'app'):
+    for name in ('src', 'native', 'vendor', 'third_party', 'tools', 'cmake', 'app'):
         folder = root / name
         if folder.exists():
             for path in sorted(folder.rglob('*')):
@@ -41,6 +42,16 @@ def tree_hash(entries):
 def artifacts(folder):
     return {p.relative_to(folder).as_posix(): file_hash(p) for p in sorted(folder.rglob('*'))
             if p.is_file() and p.name != 'build-receipt.json'}
+
+
+def playback_dependencies(root):
+    """Rehash the linked engine, including its modules and corresponding sources."""
+    work = Path(os.environ.get('STREMIO_VLC_ROOT', str(root / '.deps/vlc')))
+    subprocess.run([sys.executable, str(root / 'tools/vlc-build-receipt.py'), '--verify',
+                    str(work), 'ps5', str(root / 'vendor/vlc-ps5')],
+                   check=True, stdout=subprocess.DEVNULL)
+    path = work / 'build-receipt-ps5.json'
+    return {'receiptSha256': file_hash(path), 'details': json.loads(path.read_text())}
 
 
 def release_identity(root, app):
@@ -86,7 +97,9 @@ def main():
             raise SystemExit('Sources/assets changed since this app was built. Build the native target again.')
         if receipt['artifactsSha256'] != artifacts(app):
             raise SystemExit('Packaged app files changed after signing. Build the native target again.')
-        print('Build receipt verified: current sources and all packaged files match.')
+        if receipt.get('playbackDependencies') != playback_dependencies(root):
+            raise SystemExit('The VLC playback dependencies differ from the packaged application.')
+        print('Build receipt verified: current sources, playback dependencies and all packaged files match.')
         return
     root, app, elf, fingerprint = map(Path, args)
     version, title_id, content_version = release_identity(root, app)
@@ -108,6 +121,7 @@ def main():
             'openglManifestSha256': 'f4b91f672be037fbac3f82494f1225deaf4c227a03f37ac3ffa56abb213b943f',
         },
         'sourceFilesSha256': entries,
+        'playbackDependencies': playback_dependencies(root),
         'artifactsSha256': artifacts(app),
         'consoleValidation': 'Not performed; compilation and package validation only.',
     }

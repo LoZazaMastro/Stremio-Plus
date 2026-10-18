@@ -12,16 +12,28 @@ SDK=$PS5_PAYLOAD_SDK
 HB="$SDK/target/user/homebrew/lib"
 BP=$BOILERPLATE_DIR
 GL=$PS5_OPENGL_PREFIX
+VLC_ROOT=${STREMIO_VLC_ROOT:-"$ROOT/.deps/vlc"}
+VLC_PREFIX="$VLC_ROOT/prefix-ps5"
 TOOL="$BP/build/host/ps5-native-tool"
 B="$BUILD_DIR/native"
 OUT=$OUT_DIR
 [[ -x $TOOL && -f $BP/runtime/libc.prx ]] || { echo "Run ./build.sh deps first" >&2; exit 2; }
-mkdir -p "$B/stubs" "$OUT"
+[[ -s $VLC_ROOT/static-ps5/link.rsp ]] || {
+    echo "Run tools/setup-vlc.sh before building the VLC title" >&2; exit 2;
+}
+export STREMIO_VLC_ROOT="$VLC_ROOT"
+mkdir -p "$B/tools" "$B/stubs" "$OUT"
+PKG_CONFIG_WRAPPER="$B/tools/stremio-app-pkg-config"
+printf '#!/usr/bin/env bash\nexec bash %q "$@"\n' "$ROOT/tools/vlc-pkg-config.sh" > "$PKG_CONFIG_WRAPPER"
+chmod 0755 "$PKG_CONFIG_WRAPPER"
 python3 "$ROOT/tools/validate-app-metadata.py" "$APP_FILES/sce_sys/param.json"
+python3 "$ROOT/tools/vlc-build-receipt.py" --verify "$VLC_ROOT" ps5 "$ROOT/vendor/vlc-ps5"
+sha256sum "$VLC_ROOT/build-receipt-ps5.json" > "$B/vlc-dependencies.sha256"
 python3 "$ROOT/tools/build-receipt.py" --fingerprint "$ROOT" > "$B/source-tree.sha256"
 
 "$SDK/bin/prospero-cmake" -S "$ROOT" -B "$B/cmake" -DCMAKE_BUILD_TYPE=Release \
-    -DPS5_NATIVE=ON -DPS5_OPENGL_PREFIX="$GL"
+    -DPS5_NATIVE=ON -DPS5_OPENGL_PREFIX="$GL" -DSTREMIO_USE_LIBVLC=ON \
+    -DSTREMIO_VLC_ROOT="$VLC_ROOT" -DPKG_CONFIG_EXECUTABLE="$PKG_CONFIG_WRAPPER"
 # pipefail is deliberate: a compiler error can never package an older archive.
 cmake --build "$B/cmake" --parallel "$BUILD_JOBS" 2>&1 | tee "$B/compile.log"
 [[ -s $B/cmake/libstremio.a ]] || { echo "The Stremio Plus archive was not built" >&2; exit 1; }
@@ -29,12 +41,12 @@ cmake --build "$B/cmake" --parallel "$BUILD_JOBS" 2>&1 | tee "$B/compile.log"
 CC="$SDK/bin/prospero-clang"
 "$SDK/bin/prospero-clang++" -std=c++20 -O2 -fno-exceptions -fno-rtti \
     -c "$BP/tooling/native/app_crt.cpp" -o "$B/app_crt.o"
-for source in shims console_curl ps5_modules heap posix_fixes opengl_shims; do
+for source in shims console_curl ps5_modules heap posix_fixes opengl_shims vlc_memory; do
     "$CC" -O2 -I"$SDK/target/user/homebrew/include" -c "$HERE/$source.c" -o "$B/$source.o"
 done
 "$CC" -shared -nostdlib -fPIC -Wl,-soname,libSceVideodec2.sprx \
     "$HERE/stubs/videodec2.c" -o "$B/stubs/libSceVideodec2.so"
-"$SDK/bin/prospero-pkg-config" --static --libs sdl2 freetype2 libavformat libavcodec \
+bash "$ROOT/tools/vlc-pkg-config.sh" --static --libs sdl2 freetype2 libavformat libavcodec \
     libavutil libswresample libswscale libcurl libwebp > "$B/dependencies.txt"
 mapfile -d '' -t DEPS < <(python3 - "$B/dependencies.txt" <<'PY'
 import pathlib, shlex, sys
@@ -43,6 +55,22 @@ for flag in shlex.split(pathlib.Path(sys.argv[1]).read_text()):
         print(flag, end='\0')
 PY
 )
+VLC_INPUTS=()
+while IFS= read -r item; do
+    case $item in
+        -Wl,--start-group|-Wl,--end-group|-L*) ;;
+        -lm|-lc|-ldl|-lpthread|-latomic) ;;
+        -l*)
+            if [[ -s $VLC_PREFIX/lib/lib${item#-l}.a ]]; then
+                VLC_INPUTS+=("$VLC_PREFIX/lib/lib${item#-l}.a")
+            else
+                VLC_INPUTS+=("$item")
+            fi
+            ;;
+        *) VLC_INPUTS+=("$item") ;;
+    esac
+done < "$VLC_ROOT/static-ps5/link.rsp"
+VLC_INPUTS+=("$VLC_PREFIX/lib/libps5compat.a")
 BUILTINS="$(clang-18 --print-resource-dir)/lib/linux/libclang_rt.builtins-x86_64.a"
 [[ -s $BUILTINS ]] || { echo "Missing clang builtins; install libclang-rt-18-dev" >&2; exit 2; }
 # Payload libc includes inline mmap/mprotect syscalls. Native titles must use
@@ -50,26 +78,33 @@ BUILTINS="$(clang-18 --print-resource-dir)/lib/linux/libclang_rt.builtins-x86_64
 python3 "$ROOT/tools/native-startup.py" prepare-libc "$SDK/target/lib/libc.a" \
     "$B/libc-native-compat.a" --ar "$SDK/bin/prospero-ar" | tee "$B/native-libc.json"
 WRAPS=()
-for symbol in fcntl pthread_create pipe malloc free calloc realloc reallocf posix_memalign \
+for symbol in fcntl pthread_create pipe abort malloc free calloc realloc reallocf posix_memalign \
     memalign aligned_alloc valloc malloc_usable_size sceSystemServiceHideSplashScreen; do
     WRAPS+=("--wrap=$symbol")
 done
-"$SDK/bin/prospero-lld" -T "$HERE/ps5-app.ld" --eh-frame-hdr \
+"$SDK/bin/prospero-lld" --error-limit=0 -T "$HERE/ps5-app.ld" --eh-frame-hdr \
     --version-script "$BP/tooling/native/app-symbols.map" -e _start -o "$B/pie.elf" \
-    "${WRAPS[@]}" -L "$SDK/target/lib" -L "$HB" -L "$GL/lib" \
+    "${WRAPS[@]}" -L "$VLC_PREFIX/lib" -L "$SDK/target/lib" -L "$HB" -L "$GL/lib" \
     --undefined=ps5_agc_gate2_run \
+    --undefined=vlc_static_modules --defsym=__isthreaded=vlc_ps5_isthreaded \
     --allow-multiple-definition --defsym=__cxa_thread_atexit_impl=0 --defsym=__syscall=0 \
     "$B/app_crt.o" "$B/shims.o" "$B/console_curl.o" "$B/ps5_modules.o" \
-    "$B/heap.o" "$B/posix_fixes.o" "$B/opengl_shims.o" \
+    "$B/heap.o" "$B/posix_fixes.o" "$B/opengl_shims.o" "$B/vlc_memory.o" \
     --whole-archive "$B/cmake/libstremio.a" --no-whole-archive \
-    --start-group "$GL/lib/libPS5OpenGL.a" "$HB/libdht.a" "$HB/libminiupnpc.a" \
-    "$HB/libfribidi.a" "${DEPS[@]}" "$SDK/target/lib/libc++.a" \
+    --start-group "${VLC_INPUTS[@]}" "$GL/lib/libPS5OpenGL.a" "$HB/libdht.a" "$HB/libminiupnpc.a" \
+    "$VLC_PREFIX/lib/libfribidi.a" "${DEPS[@]}" "$SDK/target/lib/libc++.a" \
     "$SDK/target/lib/libc++abi.a" "$SDK/target/lib/libunwind.a" "$B/libc-native-compat.a" \
     "$BUILTINS" --end-group \
     --as-needed "$GL/lib/libSceAgc.so" "$GL/lib/libSceAgcDriver.so" "$SDK"/target/lib/*.so "$B"/stubs/*.so
 python3 "$ROOT/tools/native-startup.py" audit "$B/pie.elf" | tee "$B/native-startup-audit.json"
 python3 "$HERE/check_imports.py" "$B/pie.elf" "$GL/lib" "$SDK/target/lib" "$B/stubs" \
     | tee "$B/imports.log"
+if [[ ${STREMIO_NATIVE_LINK_ONLY:-0} == 1 ]]; then
+    echo "Native VLC link and startup imports verified: $B/pie.elf"
+    exit 0
+fi
+python3 "$ROOT/tools/vlc-build-receipt.py" --verify "$VLC_ROOT" ps5 "$ROOT/vendor/vlc-ps5"
+sha256sum --check --strict "$B/vlc-dependencies.sha256"
 "$TOOL" link --in "$B/pie.elf" --out "$B/eboot.elf" --stub-dir "$SDK/target/lib" \
     --stub "$GL/lib/libSceAgc.so" --stub "$GL/lib/libSceAgcDriver.so" \
     --stub "$B/stubs/libSceVideodec2.so" --module-sdk 0x02000009 \
@@ -89,6 +124,8 @@ python3 "$HERE/filesystem/validate-helper.py" "$B/download-writer.elf"
 APP=$(mktemp -d "$OUT/.$TITLE.assemble.XXXXXX")
 trap 'rm -rf -- "$APP"' EXIT
 mkdir -p "$APP/sce_sys" "$APP/sce_module"
+python3 "$ROOT/tools/vlc-build-receipt.py" --verify "$VLC_ROOT" ps5 "$ROOT/vendor/vlc-ps5"
+sha256sum --check --strict "$B/vlc-dependencies.sha256"
 "$TOOL" self --sign --in "$B/eboot.elf" --out "$APP/eboot.bin" --magic 0x1D3D154F
 (cd "$BP/runtime" && sha256sum --check --strict libc.prx.sha256)
 cp "$BP/runtime/libc.prx" "$APP/sce_module/libc.prx"

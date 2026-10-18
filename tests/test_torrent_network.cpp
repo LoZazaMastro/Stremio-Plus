@@ -263,12 +263,20 @@ int main(int argc, char** argv) {
 		StopEngine shutdown;
 		std::atomic<bool> abort{false}, finished{false};
 		json peer_trace = json::array();
+		std::vector<double> stats_wait_ms;
+		double stats_next_sample = 0;
 		const double start = now_seconds();
 		std::thread watchdog([&] {
 			const double deadline = now_seconds() + watchdog_seconds;
 			double next_trace = start + 10;
 			while (!finished && now_seconds() < deadline) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				const double before_stats = now_seconds();
+				if (before_stats >= stats_next_sample) {
+					stats_next_sample = before_stats + 0.05;
+					bt::Engine::get().stats(torrent->hex);
+					stats_wait_ms.push_back((now_seconds() - before_stats) * 1000);
+				}
 				if (peers <= 80 || now_seconds() < next_trace) continue;
 				next_trace += 10;
 				std::lock_guard<std::mutex> lock(impl.mu);
@@ -348,6 +356,10 @@ int main(int argc, char** argv) {
 			report["request_probe_handoffs"] = torrent->request_probe_handoffs;
 			report["timeout_cancels"] = torrent->timeout_cancels;
 			#endif
+			#ifdef BT_BATCHED_PICKER
+			report["picker_passes"] = torrent->picker_passes;
+			report["received_batches"] = torrent->received_batches;
+			#endif
 		}
 		bt::Engine::get().shutdown();
 		rusage process_after{}; getrusage(RUSAGE_SELF, &process_after);
@@ -357,6 +369,10 @@ int main(int argc, char** argv) {
 		};
 		report["network_thread_cpu_s"] = network_cpu_seconds;
 		report["fixture_total_cpu_s"] = cpu_seconds(process_after) - cpu_seconds(process_before);
+		std::sort(stats_wait_ms.begin(), stats_wait_ms.end());
+		report["stats_samples"] = stats_wait_ms.size();
+		report["stats_wait_max_ms"] = stats_wait_ms.empty() ? 0 : stats_wait_ms.back();
+		report["stats_wait_p99_ms"] = stats_wait_ms.empty() ? 0 : stats_wait_ms[std::min(stats_wait_ms.size() - 1, stats_wait_ms.size() * 99 / 100)];
 		report["peer_trace"] = peer_trace;
 		uint64_t requested = 0, sent = 0, cancels = 0, fast_prepared_bytes = 0;
 		int fast_admitted = 0, fast_accepted = 0, fast_handshaken = 0;

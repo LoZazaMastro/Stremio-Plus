@@ -145,22 +145,23 @@ int Player::PacketQueue::serial() const {
 // ---------------------------------------------------------------------------
 // Lifecycle
 
+Player::Player() = default;
 Player::~Player() { close(); }
 
 void Player::open(const Options& opts) {
 	close();
 	opts_ = opts;
 	local_file_ = !opts.growing_download && regular_local_file(opts.url);
-	// A prior viewing offset says nothing about the current written prefix
-	// after a restart. Opening an incomplete file must start at its header;
-	// later user seeks are admitted from actual packet/index positions.
+	// Only the caller's validated download provenance may admit a saved time
+	// into an incomplete file; a byte percentage is never a time boundary.
 	if (opts_.start > 0 && progressive_download()) {
-		dlog("download playback: saved position deferred until the file is complete");
-		opts_.start = 0;
+		const double proven = std::isfinite(opts_.progressive_resume_limit) ?
+			std::max(0.0, opts_.progressive_resume_limit) : 0.0;
+		opts_.start = std::min(opts_.start, proven);
 	}
 	abort_ = false;
 	reposition_io_ = false;
-	progressive_seek_limit_ = 0;
+	progressive_seek_limit_ = opts_.start;
 	quick_ = false;
 	eof_ = false;
 	paused_ = false;
@@ -1234,6 +1235,8 @@ void Player::set_paused(bool p) {
 	apply_run_state();
 }
 
+bool Player::video_expected() const { return video_stream_.load() >= 0; }
+
 bool Player::buffering(int* percent) const {
 	const bool local = complete_local_input();
 	if (percent) *percent = local ? 100 : buffer_percent_.load();
@@ -1468,6 +1471,10 @@ std::vector<Player::Track> Player::subtitle_tracks() const {
 }
 
 void Player::select_audio(int stream) { audio_switch_ = stream; }
+
+void Player::select_subtitle(int) {
+	// The reference demuxer already decodes every supported text track.
+}
 
 std::string Player::embedded_subtitle(int stream, double t) {
 	std::lock_guard<std::mutex> lock(sub_m_);

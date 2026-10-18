@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "app.h"
+#include "download_metadata.h"
 #include "http.h"
 #include "torrent/engine.h"
 #include "torrent/torrent_stream.h"
@@ -118,6 +119,7 @@ void App::watch_start(const std::string& url, const std::vector<std::string>& he
 	o.start = start;
 	o.audio_langs = pref_audio_langs();
 	o.growing_download = w_growing_download_;
+	o.progressive_resume_limit = w_growing_download_ ? start : 0;
 	if (before_playback) before_playback();
 	player_.open(o);
 
@@ -131,7 +133,12 @@ void App::watch_start(const std::string& url, const std::vector<std::string>& he
 	w_subtitle = subtitle;
 	w_sub_size = settings_.sub_size;
 	w_start_ = start;
+	w_observed_position_ = -1; w_observed_duration_ = 0;
+	w_observed_download_prefix_ = 0; w_observed_download_total_ = -1;
+	w_hold_download_bookmark_ = false;
 	w_started_ = false;
+	w_frame_presented_ = false;
+	w_frame_failures_ = 0;
 	w_heavy_warned_ = false;
 	w_menu_built_ = false;
 	w_auto_sub_done_ = false;
@@ -244,6 +251,20 @@ void App::watch_show_info() {
 	}
 }
 
+void App::video_frame_presented() {
+	if (watching_ && !w_ended_handled_) {
+		w_frame_presented_ = true;
+		w_frame_failures_ = 0;
+	}
+}
+
+void App::video_frame_rejected() {
+	if (!watching_ || w_ended_handled_ || ++w_frame_failures_ < 3) return;
+	dlog("video: GPU output rejected three consecutive decoded pictures; stopping playback");
+	watch_stop(false);
+	show_toast("The video frame could not be displayed.", 8);
+}
+
 void App::watch_update() {
 	// A resolver can still show the launch overlay after the previous player
 	// reached Ended. Only an actually opened player owns an end-of-file event.
@@ -284,10 +305,12 @@ void App::watch_update() {
 			launch_status = s;
 			dirty("launch_status");
 		}
-		if (st == Player::State::Playing && !buffering) {
+		if (w_frame_presented_ ||
+		    (!player_.video_expected() && st == Player::State::Playing && !buffering)) {
 			launch_progress = 1;
 			launch_visible = false;
 			w_started_ = true;
+			watch_show_info();
 			dirty_all();
 		}
 	}
@@ -310,9 +333,22 @@ void App::watch_update() {
 
 	double pos = player_.position();
 	double dur = player_.duration();
+	if (st == Player::State::Playing && w_started_ && std::isfinite(pos) && pos >= 0 &&
+	    std::isfinite(dur) && (dur > 0 || (w_offline_ && dur == 0))) {
+		w_observed_position_ = pos; w_observed_duration_ = dur;
+		if (w_growing_download_ && w_growing_download_->state) {
+			const auto prefix = w_growing_download_->state->snapshot();
+			if (prefix.generation == w_growing_download_->generation && prefix.total == w_growing_download_->total) {
+				w_observed_download_prefix_ = prefix.available;
+				w_observed_download_total_ = prefix.total;
+			}
+		}
+	}
 
 	// Subtitles, every frame.
 	std::string sub;
+	player_.select_subtitle(w_sub_active_ >= 0 && w_sub_active_ < int(w_subs_.size())
+	    ? w_subs_[w_sub_active_].embedded : -1);
 	if (w_sub_active_ >= 0 && w_sub_active_ < int(w_subs_.size())) {
 		WatchSub& ws = w_subs_[w_sub_active_];
 		double t = pos - w_sub_delay_;
@@ -384,7 +420,7 @@ void App::watch_update() {
 
 void App::watch_stop(bool ended) {
 	watch_cancel_next_episode();
-	if (w_started_ && !ended && !w_ended_handled_) watch_save_progress(true);
+	if (watching_ && w_started_ && !ended && !w_ended_handled_) watch_save_progress(true);
 	if (ended && !w_video_id_.empty() && watched_.insert(w_video_id_).second) {
 		save_progress();
 	}
@@ -397,6 +433,8 @@ void App::watch_stop(bool ended) {
 	w_download_id_.clear(); w_download_poster_.clear();
 	w_download_background_.clear(); w_download_logo_.clear();
 	watching_ = false;
+	w_frame_presented_ = false;
+	w_frame_failures_ = 0;
 	launch_visible = false;
 	launch_progress = -1;
 	t_visible = false;
@@ -417,8 +455,26 @@ void App::watch_stop(bool ended) {
 
 void App::watch_save_progress(bool final) {
 	double pos = player_.position(), dur = player_.duration();
-	if (dur <= 0 || w_item_.id.empty()) return;  // live streams
-	bool finished = pos > dur * 0.9;
+	const auto state = player_.state();
+	if ((state == Player::State::Failed || state == Player::State::Idle || !std::isfinite(pos) ||
+	     !std::isfinite(dur) || dur <= 0) && w_observed_position_ >= 0) {
+		pos = w_observed_position_; dur = w_observed_duration_;
+	}
+	if (w_growing_download_) {
+		// This sample was taken after presentation, together with its available
+		// prefix. A pending seek target cannot establish progressive provenance.
+		if (w_observed_position_ < 0) return;
+		pos = w_observed_position_; dur = w_observed_duration_;
+	}
+	if (!std::isfinite(pos) || pos < 0 || !std::isfinite(dur) || dur < 0 ||
+	    (dur == 0 && !w_offline_) || w_item_.id.empty()) return;
+	const auto video_key = video_progress_key(w_item_.type, w_item_.id, w_video_id_);
+	if (w_hold_download_bookmark_) {
+		const auto saved = video_progress_.find(video_key);
+		if (saved != video_progress_.end() && pos < saved->second.time) return;
+		w_hold_download_bookmark_ = false;
+	}
+	bool finished = dur > 0 && pos > dur * 0.9;
 	if (!final && pos < 1) return;
 
 	Progress& p = progress_[w_item_.id];
@@ -429,6 +485,20 @@ void App::watch_save_progress(bool final) {
 	p.time = finished ? 0 : pos;
 	p.duration = dur;
 	p.updated = now_epoch_ms();
+	p.download_id.clear(); p.download_source.clear(); p.download_prefix = 0; p.download_total = -1;
+	if (w_offline_ && !w_download_id_.empty()) {
+		const auto entry = downloads_.find(w_download_id_);
+		if (entry && !entry->source_identity.empty()) {
+			if (w_growing_download_ && w_observed_position_ >= 0 && pos <= w_observed_position_ &&
+			    w_observed_download_total_ > 0 && w_observed_download_prefix_ > 0) {
+				p.download_prefix = w_observed_download_prefix_; p.download_total = w_observed_download_total_;
+			} else if (entry->state == DownloadState::Complete) {
+				p.download_prefix = entry->done; p.download_total = entry->total;
+			}
+			if (p.download_prefix > 0) { p.download_id = entry->id; p.download_source = entry->source_identity; }
+		}
+	}
+	video_progress_[video_key] = p;
 	if (finished) watched_.insert(w_video_id_);
 	save_progress();
 
@@ -887,10 +957,8 @@ void App::watch_offer_next_episode() {
 			local_video.id = entry.video_id;
 			local_video.season = entry.season; local_video.episode = entry.episode;
 			local_video.raw["season"] = entry.season;
-			if (local_video.title.empty()) {
-				const auto separator = entry.subtitle.find(" · ");
-				local_video.title = separator == std::string::npos ? entry.subtitle : entry.subtitle.substr(separator + 4);
-			}
+			if (local_video.title.empty()) local_video.title = entry.episode_title.empty()
+			    ? download_legacy_episode_title(entry.season, entry.episode, entry.subtitle) : entry.episode_title;
 			next_episode_download_id_ = entry.id;
 			local_art = entry.background_path.empty() ? entry.poster_path : entry.background_path;
 			next = &local_video;

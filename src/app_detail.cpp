@@ -6,6 +6,8 @@
 #include <cstdlib>
 
 #include "app.h"
+#include "download_metadata.h"
+#include "download_text.h"
 #include "http.h"
 #include "stream_presentation.h"
 #include "torrent/engine.h"
@@ -940,11 +942,133 @@ void App::detail_button(Btn b) {
 // ---------------------------------------------------------------------------
 // Playing
 
+bool App::play_saved_stream(const Stream& stream) {
+	DownloadRequest request;
+	request.media_id = d_item_.id;
+	request.type = d_item_.type;
+	request.video_id = d_video_id_;
+	request.stream = stream;
+	download_episode_metadata(request, d_meta_loaded_ ? d_meta_ : Meta{});
+	if (!stream.url.empty() && !stream.response_headers.empty() && !server().empty()) {
+		request.stream.url = stream_proxy_url(stream, server());
+		request.stream.request_headers.clear();
+		request.stream.response_headers.clear();
+		if (request.stream.url.empty()) return false;
+	}
+	const auto entry = downloads_.find_matching(request);
+	if (!entry) return false;
+	if (entry->state == DownloadState::Complete || entry->playable_while_downloading) {
+		play_download(entry->id, entry->state != DownloadState::Complete);
+		return true;
+	}
+	const bool italian = settings_.ui_language == "it";
+	if (offline_ || !signed_in()) {
+		show_toast(italian ? "Collegati per riprendere questo download." : "Connect to resume this download.", 5);
+		return true;
+	}
+	if (download_relocation_active() || downloads_.relocation_status().pending) {
+		show_toast(italian ? "Completa lo spostamento dei download prima di riprodurre questo video." :
+		                     "Finish moving downloads before playing this video.", 6);
+		return true;
+	}
+	if (watching_) watch_stop(false);
+	if (launch_cancel_) launch_cancel_->store(true);
+	launch_cancel_ = std::make_shared<std::atomic<bool>>(false);
+	saved_stream_download_ = entry->id;
+	saved_stream_generation_ = ++w_gen_;
+	saved_stream_poll_at_ = 0;
+	saved_stream_resuming_ = entry->state == DownloadState::Paused || entry->state == DownloadState::Failed;
+	// The existing download keeps sole ownership of its transfer and writer.
+	// Readiness is observed through published snapshots, never a second engine.
+	w_offline_ = true;
+	w_download_id_ = entry->id;
+	w_download_poster_ = entry->poster_path;
+	w_download_background_ = entry->background_path;
+	w_download_logo_ = entry->logo_path;
+	w_item_ = d_item_;
+	w_item_.name = entry->title;
+	w_video_id_ = entry->video_id;
+	launch_visible = true;
+	launch_title = entry->title;
+	launch_image = entry->background_path;
+	launch_logo = entry->logo_path;
+	launch_progress = entry->progress >= 0 ? float(entry->progress) : -1;
+	launch_status = italian ? "Preparazione del download..." : "Preparing download...";
+	t_visible = false;
+	dirty_all();
+	if (saved_stream_resuming_) {
+		const auto id = entry->id;
+		const auto cancel = launch_cancel_;
+		const int generation = saved_stream_generation_;
+		bg<bool>([manager = &downloads_, id, cancel] {
+			return !cancel->load() && manager->resume(id);
+		}, [this, id, cancel, generation](bool& resumed) {
+			if (cancel->load() || generation != w_gen_ || saved_stream_download_ != id) return;
+			saved_stream_resuming_ = false;
+			saved_stream_poll_at_ = 0;
+			if (!resumed) {
+				const auto current = downloads_.find(id);
+				if (!current || current->state == DownloadState::Paused || current->state == DownloadState::Failed) {
+					launch_visible = false;
+					saved_stream_download_.clear();
+					const bool it = settings_.ui_language == "it";
+					const auto error = current && !current->error.empty() ? download_error_text(current->error, it) :
+					    (it ? "Impossibile riprendere il download." : "The download could not be resumed.");
+					show_toast(error, 7);
+					dirty_all();
+				}
+			}
+		});
+	}
+	return true;
+}
+
+void App::saved_stream_tick() {
+	if (saved_stream_download_.empty()) return;
+	if (saved_stream_generation_ != w_gen_ || !launch_visible ||
+	    !launch_cancel_ || launch_cancel_->load()) {
+		saved_stream_download_.clear();
+		return;
+	}
+	const double now = now_seconds();
+	if (saved_stream_resuming_ || now < saved_stream_poll_at_) return;
+	saved_stream_poll_at_ = now + 0.25;
+	const auto entry = downloads_.find(saved_stream_download_);
+	const bool italian = settings_.ui_language == "it";
+	if (!entry || entry->state == DownloadState::Failed || entry->state == DownloadState::Paused) {
+		launch_visible = false;
+		saved_stream_download_.clear();
+		show_toast(entry && !entry->error.empty() ? download_error_text(entry->error, italian) :
+		    (italian ? "Il download non è in corso. Riprendilo da Download." :
+		               "This download is not running. Resume it from Downloads."), 7);
+		dirty_all();
+		return;
+	}
+	if (entry->state == DownloadState::Complete || entry->playable_while_downloading) {
+		launch_visible = false;
+		saved_stream_download_.clear();
+		play_download(entry->id, entry->state != DownloadState::Complete);
+		dirty_all();
+		return;
+	}
+	launch_progress = entry->progress >= 0 ? float(entry->progress) : -1;
+	if (entry->state == DownloadState::Queued || entry->state == DownloadState::Waiting)
+		launch_status = italian ? "In attesa del download selezionato..." : "Waiting for the selected download...";
+	else {
+		const int percent = std::max(0, int(launch_progress * 100));
+		launch_status = (italian ? "Preparazione del download " : "Preparing download ") + std::to_string(percent) +
+		    (italian ? "% · Riproduzione dal 5%" : "% · Playback starts at 5%");
+	}
+	dirty("launch_progress");
+	dirty("launch_status");
+}
+
 void App::play_stream(const Stream& st, bool transcode) {
 	if (!st.playable()) {
 		show_toast(st.unsupported_reason.empty() ? "This source cannot be played on this device." : st.unsupported_reason, 8);
 		return;
 	}
+	if (!transcode && play_saved_stream(st)) return;
 	std::string srv = server();
 	bool torrent = st.url.empty() && !st.info_hash.empty();
 	// Torrents play with the app's own engine, unless Settings says to use
@@ -988,9 +1112,13 @@ void App::play_stream(const Stream& st, bool transcode) {
 
 	// Resume where it was left.
 	double start = 0;
-	for (auto& cw : continue_watching()) {
+	const auto saved = video_progress_.find(video_progress_key(w_item_.type, w_item_.id, w_video_id_));
+	if (saved != video_progress_.end()) {
+		if (resumable_progress(saved->second, w_video_id_) &&
+		    (saved->second.duration <= 0 || saved->second.time < saved->second.duration * 0.95)) start = saved->second.time;
+	} else for (const auto& cw : continue_watching()) {
 		if (cw.id != w_item_.id) continue;
-		bool same_video = cw.video_id.empty() || cw.video_id == w_video_id_ || !d_series;
+		const bool same_video = cw.video_id == w_video_id_ || (!d_series && cw.video_id.empty());
 		if (same_video && cw.offset > 5 && (cw.duration <= 0 || cw.offset < cw.duration * 0.95)) start = cw.offset;
 	}
 

@@ -22,6 +22,7 @@
 #include <deque>
 #include <map>
 #include <mutex>
+#include <new>
 #include <set>
 #include <thread>
 
@@ -60,9 +61,12 @@ const int kMaxPeers = 80;            // connected at once
 const int kMaxConnecting = 80;       // connection attempts at once
 const double kConnectTimeout = 4;
 const double kHandshakeTimeout = 15;
-const double kRequestTimeout = 15;   // a block not here by then is asked from someone else
+const double kRequestTimeout = 15;   // useful-payload idle timeout and urgent-head handoff age
+const double kStallRecoveryDelay = 30;
 const double kChokedTimeout = 60;    // a peer that keeps us choked this long makes room for another
 const uint32_t kMaxMessage = 2u << 20;
+const size_t kPeerReceiveBudget = 256u << 10;
+const int kBulkRescueBlocks = 16;
 // How far ahead of the player to download: half the 6 GB cache, about a
 // quarter of an hour of a 4K remux, to ride out slow patches in the swarm.
 const int64_t kMaxReadahead = 3ll << 30;
@@ -252,6 +256,7 @@ struct Peer {
 	double recent_useful_sample = 0;
 	unsigned handoff_probe_requests = 0;
 	bool turnover_retired = false;
+	bool recovery_retired = false;
 	bool dead = false;
 };
 
@@ -297,6 +302,7 @@ struct Torrent : std::enable_shared_from_this<Torrent> {
 	std::vector<sockaddr_in> tracker_peers;
 	std::atomic<bool> want_peers{true};
 	std::atomic<bool> idle{false};
+	std::atomic<uint64_t> discovery_generation{0};
 	std::vector<std::thread> tracker_threads;
 
 	// Metadata
@@ -305,6 +311,8 @@ struct Torrent : std::enable_shared_from_this<Torrent> {
 	int64_t meta_size = 0;
 	std::vector<uint8_t> meta_got;
 	std::vector<double> meta_asked;
+	int metadata_waiters = 0;
+	double metadata_progress_at = 0;
 	int64_t plen = 0, total = 0;
 	int npieces = 0;
 	std::string hashes;
@@ -337,6 +345,8 @@ struct Torrent : std::enable_shared_from_this<Torrent> {
 	std::map<int, int> reader_files;
 	std::set<int> auxiliary_readers;
 	std::set<int> download_readers;
+	struct WaitingRead { int piece; double since; const std::atomic<bool>* cancel; };
+	std::map<int, WaitingRead> waiting_readers;
 	bool used_download_memory = false;
 	int next_reader = 1;
 	double last_reader = 0;
@@ -352,9 +362,13 @@ struct Torrent : std::enable_shared_from_this<Torrent> {
 	std::map<uint64_t, Known> known;
 	double next_refill = 0;
 	double next_turnover = 0, last_payload = 0;
+	double last_recovery = 0, next_recovery = 0;
+	unsigned recovery_attempts = 0, stall_recoveries = 0;
 	unsigned turnover_count = 0;
 	uint64_t request_handoffs = 0, request_probe_handoffs = 0, timeout_cancels = 0;
+	uint64_t request_head_handoffs = 0;
 	uint64_t duplicate_requests = 0;
+	uint64_t picker_passes = 0, received_batches = 0;
 	// Smart ban: peers caught sending bad data (by IP), and the blocks of
 	// failed pieces still to be judged.
 	std::set<uint32_t> banned;
@@ -699,13 +713,16 @@ double handoff_useful_rate(Torrent* t, Peer* p, double now) {
 	                p->useful_window / std::max(1.0, now - t->rate_at)));
 }
 
-// Keep two active reservations as the hard limit, but do not let two
-// slow senders hold a download block indefinitely after a proven faster peer
-// joins. Cancel one overdue slow reservation before assigning its slot. This
-// does not increase the ledger limit; data already on the wire may still arrive.
-bool make_duplicate_slot(Torrent* t, Peer* target, Piece& piece, int index, size_t block, double now) {
+// Replace an old reservation atomically, keeping two owners as the hard limit.
+// Downloads normally require a proven faster peer or a small newcomer probe;
+// an overdue playback/download head also has a bounded deadline handoff.
+bool make_duplicate_slot(Torrent* t, Peer* target, Piece& piece, int index, size_t block, double now,
+                         int* overdue_head_room = nullptr) {
 	if (piece.asked[block] == 1) return true;
-	if (piece.asked[block] != 2 || t->download_readers.empty()) return false;
+	if (piece.asked[block] != 2) return false;
+	const bool overdue_head = overdue_head_room && *overdue_head_room > 0 &&
+	                          block < piece.asked_at.size() && now - piece.asked_at[block] > kRequestTimeout;
+	if (t->download_readers.empty() && !overdue_head) return false;
 	// A fresh peer with no measured capacity can otherwise be locked out by
 	// two old reservations on every block. Permit at most 256 KiB of trial
 	// requests, replacing only old, demonstrably slow owners. This lifetime
@@ -713,11 +730,14 @@ bool make_duplicate_slot(Torrent* t, Peer* target, Piece& piece, int index, size
 	const double target_rate = handoff_useful_rate(t, target, now);
 	const bool probe = target_rate < 128 * 1024 && target->handoff_probe_requests < 16 &&
 	                   target->since > 0 && now >= target->since && now - target->since < 10;
-	if (!probe && (!target->got_any || target_rate < 128 * 1024 ||
-	               target->payload_at <= 0 || now - target->payload_at >= 15)) return false;
+	const bool measured_target = target->got_any && target_rate >= 128 * 1024 &&
+	                             target->payload_at > 0 && now - target->payload_at < 15;
+	const bool ordinary_handoff = !t->download_readers.empty() && (probe || measured_target);
+	if (!ordinary_handoff && !overdue_head) return false;
 	const uint32_t begin = uint32_t(block) * kBlock;
 	Peer* slowest = nullptr;
 	size_t selected = 0;
+	bool selected_overdue = false;
 	int owners = 0;
 	for (const auto& candidate : t->peers) {
 		Peer* peer = candidate.get();
@@ -728,9 +748,13 @@ bool make_duplicate_slot(Torrent* t, Peer* target, Piece& piece, int index, size
 			++owners;
 			if (peer == target) return false;
 			const double owner_rate = handoff_useful_rate(t, peer, now);
-			if (now - value.at < kUrgentRetry ||
-			    (probe ? owner_rate >= 64 * 1024 : target_rate < owner_rate * 4)) continue;
-			if (!slowest || owner_rate < handoff_useful_rate(t, slowest, now)) { slowest = peer; selected = request; }
+			const bool ordinary = ordinary_handoff && now - value.at >= kUrgentRetry &&
+			                      (probe ? owner_rate < 64 * 1024 : target_rate >= owner_rate * 4);
+			const bool expired = overdue_head && now - value.at > kRequestTimeout;
+			if (!ordinary && !expired) continue;
+			if (!slowest || owner_rate < handoff_useful_rate(t, slowest, now)) {
+				slowest = peer; selected = request; selected_overdue = !ordinary;
+			}
 		}
 	}
 	// A stale/inconsistent reservation count is not permission to cancel work.
@@ -740,12 +764,17 @@ bool make_duplicate_slot(Torrent* t, Peer* target, Piece& piece, int index, size
 	release_request(t, previous);
 	slowest->reqs.erase(slowest->reqs.begin() + long(selected));
 	++t->request_handoffs;
-	if (probe) { ++target->handoff_probe_requests; ++t->request_probe_handoffs; }
+	if (selected_overdue) { --*overdue_head_room; ++t->request_head_handoffs; }
+	else if (probe) { ++target->handoff_probe_requests; ++t->request_probe_handoffs; }
 	return piece.asked[block] == 1;
 }
 
 void pick_urgent_duplicates(Torrent* t, Peer* p, double now, int& room) {
 	const size_t urgent = std::min(t->wanted.size(), std::max<size_t>(2, t->urgent_wanted));
+	// Tail delivery must not protect a missing head forever. Reassign at most
+	// one old head reservation per pass even when the new peer is not four
+	// times faster. Fresh owners and the rest of their queues stay untouched.
+	int overdue_head_room = 1;
 	for (size_t wi = 0; wi < urgent && room > 0; wi++) {
 		int piece = t->wanted[wi];
 		if (t->have[size_t(piece)] || t->disk_pending.count(piece) || !peer_has(p, piece)) continue;
@@ -760,7 +789,7 @@ void pick_urgent_duplicates(Torrent* t, Peer* p, double now, int& room) {
 			for (const auto& request : p->reqs)
 				if (request.piece == uint32_t(piece) && request.begin == begin) { mine = true; break; }
 			if (mine) continue;
-			if (!make_duplicate_slot(t, p, pc, piece, b, now)) continue;
+			if (!make_duplicate_slot(t, p, pc, piece, b, now, &overdue_head_room)) continue;
 			uint32_t len = uint32_t(std::min<int64_t>(kBlock, t->piece_size(piece) - begin));
 			send_request(p, uint32_t(piece), begin, len, now);
 			++t->duplicate_requests;
@@ -775,14 +804,18 @@ void pick_urgent_duplicates(Torrent* t, Peer* p, double now, int& room) {
 // from the unconditional head rescue above: bulk duplicates are a last resort,
 // never exceed two copies, and fresh requests keep their one-second grace.
 void pick_download_stragglers(Torrent* t, Peer* p, double now, int& room) {
-	if (t->download_readers.empty() || room <= 0) return;
+	if (t->download_readers.empty() || room <= 0 || !p->reqs.empty()) return;
+	// Endgame work uses an idle peer and a small request batch. A peer still
+	// serving unique blocks must not fill its remaining queue with duplicates.
+	// Urgent playback/download heads retain the separate immediate rescue.
+	int rescue_room = std::min(room, kBulkRescueBlocks);
 	for (int piece : t->wanted) {
-		if (room <= 0) break;
+		if (rescue_room <= 0) break;
 		if (t->have[size_t(piece)] || !peer_has(p, piece)) continue;
 		auto it = t->active.find(piece);
 		if (it == t->active.end()) continue;
 		Piece& pc = it->second;
-		for (size_t b = 0; b < pc.got.size() && room > 0; ++b) {
+		for (size_t b = 0; b < pc.got.size() && rescue_room > 0; ++b) {
 			if (pc.got[b] || pc.asked[b] == 0 || pc.asked[b] > 2 || b >= pc.asked_at.size() ||
 			    now - pc.asked_at[b] < kUrgentRetry) continue;
 			const uint32_t begin = uint32_t(b) * kBlock;
@@ -795,6 +828,7 @@ void pick_download_stragglers(Torrent* t, Peer* p, double now, int& room) {
 			++t->duplicate_requests;
 			++pc.asked[b];
 			--room;
+			--rescue_room;
 		}
 	}
 }
@@ -804,6 +838,7 @@ void pick(Torrent* t, Peer* p, double now) {
 	if (t->wanted_dirty) refresh_wanted(t);
 	int room = std::min(p->max_reqs, p->reqq) - int(p->reqs.size());
 	if (room <= 0) return;
+	++t->picker_passes;
 	
 	const size_t urgent = std::min(t->wanted.size(), std::max<size_t>(2, t->urgent_wanted));
 	for (size_t wi = 0; wi < t->wanted.size() && room > 0; wi++) {
@@ -821,12 +856,18 @@ void pick(Torrent* t, Peer* p, double now) {
             const int64_t bytes = t->piece_size(piece);
             if (!make_payload_room_locked(t, bytes, wi < urgent)) continue;
             Piece pc;
-            pc.memory = std::make_shared<PayloadReservation>(bytes);
-            pc.data.resize(size_t(bytes));
-			pc.got.assign(size_t(t->blocks(piece)), 0);
-			pc.asked.assign(size_t(t->blocks(piece)), 0);
-			pc.asked_at.assign(size_t(t->blocks(piece)), 0);
-			it = t->active.emplace(piece, std::move(pc)).first;
+            try {
+                pc.memory = std::make_shared<PayloadReservation>(bytes);
+                pc.data.resize(size_t(bytes));
+                pc.got.assign(size_t(t->blocks(piece)), 0);
+                pc.asked.assign(size_t(t->blocks(piece)), 0);
+                pc.asked_at.assign(size_t(t->blocks(piece)), 0);
+                it = t->active.emplace(piece, std::move(pc)).first;
+            } catch (const std::bad_alloc&) {
+                // Nothing has been requested or published for this piece.
+                // The reservation rolls back and the next scheduler pass retries.
+                return;
+            }
 		}
 		Piece& pc = it->second;
 		int nb = t->blocks(piece);
@@ -1100,7 +1141,7 @@ void metadata_done(Torrent* t) {
 		std::fill(t->meta_asked.begin(), t->meta_asked.end(), 0);
 		return;
 	}
-	make_dirs(impl().data_dir + "/torrents");
+	make_shared_dirs(impl().data_dir + "/torrents");
 	write_file(impl().data_dir + "/torrents/" + t->hex + ".info", t->meta);
 	for (auto& p : t->peers)
 		if (p->state == Peer::Active) apply_bitfields(t, p.get());
@@ -1139,6 +1180,7 @@ void on_metadata_msg(Torrent* t, Peer* p, const char* data, size_t n, double now
 		if (n - used != want || t->meta_got[size_t(piece)]) return;
 		memcpy(&t->meta[off], data + used, want);
 		t->meta_got[size_t(piece)] = 1;
+		t->metadata_progress_at = now;
 		if (std::all_of(t->meta_got.begin(), t->meta_got.end(), [](uint8_t g) { return g != 0; })) metadata_done(t);
 	} else if (type == 2 && piece >= 0 && size_t(piece) < t->meta_asked.size()) {
 		t->meta_asked[size_t(piece)] = 0;  // rejected: ask someone else
@@ -1470,7 +1512,6 @@ void on_message(Torrent* t, Peer* p, uint8_t id, const char* pl, size_t n, doubl
 		break;
 	case 7:  // piece
 		if (n >= 8) on_block(t, p, be32(pl), be32(pl + 4), pl + 8, n - 8, now);
-		if (!p->dead) pick(t, p, now);
 		break;
 	case 14:  // have all (fast extension)
 		p->has_all_early = true;
@@ -1491,6 +1532,7 @@ void on_message(Torrent* t, Peer* p, uint8_t id, const char* pl, size_t n, doubl
 }
 
 void process_input(Torrent* t, Peer* p, double now) {
+	bool received_piece = false;
 	if (p->state == Peer::Handshaking) {
 		if (p->in.size() - p->in_off < 68) return;
 		const char* h = p->in.data() + p->in_off;
@@ -1519,7 +1561,10 @@ void process_input(Torrent* t, Peer* p, double now) {
 		const char* m = p->in.data() + p->in_off + 4;
 		p->in_off += 4 + len;
 		p->last_data = now;
-		if (len > 0) on_message(t, p, uint8_t(m[0]), m + 1, len - 1, now);
+		if (len > 0) {
+			received_piece |= uint8_t(m[0]) == 7;
+			on_message(t, p, uint8_t(m[0]), m + 1, len - 1, now);
+		}
 	}
 	if (p->in_off == p->in.size()) {
 		p->in.clear();
@@ -1527,6 +1572,13 @@ void process_input(Torrent* t, Peer* p, double now) {
 	} else if (p->in_off > (256u << 10)) {
 		p->in.erase(0, p->in_off);
 		p->in_off = 0;
+	}
+	// All replies in this bounded receive batch release their request slots
+	// together. Refilling once avoids rescanning pieces and duplicate owners
+	// for every 16 KiB block while the verifier and readers wait for the lock.
+	if (received_piece && !p->dead) {
+		++t->received_batches;
+		pick(t, p, now);
 	}
 }
 
@@ -1685,7 +1737,7 @@ void on_writable(Torrent* t, Peer* p, double now) {
 
 void on_readable(Torrent* t, Peer* p, double now) {
 	char buf[64 * 1024];
-	for (int i = 0; i < 16 && !p->dead; i++) {
+	for (size_t i = 0; i < kPeerReceiveBudget / sizeof(buf) && !p->dead; i++) {
 		if (i > 0 && !readable_now(p->fd)) break;
 		ssize_t n = recv(p->fd, buf, sizeof(buf), 0);
 		if (n > 0) {
@@ -1709,7 +1761,9 @@ void close_peer(Torrent* t, Peer* p, double now) {
 	p->fd = -1;
 	Known& k = t->known[p->key];
 	k.connected = false;
-	if (p->state == Peer::Active && p->got_any) {
+	if (p->recovery_retired) {
+		k.retry_at = now + 1;
+	} else if (p->state == Peer::Active && p->got_any) {
 		k.fails = 0;
 		k.retry_at = now + (p->turnover_retired ? kPeerTurnoverRetry : 30);
 	} else {
@@ -1796,6 +1850,58 @@ void turnover_peer(Torrent* t, double now) {
 
 struct PeerHealth { int unchoked = 0, productive = 0; };
 
+// Recovery is driven by a reader waiting for missing bytes, not a displayed
+// zero rate. A paused player, full read-ahead cache or busy disk has no reason
+// to discard its connections. Readers and verified/partial pieces survive.
+void recover_stalled_torrent(Torrent* t, double now) {
+	if (t->stopped || t->idle) return;
+	double waiting_since = now;
+	bool waiting = !t->has_meta && t->metadata_waiters > 0;
+	if (waiting) waiting_since = t->started;
+	if (t->has_meta) for (const auto& [reader, demand] : t->waiting_readers) {
+		if (!t->readers.count(reader) || (demand.cancel && demand.cancel->load()) ||
+		    demand.piece < 0 || demand.piece >= t->npieces || t->have[size_t(demand.piece)] ||
+		    t->disk_pending.count(demand.piece)) continue;
+		// A piece already being assembled has reserved its memory. Otherwise
+		// wait for local capacity instead of treating backpressure as a stall.
+		const int64_t memory_limit = std::min(kMaxActiveBytes, std::max(t->plen, speed_limits().active_bytes));
+		if (!t->active.count(demand.piece) &&
+		    payload_memory_bytes.load() + t->piece_size(demand.piece) > memory_limit) continue;
+		waiting = true;
+		waiting_since = std::min(waiting_since, demand.since);
+	}
+	if (!waiting) return;
+	const double progress_at = t->has_meta ? t->last_payload : t->metadata_progress_at;
+	if (progress_at > t->last_recovery) t->recovery_attempts = 0;
+	const double quiet_since = std::max({waiting_since, progress_at, t->last_recovery});
+	if (now < t->next_recovery || now - quiet_since < kStallRecoveryDelay) return;
+
+	unsigned retired = 0;
+	for (auto& peer : t->peers) {
+		if (peer->dead || peer->state != Peer::Active ||
+		    now - std::max(peer->since, peer->payload_at) < kStallRecoveryDelay) continue;
+		peer->recovery_retired = true;
+		drop_peer(t, peer.get(), "no useful data; automatic reconnect");
+		++retired;
+	}
+	// Keep all known and banned identities. Eligible alternatives and the
+	// retired peer's fresh handshake are tried through the ordinary limits.
+	t->next_refill = 0;
+	t->next_dht = 0;
+	t->want_peers = true;
+	++t->discovery_generation;
+	t->wanted_dirty = true;
+	if (!t->has_meta) std::fill(t->meta_asked.begin(), t->meta_asked.end(), 0);
+	t->last_recovery = now;
+	const double delay = std::min(120.0, kStallRecoveryDelay * double(1u << std::min(t->recovery_attempts, 2u)));
+	t->next_recovery = now + delay;
+	++t->recovery_attempts;
+	++t->stall_recoveries;
+	dlog("torrent recovery: stalled_s=%.1f reconnected=%u attempt=%u next_retry_s=%.0f metadata=%d waiting_readers=%zu verified_bytes=%lld",
+	     now - quiet_since, retired, t->stall_recoveries, delay, int(t->has_meta),
+	     t->waiting_readers.size(), (long long)t->verified_bytes);
+}
+
 PeerHealth peer_health(Torrent* t, double now) {
 	PeerHealth health;
 	for (const auto& peer : t->peers) {
@@ -1826,6 +1932,7 @@ void upkeep(Torrent* t, double now) {
 		t->idle = idle;
 		dlog("torrent %s: %s", t->hex.c_str(), idle ? "nobody is watching, pausing" : "resuming");
 	}
+	recover_stalled_torrent(t, now);
 
 	int active = 0, connecting = 0;
 	for (auto& up : t->peers) {
@@ -1846,10 +1953,13 @@ void upkeep(Torrent* t, double now) {
 			continue;
 		}
 		active++;
-		// Late blocks: ask someone else, and expect less from this peer.
+		// A request near the back of a queue can be older than the timeout
+		// while the peer keeps delivering. Only a lack of useful payload is a
+		// stalled transfer; keep-alives and duplicate replies do not reset it.
+		const bool delivery_stalled = p->peer_choking || p->payload_at <= 0 || now - p->payload_at > kRequestTimeout;
 		bool late = false;
 		for (size_t i = 0; i < p->reqs.size();) {
-			if (now - p->reqs[i].at > kRequestTimeout) {
+			if (delivery_stalled && now - p->reqs[i].at > kRequestTimeout) {
 				send_cancel(p, p->reqs[i].piece, p->reqs[i].begin, p->reqs[i].len);
 				++t->timeout_cancels;
 				release_request(t, p->reqs[i]);
@@ -1880,7 +1990,9 @@ void upkeep(Torrent* t, double now) {
 		if (!t->has_meta) request_metadata(t, p, now);
 		else {
 			update_interest(t, p);
-			pick(t, p, now);
+			// Give the other peers this pass to take released blocks before
+			// the stalled sender can immediately reserve its old work again.
+			if (!late) pick(t, p, now);
 		}
 		if (p->out.empty() && now - p->last_send > 90) put32(p->out, 0);  // keep-alive
 	}
@@ -1969,9 +2081,12 @@ void upkeep(Torrent* t, double now) {
 			dlog("torrent peers: unchoked=%d productive=%d candidates=%zu payload_idle_s=%.1f turnover=%u",
 			     sampled.unchoked, sampled.productive, t->candidates.size(),
 			     now - (t->last_payload > 0 ? t->last_payload : t->started), t->turnover_count);
-			dlog("torrent requests: handoffs=%llu probes=%llu timeout_cancels=%llu duplicate_requests=%llu",
+			dlog("torrent requests: handoffs=%llu probes=%llu head_handoffs=%llu timeout_cancels=%llu duplicate_requests=%llu",
 			     (unsigned long long)t->request_handoffs, (unsigned long long)t->request_probe_handoffs,
+			     (unsigned long long)t->request_head_handoffs,
 			     (unsigned long long)t->timeout_cancels, (unsigned long long)t->duplicate_requests);
+			dlog("torrent scheduling: picker_passes=%llu receive_batches=%llu",
+			     (unsigned long long)t->picker_passes, (unsigned long long)t->received_batches);
 			t->hash_ms = t->cache_read_ms = t->cache_write_ms = 0;
 		}
 	}
@@ -2146,7 +2261,7 @@ void net_loop() {
 		int n = poll(fds.data(), nfds_t(fds.size()), 50);
 		if (n < 0 && errno != EINTR) usleep(20000);
 
-		std::lock_guard<std::mutex> lock(I.mu);
+		std::unique_lock<std::mutex> lock(I.mu);
 		if (I.quit) break;
 		double now = now_seconds();
 		size_t base = 0;
@@ -2163,12 +2278,21 @@ void net_loop() {
 			short re = fds[base + i].revents;
 			Torrent* t = who[i].first;
 			Peer* p = who[i].second;
-			if (!re || p->dead) continue;
+			if (!re || p->dead || t->stopped) continue;
 			if (re & POLLOUT) on_writable(t, p, now);
 			if (!p->dead && (re & POLLIN)) on_readable(t, p, now);
 			if (!p->dead && (re & (POLLERR | POLLHUP | POLLNVAL)) && !(re & POLLIN)) drop_peer(t, p, "socket error");
 			if (!p->dead && !p->out.empty()) on_writable(t, p, now);
+			// Only this thread removes peers/torrents. Public calls and the
+			// verifier may mark them stopped/dead while the lock is released.
+			// Let cache publication, download reads and stats proceed between
+			// peers instead of keeping the mutex for an entire busy swarm.
+			lock.unlock();
+			lock.lock();
+			if (I.quit) break;
+			now = now_seconds();
 		}
+		if (I.quit) break;
 		if (now >= next_upkeep) {
 			next_upkeep = now + 0.25;
 			for (auto& t : I.torrents)
@@ -2398,6 +2522,7 @@ void tracker_worker(std::shared_ptr<Torrent> t, int worker) {
 	if (worker == kTrackerThreads - 1 && !impl().boot_started.exchange(true)) resolve_bootstrap();
 	int round = 0;
 	while (!tp->stopped) {
+		const uint64_t discovery = tp->discovery_generation.load();
 		std::vector<std::string> list;
 		{
 			std::lock_guard<std::mutex> lock(tp->trk_m);
@@ -2427,6 +2552,7 @@ void tracker_worker(std::shared_ptr<Torrent> t, int worker) {
 			double waited = now_seconds() - start;
 			double wait = tp->want_peers ? 60 : std::max(300, std::min(min_interval, 1800));
 			if (waited >= wait) break;
+			if (waited >= kStallRecoveryDelay && tp->discovery_generation.load() != discovery) break;
 			if (!wait_stoppable(tp, 1)) break;
 		}
 	}
@@ -2461,6 +2587,8 @@ Engine& Engine::get() {
 }
 
 void Engine::configure(const std::string& data_dir, int64_t cache_bytes) {
+	if (!make_shared_dirs(data_dir + "/torrents"))
+		dlog("torrent: cannot prepare metadata directory (errno %d)", errno);
 	std::lock_guard<std::mutex> lock(impl().mu);
 	impl().data_dir = data_dir;
 	impl().cache_bytes = cache_bytes;
@@ -2556,9 +2684,18 @@ bool Engine::wait_metadata(const std::string& hex, std::vector<FileInfo>& files,
 	Impl& I = impl();
 	double until = now_seconds() + timeout_s;
 	std::unique_lock<std::mutex> lock(I.mu);
+	auto t = find_locked(lower(hex));
+	if (!t) {
+		if (error) *error = "the torrent was stopped";
+		return false;
+	}
+	++t->metadata_waiters;
+	struct MetadataWait {
+		Torrent* torrent;
+		~MetadataWait() { --torrent->metadata_waiters; }
+	} waiting{t.get()};
 	for (;;) {
-		auto t = find_locked(lower(hex));
-		if (!t) {
+		if (t->stopped) {
 			if (error) *error = "the torrent was stopped";
 			return false;
 		}
@@ -2645,6 +2782,7 @@ std::shared_ptr<Torrent> Engine::open_reader(const std::string& hex, int file_id
 void Engine::close_reader(const std::shared_ptr<Torrent>& t, int reader_id) {
 	std::lock_guard<std::mutex> lock(impl().mu);
 	t->readers.erase(reader_id);
+	t->waiting_readers.erase(reader_id);
 	t->reader_files.erase(reader_id);
 	t->auxiliary_readers.erase(reader_id);
 	t->download_readers.erase(reader_id);
@@ -2669,12 +2807,20 @@ int Engine::read(const std::shared_ptr<Torrent>& t, int reader_id, int file_idx,
         I.cv.notify_all();
     }
     const int piece = int(absolute / t->plen);
+    struct ReadWait {
+        Torrent* torrent;
+        int reader;
+        ~ReadWait() { torrent->waiting_readers.erase(reader); }
+    } waiting{t.get(), reader_id};
+    if (!t->have[size_t(piece)])
+        t->waiting_readers[reader_id] = {piece, now_seconds(), abort};
     while (!t->have[size_t(piece)]) {
         if (t->stopped) return -2;
         if (abort && abort->load()) return -1;
         if (!t->readers.count(reader_id)) return -1;
         I.cv.wait_for(lock, std::chrono::milliseconds(100));
     }
+    t->waiting_readers.erase(reader_id);
     if (t->stopped) return -2;
     if (abort && abort->load()) return -1;
     ensure_slot_state(t.get());

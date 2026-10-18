@@ -1,0 +1,21 @@
+--- a/src/input/decoder.c
++++ b/src/input/decoder.c
+@@ -1286,6 +1286,18 @@
+         return;
+     }
+ 
++    /* An embedding player can consume timed text with its own renderer.
++     * The callback borrows the subpicture; true consumes it here. */
++    bool (*subtitle)(void *, int, subpicture_t *) =
++        var_InheritAddress(p_dec, "stremio-subtitle-callback");
++    void *subtitle_opaque = var_InheritAddress(p_dec, "stremio-subtitle-opaque");
++    if (subtitle != NULL && subtitle_opaque != NULL &&
++        subtitle(subtitle_opaque, p_dec->fmt_in.i_id, p_subpic))
++    {
++        subpicture_Delete(p_subpic);
++        return;
++    }
++
+     vout_PutSubpicture( p_vout, p_subpic );
+ }
+ 

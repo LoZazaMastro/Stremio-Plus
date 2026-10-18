@@ -108,20 +108,27 @@ void VideoGl::release() {
 
 bool VideoGl::upload(const Player::VideoFrame& f) {
     using Layout = Player::VideoFrame::Layout;
-    if (!program_ || f.w <= 0 || f.h <= 0 || f.w > 8192 || f.h > 8192 || f.pixels.empty()) return false;
+    if (!program_ || f.w <= 0 || f.h <= 0 || f.w > 8192 || f.h > 8192 || !f.data() || !f.size()) return false;
     const int layout = f.layout == Layout::Bgra ? 0 : f.layout == Layout::Nv12 ? 1 : 2;
     const int format = layout + (f.wide ? 4 : 0);
     const int cw = (f.w + 1) / 2, ch = (f.h + 1) / 2;
     const int bytes = f.wide ? 2 : 1;
-    const size_t expected = layout == 0 ? size_t(f.w)*f.h*4 : size_t(f.w)*f.h*bytes + size_t(cw)*ch*2*bytes;
-    if (f.pixels.size() < expected || (layout != 0 && f.offsets[1] != size_t(f.w)*f.h*bytes) ||
-        (layout == 2 && f.offsets[2] != f.offsets[1] + size_t(cw)*ch*bytes)) return false;
+    const int count = layout == 0 ? 1 : layout == 1 ? 2 : 3;
+    std::array<size_t, 3> row_pitches{};
+    for (int i = 0; i < count; ++i) {
+        const size_t pixel_bytes = layout == 0 ? 4 : bytes * ((i == 1 && layout == 1) ? 2 : 1);
+        const size_t row = size_t(i == 0 ? f.w : cw) * pixel_bytes;
+        const size_t height = size_t(i == 0 ? f.h : ch);
+        const size_t pitch = f.pitches[i] ? f.pitches[i] : row;
+        if (pitch < row || pitch % pixel_bytes || pitch / pixel_bytes > 32768 ||
+            f.offsets[i] > f.size() || (height - 1) * pitch + row > f.size() - f.offsets[i]) return false;
+        row_pitches[i] = pitch;
+    }
     GLint previous_fbo = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previous_fbo);
     if (width_ != f.w || height_ != f.h || format_ != format) {
         glDeleteTextures(3, planes_); glDeleteTextures(1, &output_);
         glGenTextures(3, planes_); glGenTextures(1, &output_);
-        const int count = layout == 0 ? 1 : layout == 1 ? 2 : 3;
         for (int i = 0; i < count; ++i) {
             glBindTexture(GL_TEXTURE_2D, planes_[i]); texture_params();
             const GLenum internal = layout == 0 ? GL_RGBA8 : (i == 1 && layout == 1) ? (f.wide ? GL_RG16 : GL_RG8) : (f.wide ? GL_R16 : GL_R8);
@@ -139,13 +146,15 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
     }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    const int count = layout == 0 ? 1 : layout == 1 ? 2 : 3;
     for (int i = 0; i < count; ++i) {
         glActiveTexture(GL_TEXTURE0 + i); glBindTexture(GL_TEXTURE_2D, planes_[i]);
         const GLenum external = layout == 0 ? GL_BGRA : (i == 1 && layout == 1) ? GL_RG : GL_RED;
+        const size_t pixel_bytes = layout == 0 ? 4 : bytes * ((i == 1 && layout == 1) ? 2 : 1);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, GLint(row_pitches[i] / pixel_bytes));
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, i == 0 ? f.w : cw, i == 0 ? f.h : ch, external,
-                       f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE, f.pixels.data() + f.offsets[i]);
+                       f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE, f.data() + f.offsets[i]);
     }
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); glViewport(0, 0, f.w, f.h);
     glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND); glDisable(GL_FRAMEBUFFER_SRGB);
     glUseProgram(program_); glBindVertexArray(vao_);

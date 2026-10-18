@@ -33,13 +33,30 @@ connection, and storage; download performance is under active development.
 Choose a download folder in Settings, including a mounted M.2 or external
 volume, and create a **Stremio Plus Downloads** folder directly from the picker.
 Changing that folder moves your existing downloads to the new destination.
+Episode downloads keep the series title, season and episode numbers, and the
+episode title together, including after a restart or when you are offline.
 
-**Playback that fits your setup.** The app follows the PS5's output resolution,
-with 1080p, 1440p, and 4K options. It combines BlackBearReloaded's OpenGL and
-native app libraries with FFmpeg and PS5 hardware decoding for supported
-H.264, HEVC, HEVC Main10, and VP9 streams. Other formats use the available
-FFmpeg decoders. Compatibility depends on the stream's profile and container;
-the current output is SDR, with HDR10 sources tone-mapped for display.
+**VLC playback, inside the Stremio Plus interface.** The native player uses
+VideoLAN's libVLC 3.0.24, adapted from [ZiZc3's VLC port for PS5](https://github.com/ZiZc3/VLC).
+VLC handles media demuxing, decoding, and synchronization while Stremio Plus
+keeps its Prospero UI, DualSense controls, and subtitle customization. The
+PS5 modules supply hardware decoding for supported H.264, HEVC, and 8-bit
+VP9 profile 0 streams. FFmpeg 8.1.2 and dav1d provide software decoding for
+other supported formats.
+The app follows the PS5's output resolution, with 1080p, 1440p, and 4K options.
+Compatibility depends on the stream's profile and container. The OpenGL
+presentation path outputs SDR, with HDR10 sources tone-mapped for display.
+Playback controls appear when the first video frame reaches the GPU. If audio
+starts without a video picture, the player retries the same source once using
+software decoding, preserving the selected download and starting position.
+If video output still fails, playback stops with an error instead of remaining
+on the preparation screen indefinitely.
+Slow input startup preserves the selected resume position. Changing or
+automatically selecting a subtitle track does not seek or reopen the video.
+Large decoded pictures use a bounded direct-memory pool so 4K software
+playback does not crowd torrent, audio and interface allocations out of
+the application heap. The pool preserves space for other native resources
+and releases each buffer when VLC releases its final picture reference.
 
 **Artwork that reaches your controller.** As you highlight a movie or series,
 the DualSense light bar picks up a dominant color from its poster and eases
@@ -71,8 +88,11 @@ then sync them in Stremio Plus.
 ## Getting started
 
 You need a PS5 with a working native homebrew loader, a Stremio account, and
-the add-ons you want to use configured on that account. Build instructions
-are in [BUILDING.md](BUILDING.md). The application's title ID is `PPSA74126`.
+the add-ons you want to use configured on that account. Download the native
+`PPSA74126.ffpfsc` image or folder archive from the
+[latest release](https://github.com/LoZazaMastro/Stremio-Plus/releases/latest),
+then install the format supported by your loader. Build instructions are in
+[BUILDING.md](BUILDING.md). The application's title ID is `PPSA74126`.
 
 App settings, the download directory registry, and streaming caches live in
 **`/data/Stremio/appdata`**. Logs stay in **`/data/Stremio`**. The app prepares
@@ -123,7 +143,15 @@ either in Settings. Signing out returns to the sign-in screen.
 
 Playback skip intervals for the D-pad and L1 / R1 can be set independently.
 Completed downloads offer a choice between starting again and resuming from
-the saved position for that movie or episode.
+the saved position for that movie or episode. Each episode has its own saved
+position, so watching another episode does not replace its bookmark.
+
+In Downloads, Options starts playback of an active download once its confirmed
+file prefix reaches 5%. Seeking stays within timestamps the player has already
+read; a file percentage is not treated as a time limit. A previously viewed
+position is offered again only when the same source and its saved byte prefix
+are available. If a crash rolls a download back to an earlier checkpoint,
+the later bookmark is preserved until the required prefix has been recovered.
 
 When a series episode ends, an optional card shows the next episode's
 thumbnail, title, and number. Its countdown defaults to 15 seconds. Choose
@@ -160,9 +188,11 @@ returns to the pending destination. Confirm it again to continue. New
 downloads and file deletion wait until that move has finished.
 The app applies permissions `0777` to the selected folder, reads the mode
 back, and performs a real write check before accepting it. Creating
-**Stremio Plus Downloads** applies and checks the same permissions. These
-changes apply only to those folders; the picker does not recursively change
-permissions on other files or directories.
+**Stremio Plus Downloads** applies and checks the same permissions. Download
+job directories receive the same verified mode despite a restrictive system
+umask. Startup repairs the permissions of known download directories in place,
+without recreating them. The picker does not recursively change permissions
+on unrelated files or directories.
 
 ### Transfers and saved state
 
@@ -204,10 +234,23 @@ to delete the selected download and its files; deletion can free space even
 when there is no room to save new queue state. No existing download is deleted
 automatically just because its information could not be read.
 
-Selecting a new destination changes that destination folder to `0777`.
-It does not recursively apply that mode to downloads or other files. New
-job directories and files containing source configuration use private
-permissions, including when they are transferred to a different volume.
+Selecting an online source which exactly matches a saved download reuses that
+download. Completed videos play locally; an incomplete transfer resumes through
+the existing queue and becomes playable at 5%. Source matching includes the
+episode, torrent file index, and request headers. A different episode or source
+does not reuse the wrong file, and playback does not start a second torrent
+transfer for the same saved download.
+
+Streaming torrents also recover automatically when an active reader has been
+waiting for missing data for 30 seconds without useful progress. Recovery
+refreshes stale connections and peer discovery while retaining verified and
+partially received pieces. Repeated attempts back off to a maximum interval of
+two minutes. Paused playback, a full read-ahead buffer, and pending disk writes
+do not trigger this recovery simply because the displayed rate is zero.
+
+App-owned storage, torrent cache and download directories use verified `0777`
+permissions. Files containing account or source configuration keep private
+permissions. Moving to another volume preserves this distinction.
 
 ### Installation storage
 
@@ -234,7 +277,7 @@ version, the steps that triggered it, and these files:
 - `boot-current.txt`
 - `log.txt`
 - `runtime.json`
-- `crash-current.txt`, if a crash occurred
+- `crash-current.txt` and `crash-last.txt`, if present
 
 For download problems, include when the slowdown started and whether a video
 was playing at the time. Checkpoint failures record the operation that failed
@@ -243,10 +286,26 @@ of the destination filesystem when available. Startup logs show directory
 permissions before and after filesystem access is established. The downloaded
 media files are not needed.
 
+Playback logs distinguish loading the PS5 video module, preparing its compute
+queue, and actually opening the native decoder. They include decoder rejection
+reasons and native memory diagnostics. When available, the crash file records
+the application abort caller or assertion that triggered termination; retain
+the matching version's symbols when investigating a crash.
+Clean launches and memory snapshots do not replace the last fatal crash
+record. If that record cannot be rotated safely, it is preserved and the
+storage error is reported.
+Playback logs also report direct picture-memory usage, fallback allocations
+and failed releases. These figures distinguish picture storage from the
+general-purpose heap recorded in the crash diagnostics.
+
 ## Credits and license
 
 Stremio Plus is developed by [LoZazaMastro](https://github.com/LoZazaMastro)
 and builds on [Sp9nky's unofficial Stremio PS5 port](https://github.com/Sp9nky/unofficial-stremio-ps5-port).
+Its native playback engine incorporates [ZiZc3's VLC PS5 port](https://github.com/ZiZc3/VLC)
+and [VideoLAN's libVLC](https://www.videolan.org/vlc/libvlc.html). Their original
+copyright and license notices are retained; the PS5 adaptation, local changes,
+and source provenance are documented in [vendor/vlc-ps5/NOTICE.md](vendor/vlc-ps5/NOTICE.md).
 Special thanks to [BlackBearReloaded](https://github.com/blackbearreloaded)
 for the UI kit, OpenGL implementation, native app tooling, and ProsperoStore's
 work on PS5 file-worker performance; to
@@ -255,7 +314,10 @@ library ports; and to [Stremio](https://github.com/Stremio) and the other
 open-source projects that make this app possible.
 
 The project is licensed under the [GNU GPL v3](LICENSE). Dependency licenses
-and attribution are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
+and attribution are listed in [THIRD_PARTY.md](THIRD_PARTY.md). Binary deliveries
+are accompanied by the matching application source, retained VLC patches,
+dependency source archives, and build instructions. See [BUILDING.md](BUILDING.md)
+for the pinned versions and reproduction steps.
 
 Stremio Plus is an independent homebrew project, unaffiliated with Stremio
 or Sony Interactive Entertainment. Their names, logos, and other trademarks

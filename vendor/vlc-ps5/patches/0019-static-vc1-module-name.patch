@@ -1,0 +1,17 @@
+--- a/modules/packetizer/vc1.c
++++ b/modules/packetizer/vc1.c
+@@ -30,6 +30,14 @@
+ # include "config.h"
+ #endif
+ 
++/* The demuxer also uses vc1; static registrations need distinct symbols. */
++#ifndef __PLUGIN__
++# undef MODULE_NAME
++# define MODULE_NAME packetizer_vc1
++# undef MODULE_STRING
++# define MODULE_STRING "packetizer_vc1"
++#endif
++
+ #include <vlc_common.h>
+ #include <vlc_plugin.h>
+ #include <vlc_codec.h>

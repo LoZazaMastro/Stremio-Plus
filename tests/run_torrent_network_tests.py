@@ -30,6 +30,8 @@ CASES = {
     "healthy_request_queues": [4, 20, 1, 32, 4, 0],
     "many_seeders_large_pieces": [16, 80, 4, 256, 16, 0],
     "many_mixed_seeders": [40, 80, 8, 256, 4, 0, 30, 0.15],
+    "sustained_local_fast": [16, 20, 64, 768, 4, 0],
+    "sustained_mixed_seeders": [40, 80, 16, 512, 4, 0, 30, 0.15],
     "peer_delay_1500ms": [8, 1500, 8, 96, 4, 0],
     "saturated_peer_pool": [84, 20, 32, 32, 8, 0, 80, 0.005],
 }
@@ -88,6 +90,8 @@ def main():
                 cmd.insert(1, "-DBT_PEER_TURNOVER=1")
             if "uint64_t request_handoffs =" in engine.read_text():
                 cmd.insert(1, "-DBT_REQUEST_HANDOFF=1")
+            if "picker_passes =" in engine.read_text():
+                cmd.insert(1, "-DBT_BATCHED_PICKER=1")
             subprocess.run(cmd, check=True, timeout=180)
             executables[name] = binary
         for case in args.cases:
@@ -117,7 +121,8 @@ def main():
         for name in variants:
             chosen = [v for v in results if v["case"] == case and v["variant"] == name]
             medians[case][name] = {key: statistics.median(v[key] for v in chosen)
-                                    for key in ("MiB_s", "elapsed_s", "first_piece_s", "duplicate_bytes")}
+                                    for key in ("MiB_s", "elapsed_s", "first_piece_s", "duplicate_bytes",
+                                                "network_thread_cpu_s", "stats_wait_max_ms", "stats_wait_p99_ms")}
         if "baseline" in variants and "candidate" in variants:
             medians[case]["throughput_change_percent"] = 100 * (
                 medians[case]["candidate"]["MiB_s"] / medians[case]["baseline"]["MiB_s"] - 1)

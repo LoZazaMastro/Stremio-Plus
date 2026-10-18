@@ -14,3 +14,4 @@ void sceVideodec2MapDirectMemory(void) {}
 void sceVideodec2Reset(void) {}
 void sceVideodec2Decode(void) {}
 void sceVideodec2Flush(void) {}
+void sceVideodec2GetPictureInfo(void) {}

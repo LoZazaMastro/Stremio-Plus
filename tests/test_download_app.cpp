@@ -521,15 +521,157 @@ struct AppProtocolTest {
                "confirmed recovery deletion removes its retained files as well as the visible entry");
         expect(unexpected_http == 0 && unexpected_json == 0, "all App wiring checks completed without network traffic");
     }
+
+    static void save_observed(App& app, double position, double duration, int64_t prefix = 0, int64_t total = -1) {
+        // The decoder boundary stays closed/zero. Supply the last actually
+        // presented sample to exercise the production teardown recovery path.
+        app.w_started_ = true; app.w_observed_position_ = position; app.w_observed_duration_ = duration;
+        app.w_observed_download_prefix_ = prefix; app.w_observed_download_total_ = total;
+        app.offline_ = false;
+        app.watch_stop(false);
+        app.offline_ = true;
+    }
+
+    static void bookmarks(const std::string& directory) {
+        std::filesystem::create_directories(directory);
+        App app;
+        prepare(app, directory);
+        app.d_meta_.has_scheduled_videos = true;
+        const auto first = enqueue(app, source("Episode one", "bookmarked-one.mkv"));
+        app.d_video_id_ = "episode:last";
+        const auto second = enqueue(app, source("Episode two", "bookmarked-two.mkv"));
+        app.downloads_.set_enabled(true);
+        until([&] { return app.downloads_.find(first)->state == DownloadState::Complete &&
+                           app.downloads_.find(second)->state == DownloadState::Complete; }, "scheduled episodes finish downloading");
+        app.downloads_.set_enabled(false);
+        focus(app, first);
+        expect(app.download_rows[app.download_sel].title == "Complete title" &&
+               app.download_rows[app.download_sel].subtitle == "S03E07 · The selected episode",
+               "scheduled episode rows display the series, season, episode and episode title");
+        const auto first_entry = *app.downloads_.find(first);
+        app.d_video_id_ = first_entry.video_id;
+        expect(app.play_saved_stream(source("Episode one", "bookmarked-one.mkv")) && app.watching() &&
+               !app.dd_visible && opened.url == first_entry.local_path,
+               "selecting the same online source reuses its complete local file without a new transfer");
+        save_observed(app, 123.5, 1800);
+        const auto first_key = video_progress_key(first_entry.type, first_entry.media_id, first_entry.video_id);
+        expect(app.video_progress_.at(first_key).time == 123.5 && app.progress_.at(first_entry.media_id).time == 123.5,
+               "closing a zeroed decoder saves the last presented time before teardown");
+        focus(app, second); app.on_button(Btn::Options);
+        expect(app.watching() && !app.dd_visible && opened.start == 0, "the next episode does not inherit the previous episode's timestamp");
+        save_observed(app, 87, 1600);
+        expect(app.video_progress_.at(first_key).time == 123.5,
+               "watching another episode does not overwrite the earlier download bookmark");
+        app.progress_.clear(); app.video_progress_.clear(); app.watched_.clear(); app.load_progress();
+        expect(app.video_progress_.at(first_key).time == 123.5 &&
+               app.progress_.at(first_entry.media_id).video_id == "episode:last",
+               "restart restores individual episode bookmarks and the series continue-watching position separately");
+        app.downloads_.shutdown();
+        expect(app.downloads_.init(directory), "downloaded episode inventory reloads without a metadata provider");
+        focus(app, first); app.on_button(Btn::Options);
+        expect(app.dd_visible && app.dd_options[1].label == "Riproduci da 2:03" &&
+               app.dd_title == "Complete title · S03E07 · The selected episode",
+               "Options after restart offers the exact saved episode time with its complete identity");
+        app.on_button(Btn::Cross);
+        expect(app.watching() && opened.start == 123.5, "confirming Resume reaches the local decoder with the persisted timestamp");
+        app.watch_stop(false);
+        app.d_meta_.is_live = true;
+        const auto jobs_before = app.downloads_.snapshot().size();
+        app.download_selected_stream(source("Actual live", "live.m3u8"));
+        expect(app.downloads_.snapshot().size() == jobs_before && app.toast.find("dirette") != std::string::npos,
+               "actual live TV remains excluded while scheduled series are downloadable");
+        app.d_meta_.is_live = false;
+
+        progressive_stage = 0;
+        app.d_video_id_ = "episode:first";
+        const auto partial_stream = source("Partial bookmark", "progressive.mkv");
+        const auto partial = enqueue(app, partial_stream);
+        app.downloads_.set_enabled(true);
+        until([&] { return app.downloads_.find(partial)->done == 499; }, "online reuse fixture reaches its initial partial prefix");
+        app.offline_ = false;
+        const auto opens_before_wait = player_opens;
+        expect(app.play_saved_stream(partial_stream) && app.launch_visible && !app.watching() &&
+               !app.w_torrent_slot_ && app.saved_stream_download_ == partial,
+               "same-source playback below five percent waits on the existing background transfer");
+        app.on_button(Btn::Circle); app.saved_stream_tick();
+        expect(!app.launch_visible && app.saved_stream_download_.empty() && player_opens == opens_before_wait &&
+               app.downloads_.find(partial)->state == DownloadState::Downloading,
+               "Circle cancels only the pending playback, preserving its running download");
+        app.offline_ = true; progressive_stage = 1;
+        until([&] { return app.downloads_.find(partial)->playable_while_downloading; }, "partial bookmark reaches a verified prefix");
+        expect(app.play_saved_stream(partial_stream) && app.watching() && opened.start == 0 && !app.w_torrent_slot_,
+               "a ready same-source download opens progressive playback without another torrent reservation");
+        save_observed(app, 45, 1000, 500, 10000);
+        const auto partial_entry = *app.downloads_.find(partial);
+        const auto partial_key = video_progress_key(partial_entry.type, partial_entry.media_id, partial_entry.video_id);
+        expect(app.video_progress_.at(partial_key).download_prefix == 500 &&
+               app.video_progress_.at(partial_key).download_source == partial_entry.source_identity,
+               "partial viewing persists its actually presented timestamp with the acknowledged source prefix");
+        app.video_progress_.clear(); app.progress_.clear(); app.load_progress();
+        focus(app, partial); app.on_button(Btn::Options);
+        expect(app.dd_visible && app.dd_options[1].label == "Riproduci da 0:45", "a restored prefix proof offers partial-file Resume");
+        app.on_button(Btn::Cross);
+        expect(app.watching() && opened.start == 45 && opened.progressive_resume_limit == 45 && opened.growing_download,
+               "the player receives a verified progressive resume limit rather than a percentage estimate");
+        app.watch_stop(false);
+
+        app.video_progress_[partial_key].download_prefix = 501;
+        focus(app, partial); app.on_button(Btn::Options);
+        expect(app.watching() && !app.dd_visible && opened.start == 0 && opened.progressive_resume_limit == 0,
+               "a recovered prefix below the saved bound starts safely without seeking unavailable data");
+        save_observed(app, 10, 1000, 500, 10000);
+        expect(app.video_progress_.at(partial_key).time == 45 && app.video_progress_.at(partial_key).download_prefix == 501,
+               "safe fallback after rollback preserves the older bookmark for later completion");
+        app.video_progress_[partial_key].download_prefix = 500;
+        focus(app, partial); app.on_button(Btn::Options);
+        expect(app.dd_visible, "the same bookmark becomes available when its prefix is verified again");
+        const auto delayed_choice = app.dd_chosen_;
+        app.on_button(Btn::Circle);
+        app.video_progress_[partial_key].download_prefix = 501;
+        delayed_choice(1);
+        expect(app.watching() && opened.start == 0 && opened.progressive_resume_limit == 0,
+               "a rollback between showing Resume and confirming it is rechecked before opening the player");
+        app.watch_stop(false);
+        progressive_stage = 2;
+        until([&] { return app.downloads_.find(partial)->state == DownloadState::Complete; }, "partial bookmark download completes");
+        focus(app, partial); app.on_button(Btn::Options);
+        expect(app.dd_visible, "a completed file can use its saved episode bookmark even after an earlier checkpoint rollback");
+        app.on_button(Btn::Circle);
+        app.downloads_.set_enabled(false);
+        app.d_video_id_ = "episode:last";
+        const auto paused_stream = source("Paused reuse", "hold.mkv");
+        const auto paused = enqueue(app, paused_stream);
+        expect(app.downloads_.pause(paused), "online reuse fixture pauses the saved selected source");
+        app.offline_ = false;
+        expect(app.play_saved_stream(paused_stream) && app.launch_visible && app.saved_stream_download_ == paused,
+               "reselecting a paused online source submits resume for the existing job");
+        until([&] { g_tasks.drain(); return !app.saved_stream_resuming_ &&
+                   app.downloads_.find(paused)->state == DownloadState::Queued; }, "saved-source resume commits on its worker");
+        app.saved_stream_poll_at_ = 0; app.saved_stream_tick();
+        expect(!app.w_torrent_slot_ && app.launch_visible && !app.watching(),
+               "queued saved-source playback holds no second foreground engine reservation");
+        app.on_button(Btn::Circle); app.saved_stream_tick();
+        expect(app.downloads_.find(paused)->state == DownloadState::Queued && app.saved_stream_download_.empty(),
+               "cancelling queued playback does not delete or pause the resumed download");
+        auto different_stream = paused_stream; ++different_stream.file_idx;
+        expect(!app.play_saved_stream(different_stream), "another torrent file index cannot reuse the selected saved episode");
+        app.d_video_id_ = "episode:first";
+        expect(!app.play_saved_stream(paused_stream), "the same URL attached to another episode cannot reuse this download");
+        app.offline_ = true;
+        app.shutdown();
+        expect(unexpected_http == 0 && unexpected_json == 0, "bookmark persistence and recovery require no online provider requests");
+    }
 };
 
 int main(int argc, char** argv) {
     if (argc != 2) return 2;
     App app;
     try {
+        g_tasks.start(2);
         artwork = std::string(argv[1]) + "/source-art.rgba";
         make_artwork(artwork);
         AppProtocolTest::run(app, argv[1]);
+        AppProtocolTest::bookmarks(std::string(argv[1]) + "/bookmarks");
         app.shutdown(); g_tasks.stop();
         std::cout << "PASS: " << checks << " real App download/controller/offline assertions; no HTTP or decoder started\n";
         return 0;

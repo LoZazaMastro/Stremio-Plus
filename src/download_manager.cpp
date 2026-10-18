@@ -1,5 +1,6 @@
 #include "download_manager.h"
 #include "download_transfer.h"
+#include "download_metadata.h"
 
 #include <algorithm>
 #include <array>
@@ -172,6 +173,37 @@ bool create_private_directory(const std::string& path, std::string* error = null
 	if (!fresh && errno != EEXIST) return storage_failure(error, "mkdir", path, errno);
 	if (!safe_directory(path, error)) return false;
 	return !fresh || ::chmod(path.c_str(), 0700) == 0 || storage_failure(error, "chmod", path, errno);
+}
+
+bool share_download_directory(const std::string& path, std::string* error = nullptr) {
+	if (!safe_directory(path, error)) return false;
+	const int fd = ::open(path.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+	if (fd < 0) return storage_failure(error, "open download directory", path, errno);
+	struct Close { int fd; ~Close() { ::close(fd); } } close{fd};
+	struct stat before{}, after{}, current{};
+	if (::fstat(fd, &before) != 0) return storage_failure(error, "fstat download directory", path, errno);
+	if (!S_ISDIR(before.st_mode)) return storage_failure(error, "validate download directory", path, ENOTDIR);
+	if ((before.st_mode & 07777) != 0777 && ::fchmod(fd, 0777) != 0)
+		return storage_failure(error, "fchmod download directory", path, errno);
+	if (::fstat(fd, &after) != 0) return storage_failure(error, "read download directory permissions", path, errno);
+	if ((after.st_mode & 07777) != 0777)
+		return storage_failure(error, "download directory did not retain required 0777 permissions", path, EPERM);
+	const int current_fd = ::open(path.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+	if (current_fd < 0) return storage_failure(error, "reopen download directory", path, errno);
+	const bool inspected = ::fstat(current_fd, &current) == 0;
+	const int failure = errno;
+	::close(current_fd);
+	if (!inspected) return storage_failure(error, "recheck download directory", path, failure);
+	if (!S_ISDIR(current.st_mode) || before.st_dev != after.st_dev || before.st_ino != after.st_ino ||
+		current.st_dev != after.st_dev || current.st_ino != after.st_ino)
+		return storage_failure(error, "download directory identity changed", path, EIO);
+	return true;
+}
+
+bool create_download_directory(const std::string& path, std::string* error = nullptr, bool* created = nullptr) {
+	// Keep the new directory private until its identity has been checked, then
+	// explicitly apply and read back the loader's required mode despite umask.
+	return create_private_directory(path, error, created) && share_download_directory(path, error);
 }
 
 int64_t regular_size(const std::string& path) {
@@ -397,6 +429,13 @@ std::string digest(const std::string& value) {
 
 bool torrent_stream(const Stream& s) { return !s.info_hash.empty(); }
 
+std::string download_source_identity(const DownloadRequest& request) {
+	return digest(json_bytes(json{{"media_id", request.media_id}, {"type", request.type},
+		{"video_id", request.video_id}, {"url", request.stream.url}, {"info_hash", request.stream.info_hash},
+		{"file_idx", request.stream.file_idx}, {"season", request.season}, {"episode", request.episode},
+		{"headers", request.stream.request_headers}}));
+}
+
 Stream download_stream(const Stream& source) {
 	Stream result;
 	result.name = source.name; result.description = source.description; result.addon = source.addon;
@@ -410,7 +449,7 @@ bool valid_request(const DownloadRequest& r, std::string& error) {
 	if (r.live) { error = "Live streams cannot be downloaded for offline viewing."; return false; }
 	if (r.media_id.empty() || r.type.empty() || r.title.empty() || r.media_id.size() > 2048 || r.poster_url.size() > 16384 ||
 		r.poster_path.size() > 16384 || r.background_path.size() > 16384 || r.logo_path.size() > 16384 ||
-		r.type.size() > 64 || r.video_id.size() > 2048 || r.title.size() > 4096 || r.subtitle.size() > 8192) {
+		r.type.size() > 64 || r.video_id.size() > 2048 || r.title.size() > 4096 || r.subtitle.size() > 8192 || r.episode_title.size() > 4096) {
 		error = "The video metadata is not valid for downloading."; return false;
 	}
 	const auto& s = r.stream;
@@ -747,7 +786,7 @@ struct DownloadManager::Impl {
 	bool check_write_access(const std::string& directory = {}) {
 		const auto& target = directory.empty() ? root : directory;
 		std::string failure;
-		const bool result = safe_directory(target, &failure) && probe_download_storage(target, &failure);
+		const bool result = share_download_directory(target, &failure) && probe_download_storage(target, &failure);
 		root_writable[target] = result;
 		if (target == root) storage_error = failure;
 		refresh_access(); touch(); changed.notify_all();
@@ -875,7 +914,7 @@ struct DownloadManager::Impl {
 		}
 		const auto candidate = storage_parent + "/downloads";
 		if (!safe_directory(storage_parent, &storage_error) ||
-			!create_private_directory(candidate, &storage_error)) return false;
+			!create_download_directory(candidate, &storage_error)) return false;
 		root = candidate; roots = {root}; stopping = false; cancel.store(false);
 		std::vector<std::shared_ptr<Job>> found;
 		if (!load(root, found, &storage_error)) { root.clear(); return false; }
@@ -920,7 +959,7 @@ struct DownloadManager::Impl {
 		if (e.recovery_only) { errno = EINVAL; return false; }
 		json manifest{{"version", 1}, {"id", job.folder_id}, {"identity", job.identity}, {"created_ms", job.created_ms},
 			{"media_id", e.media_id}, {"type", e.type}, {"video_id", e.video_id},
-			{"title", e.title}, {"subtitle", e.subtitle}, {"season", e.season}, {"episode", e.episode},
+			{"title", e.title}, {"subtitle", e.subtitle}, {"episode_title", e.episode_title}, {"season", e.season}, {"episode", e.episode},
 			{"state", static_cast<int>(e.state)}, {"done", e.done}, {"total", e.total},
 			{"error", e.error}, {"media_name", job.media_name}, {"removing", job.removing},
 			{"artwork_pending", job.artwork_pending},
@@ -969,6 +1008,8 @@ struct DownloadManager::Impl {
 			if ((identified && !S_ISDIR(directory.st_mode)) ||
 				(!identified && errno != EACCES && errno != EPERM)) continue;
 			const bool readable_path = identified && safe_directory(path);
+			if (readable_path && !share_download_directory(path))
+				dlog("download directory: could not restore 0777 for %s (errno %d)", path.c_str(), errno);
 			json value;
 			std::string source;
 			if (readable_path) for (const char* name : {"manifest.json", "manifest.json.bak", "manifest.json.tmp", "manifest.json.new"}) {
@@ -996,10 +1037,16 @@ struct DownloadManager::Impl {
 			if (e.media_id.empty() || e.type.empty() || e.title.empty()) continue;
 			e.season = r.season = static_cast<int>(std::clamp<int64_t>(integer_value(value, "season"), -1, 99999));
 			e.episode = r.episode = static_cast<int>(std::clamp<int64_t>(integer_value(value, "episode"), -1, 999999));
+			e.episode_title = r.episode_title = text_value(value, "episode_title", 4096);
+			if (e.episode_title.empty())
+				e.episode_title = r.episode_title = download_legacy_episode_title(e.season, e.episode, e.subtitle);
+			if (e.season >= 0 && e.episode >= 0)
+				e.subtitle = r.subtitle = download_episode_label(e.season, e.episode, e.episode_title);
 			e.done = std::max<int64_t>(0, integer_value(value, "done", 0)); e.total = integer_value(value, "total");
 			e.error = safe_error(text_value(value, "error", 512));
 			if (value.contains("stream")) r.stream = parse_stream(value["stream"]);
 			job->identity = text_value(value, "identity", 32);
+			e.source_identity = job->identity;
 			job->created_ms = std::max<int64_t>(0, integer_value(value, "created_ms", 0));
 			job->media_name = text_value(value, "media_name", 16);
 			// Only an atomically committed main manifest can retain a previous
@@ -1026,7 +1073,7 @@ struct DownloadManager::Impl {
 				} else { e.state = DownloadState::Failed; e.error = "The downloaded file is missing or incomplete. Download it again."; }
 			} else {
 				e.state = state == static_cast<int>(DownloadState::Failed) ? DownloadState::Failed : DownloadState::Paused;
-				if (e.state == DownloadState::Paused) e.error.clear();
+				if (e.state == DownloadState::Paused && state != static_cast<int>(DownloadState::Paused)) e.error.clear();
 				const int64_t size = regular_size(path + "/media.part");
 				if (size >= 0) e.done = size;
 				std::string filename; int64_t completed_size = 0;
@@ -1229,7 +1276,7 @@ struct DownloadManager::Impl {
 			}
 			DownloadTransferResult result;
 			bool progress_metadata_failed = false;
-			if (safe_directory(selected->storage_root) && safe_directory(selected->directory)) {
+			if (safe_directory(selected->storage_root) && share_download_directory(selected->directory)) {
 				try {
 					result = download_transfer(transfer, [this, selected, &progress_metadata_failed](const DownloadTransferProgress& p) {
 						std::lock_guard lock(mutex);
@@ -1293,7 +1340,8 @@ struct DownloadManager::Impl {
 					if (!stopping && enabled && torrent_preempted && e.state == DownloadState::Downloading)
 						e.state = torrent_reserved() ? DownloadState::Waiting : DownloadState::Queued;
 					else if (e.state == DownloadState::Downloading) e.state = DownloadState::Paused;
-					e.error.clear();
+					if (can_write(selected->storage_root)) e.error.clear();
+					else if (e.error.empty()) e.error = "This download directory is unavailable. Reconnect its storage and retry.";
 				} else { e.state = DownloadState::Failed; e.error = safe_error(result.error); }
 				update_fraction(e);
 				e.disk_bytes = directory_bytes(selected->directory);
@@ -1396,7 +1444,7 @@ bool DownloadManager::init(const std::string& data_parent, const std::string& re
 		std::vector<std::shared_ptr<Impl::Job>> found;
 		const bool readable = safe_directory(path, &failure) && p.load(path, found, &failure);
 		if (readable) { p.merge_jobs(std::move(found)); p.loaded_roots.insert(path); }
-		p.root_writable[path] = readable && probe_download_storage(path, &failure);
+		p.root_writable[path] = readable && share_download_directory(path, &failure) && probe_download_storage(path, &failure);
 		if (path == p.root && !failure.empty()) p.storage_error = failure;
 	}
 	if (p.registry_valid) {
@@ -1666,7 +1714,7 @@ bool DownloadManager::set_download_directory(const std::string& directory, std::
      before += file.size;
     }
    }
-   if (!sync_directory(staging, &error)) return false;
+   if (!share_download_directory(staging, &error) || !sync_directory(staging, &error)) return false;
    item["phase"] = "copied";
    if (!p.persist_relocation(error)) return false;
    // A private copy carries the new public paths before being published. Do not
@@ -1793,10 +1841,7 @@ std::string DownloadManager::enqueue_at_generation(const DownloadRequest& reques
 	const auto started = Clock::now();
 	error.clear();
 	if (!valid_request(request, error)) return {};
-	const std::string identity = digest(json_bytes(json{{"media_id", request.media_id}, {"type", request.type},
-		{"video_id", request.video_id}, {"url", request.stream.url}, {"info_hash", request.stream.info_hash},
-		{"file_idx", request.stream.file_idx}, {"season", request.season}, {"episode", request.episode},
-		{"headers", request.stream.request_headers}}));
+	const std::string identity = download_source_identity(request);
 	auto& p = *impl_;
 	if (p.relocating || p.relocation_pending) { error = "Download relocation is in progress or requires retry."; return {}; }
 	std::lock_guard lifecycle_lock(p.lifecycle_mutex);
@@ -1812,6 +1857,7 @@ std::string DownloadManager::enqueue_at_generation(const DownloadRequest& reques
 	auto job = std::make_shared<Impl::Job>();
 	job->request.media_id = request.media_id; job->request.type = request.type; job->request.video_id = request.video_id;
 	job->request.title = request.title; job->request.subtitle = request.subtitle;
+	job->request.episode_title = request.episode_title;
 	job->request.poster_path = request.poster_path; job->request.background_path = request.background_path; job->request.logo_path = request.logo_path;
 	job->request.poster_url = request.poster_url; job->request.season = request.season; job->request.episode = request.episode;
 	job->request.stream = download_stream(request.stream); job->identity = identity;
@@ -1819,6 +1865,9 @@ std::string DownloadManager::enqueue_at_generation(const DownloadRequest& reques
 	auto& e = job->entry;
 	e.media_id = request.media_id; e.type = request.type; e.video_id = request.video_id;
 	e.title = request.title; e.subtitle = request.subtitle; e.season = request.season; e.episode = request.episode;
+	e.episode_title = request.episode_title; e.source_identity = identity;
+	if (e.season >= 0 && e.episode >= 0 && !e.episode_title.empty())
+		e.subtitle = job->request.subtitle = download_episode_label(e.season, e.episode, e.episode_title);
 	e.poster_url = request.poster_url;
 	const std::string root = p.root;
 	job->storage_root = root;
@@ -1841,7 +1890,7 @@ std::string DownloadManager::enqueue_at_generation(const DownloadRequest& reques
 		e.id.clear();
 	}
 	bool directory_created = false;
-	if (e.id.empty() || !create_private_directory(job->directory, nullptr, &directory_created) ||
+	if (e.id.empty() || !create_download_directory(job->directory, nullptr, &directory_created) ||
 		!directory_created || !p.save(*job) || !sync_directory(root)) {
 		const int code = errno;
 		error = "The download could not be created. Check the available storage space.";
@@ -1882,7 +1931,7 @@ bool DownloadManager::enqueue_async(DownloadRequest request, EnqueueCallback don
 	if (!valid_request(request, error)) return false;
 	request.stream = download_stream(request.stream);
 	const size_t bytes = json_bytes(stream_json(request.stream)).size() + request.media_id.size() + request.type.size() +
-		request.video_id.size() + request.title.size() + request.subtitle.size() + request.poster_url.size() +
+		request.video_id.size() + request.title.size() + request.subtitle.size() + request.episode_title.size() + request.poster_url.size() +
 		request.poster_path.size() + request.background_path.size() + request.logo_path.size() + 1024;
 	std::lock_guard lock(p.enqueue_mutex);
 	if (p.relocating || p.relocation_pending || p.enqueue_closed || p.enqueue_work.size() >= kMaxJobs || bytes > kMaxPendingBytes - p.pending_bytes) return false;
@@ -1925,6 +1974,15 @@ std::optional<DownloadEntry> DownloadManager::find(const std::string& id) const 
 	auto& p = *impl_; std::lock_guard lock(p.published_mutex);
 	for (const auto& entry : p.published) if (entry.id == id) return entry;
 	return std::nullopt;
+}
+
+std::optional<DownloadEntry> DownloadManager::find_matching(const DownloadRequest& request) const {
+	const auto identity = download_source_identity(request);
+	auto& p = *impl_;
+	std::lock_guard lock(p.published_mutex);
+	for (const auto& entry : p.published)
+		if (!entry.recovery_only && entry.source_identity == identity) return entry;
+	return {};
 }
 
 bool DownloadManager::update_poster(const std::string& id, const std::string& cached_path) {
@@ -1977,7 +2035,11 @@ bool DownloadManager::pause(const std::string& id) {
 
 bool DownloadManager::resume(const std::string& id) {
 	auto& p = *impl_; std::lock_guard lock(p.mutex); const auto j = p.lookup(id);
-	if (p.relocating || p.relocation_pending || !j || j->removing || j->entry.recovery_only || j->entry.state == DownloadState::Complete || p.active_id == id) return false;
+	if (p.relocating || p.relocation_pending || !j || j->removing || j->entry.recovery_only || j->entry.state == DownloadState::Complete) return false;
+	// A pause is published before the transfer finishes cancellation. Persist
+	// the resume request now; the single worker retires that writer before it
+	// can select the queued job again. Never reset its in-flight cancellation.
+	if (p.active_id == id && (j->entry.state != DownloadState::Paused || !p.cancel.load())) return false;
 	std::string error;
 	if (!valid_request(j->request, error)) { j->entry.state = DownloadState::Failed; j->entry.error = error; p.touch(); return false; }
 	if (!p.can_write(j->storage_root) && !p.check_write_access(j->storage_root)) {

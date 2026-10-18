@@ -14,6 +14,7 @@
 #include "artcache.h"
 #include "download_manager.h"
 #include "player.h"
+#include "playback_progress.h"
 #include "stremio.h"
 #include "tasks.h"
 #include "subtitles.h"
@@ -136,12 +137,6 @@ struct Settings {
 	std::string auth_key, user_email;
 };
 
-struct Progress {
-	std::string type, name, poster, video_id;
-	double time = 0, duration = 0;
-	int64_t updated = 0;
-};
-
 class App {
 	friend struct AppProtocolTest;  // headless integration tests of real asynchronous flows
 public:
@@ -157,6 +152,8 @@ public:
 	void set_setting_value(int row, float number);
 	const Settings& settings() const { return settings_; }
 	bool take_video_frame(Player::VideoFrame& frame) { return watching_ && player_.take_frame(frame); }
+	void video_frame_presented();  // Called only after a successful GPU upload.
+	void video_frame_rejected();
 	void cancel_input() { if (input_visible_) input_finish(false); }
 	void replace_input(const std::string& text) { input_value = text; }
 	void request_search(const std::string& text) { start_search(text); }
@@ -397,6 +394,12 @@ private:
 	void detail_close();
 	void detail_update_resume();
 	void play_stream(const Stream& st, bool transcode);
+	bool play_saved_stream(const Stream& stream);
+	void saved_stream_tick();
+	std::string saved_stream_download_;
+	int saved_stream_generation_ = 0;
+	double saved_stream_poll_at_ = 0;
+	bool saved_stream_resuming_ = false;
 	std::string d_res_;                 // the resolution being shown (when !d_pick_res)
 	std::vector<std::string> d_res_keys_;  // resolution list: row -> resolution
 	std::vector<int> d_view_;           // stream list: row -> d_stream_list_ index
@@ -486,6 +489,7 @@ private:
 
 	Settings settings_;
 	std::map<std::string, Progress> progress_;  // by meta id
+	std::map<std::string, Progress> video_progress_;  // by type, meta id and video id
 	std::set<std::string> watched_;              // video ids
 	std::string config_note_;
 
@@ -589,7 +593,12 @@ private:
 	double w_info_until_ = 0;
 	double w_last_save_ = 0;
 	double w_start_ = 0;
+	double w_observed_position_ = -1, w_observed_duration_ = 0;
+	int64_t w_observed_download_prefix_ = 0, w_observed_download_total_ = -1;
+	bool w_hold_download_bookmark_ = false;
 	bool w_started_ = false;
+	bool w_frame_presented_ = false;
+	unsigned w_frame_failures_ = 0;
 	bool w_heavy_warned_ = false;
 	struct WatchSub {
 		std::string label, lang;

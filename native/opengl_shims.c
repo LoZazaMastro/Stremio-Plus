@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../src/diagnostics_native.h"
 
 extern int sceKernelUsleep(uint32_t microseconds);
 extern uint64_t sceKernelGetProcessTime(void);
@@ -27,11 +28,20 @@ __attribute__((noreturn)) void catchReturnFromMain(int status)
     for (;;) sceKernelUsleep(100000);
 }
 
-__attribute__((noreturn)) void __assert(const char *function, const char *file, int line,
+extern __attribute__((noreturn)) void __real_abort(void);
+
+__attribute__((noreturn, noinline)) void __wrap_abort(void)
+{
+    const uintptr_t caller = (uintptr_t)__builtin_extract_return_addr(__builtin_return_address(0));
+    stremio_diagnostics_abort(caller);
+    __real_abort();
+}
+
+__attribute__((noreturn, noinline)) void __assert(const char *function, const char *file, int line,
                                         const char *expression)
 {
-    fprintf(stderr, "[Stremio Plus] assertion: %s (%s:%d, %s)\n", expression, file, line, function);
-    fflush(NULL);
+    const uintptr_t caller = (uintptr_t)__builtin_extract_return_addr(__builtin_return_address(0));
+    stremio_diagnostics_assert(function, file, line, expression, caller);
     abort();
 }
 

@@ -268,15 +268,32 @@ int main(int argc, char** argv) {
           (mode_info.st_mode & 0777) == 0777,
         "startup preserves the existing downloads folder permissions");
     check(::lstat((root + "/data/Stremio/appdata").c_str(), &mode_info) == 0 &&
-          (mode_info.st_mode & 0777) == 0775,
-        "startup preserves existing appdata directory permissions");
+          (mode_info.st_mode & 0777) == 0777,
+        "startup repairs the shared appdata directory permissions");
     const auto permission_receipt = boot_text();
     check(permission_receipt.find("phase=before path=/data/Stremio mode=0777") != std::string::npos &&
           permission_receipt.find("phase=after path=/data/Stremio/downloads mode=0777") != std::string::npos,
-        "boot diagnostics retain before and after modes without changing existing folders");
+        "boot diagnostics retain before and after directory modes");
     check(permission_receipt.find("storage_process euid_before=") != std::string::npos &&
           permission_receipt.find(" owner=") != std::string::npos,
         "boot diagnostics distinguish directory ownership from process credentials");
+    check_no_probe();
+
+    reset();
+    fs::remove_all(root + "/data/Stremio");
+    const mode_t saved_umask = ::umask(0077);
+    const auto masked = ps5_prepare_storage();
+    ::umask(saved_umask);
+    check(masked.data_available && masked.logs_available, "fresh shared storage works with loader umask0077");
+    for (const char* path : {"/data/Stremio", "/data/Stremio/appdata"})
+        check(::lstat((root + path).c_str(), &mode_info) == 0 && (mode_info.st_mode & 0777) == 0777,
+              "shared directory mode is verified after restrictive creation");
+    check(::chmod((root + "/data/Stremio/appdata").c_str(), 0700) == 0, "simulate older private appdata");
+    std::ofstream(root + "/data/Stremio/appdata/keep.txt") << "retained";
+    check(ps5_prepare_storage().data_available, "restart repairs older restrictive storage");
+    check(::lstat((root + "/data/Stremio/appdata").c_str(), &mode_info) == 0 &&
+          (mode_info.st_mode & 0777) == 0777 && read_file("/data/Stremio/appdata/keep.txt") == "retained",
+          "permission repair retains files across restart");
     check_no_probe();
 
     reset(); fail_operation = "lstat"; fail_path = "/data";
@@ -347,7 +364,7 @@ int main(int argc, char** argv) {
         "fresh install starts without any reserved download0 mount");
     check(std::string(fresh.data) == "/data/Stremio/appdata", "fresh install uses grow-on-demand appdata");
     check(::lstat((root + "/data/Stremio/appdata").c_str(), &mode_info) == 0 &&
-          (mode_info.st_mode & 0777) == 0700, "new appdata is private");
+          (mode_info.st_mode & 0777) == 0777, "new appdata is shared with console file tools");
     check(fs::is_empty(root + "/data/Stremio/appdata"), "fresh storage does not preallocate caches or media");
     check_no_probe();
 

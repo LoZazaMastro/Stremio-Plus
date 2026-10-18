@@ -12,7 +12,7 @@ root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument("--output", type=Path)
 args = parser.parse_args()
-sources = [root / name for name in ("src/download_manager.cpp", "src/download_manager.h", "src/download_transfer.h", "src/growing_file.h",
+sources = [root / name for name in ("src/download_manager.cpp", "src/download_manager.h", "src/download_metadata.h", "src/download_transfer.h", "src/growing_file.h",
                                    "tests/test_download_manager.cpp", "tests/run_download_manager_tests.py")]
 before = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in sources}
 environment = dict(os.environ)

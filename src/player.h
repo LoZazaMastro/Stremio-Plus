@@ -27,11 +27,9 @@ struct AVPacket;
 struct SwsContext;
 struct SwrContext;
 
-// Plays one URL with FFmpeg; video on the PS5's hardware decoder when it
-// takes the stream (hwdec_ps5.h), else FFmpeg's software decoder. Threads:
-// demux, video decode (+ scale to screen size), audio decode (+ resample
-// into SDL's queue). The audio queue is the master clock; without audio, the wall clock.
-// The UI thread calls present() every frame.
+// The native backend uses libVLC with PS5 hardware decoding, callback video
+// output and clocked audio. The desktop reference backend uses FFmpeg.
+// Both feed the same Prospero UI, subtitle renderer and OpenGL video path.
 class Player {
 public:
 	struct Track {
@@ -47,6 +45,10 @@ public:
 		// downloaded over several connections (netstream.h).
 		bool parallel = false;
 		std::shared_ptr<GrowingFilePlayback> growing_download;
+		// A previously presented timestamp whose download identity, total size
+		// and durable prefix have been validated by the caller. Never estimated
+		// from a byte percentage. Zero permits only a fresh progressive start.
+		double progressive_resume_limit = 0;
 	};
 	enum class State { Idle, Opening, Playing, Ended, Failed };
 
@@ -55,15 +57,24 @@ public:
 	struct VideoFrame {
 		enum class Layout { Bgra, Nv12, Planar420 };
 		std::vector<uint8_t> pixels;
+		// Callback decoders can lend aligned planes directly to the renderer.
+		// The lease remains alive until the GL upload has consumed those bytes.
+		std::shared_ptr<void> storage;
+		const uint8_t* mapped = nullptr;
+		size_t mapped_size = 0;
 		std::array<size_t, 3> offsets{};
+		std::array<size_t, 3> pitches{};  // zero means tightly packed
 		int w = 0, h = 0, serial = 0;
 		double pts = 0, display_aspect = 1.0;
 		Layout layout = Layout::Bgra;
 		bool wide = false, full_range = false, hlg = false;
 		int shift = 0;
 		YuvColors colors = YuvColors::Bt709;
+		const uint8_t* data() const { return mapped ? mapped : pixels.data(); }
+		size_t size() const { return mapped ? mapped_size : pixels.size(); }
 	};
 
+	Player();
 	~Player();
 
 	void open(const Options& opts);
@@ -75,6 +86,7 @@ public:
 	bool paused() const { return paused_; }
 	void set_paused(bool p);
 	bool buffering(int* percent = nullptr) const;
+	bool video_expected() const;
 
 	double position();  // seconds; the seek target while a seek is pending
 	double duration() const { return duration_; }
@@ -90,6 +102,7 @@ public:
 
 	// Text subtitles inside the file (SRT/ASS/WebVTT/mov_text).
 	std::vector<Track> subtitle_tracks() const;
+	void select_subtitle(int stream);
 	std::string embedded_subtitle(int stream, double t);
 
 	// UI thread: move the due frame out without holding the decoder queue
@@ -103,6 +116,15 @@ public:
 	bool too_heavy() const { return too_heavy_; }
 
 private:
+#ifdef STREMIO_USE_LIBVLC
+	struct Vlc;
+	std::unique_ptr<Vlc> vlc_;
+	Options opts_;
+	std::atomic<State> state_{State::Idle};
+	std::atomic<bool> paused_{false}, too_heavy_{false};
+	std::atomic<int> audio_stream_{-1};
+	std::atomic<double> duration_{0};
+#else
 	class PacketQueue {
 	public:
 		void put(AVPacket* pkt, double pts_s, double dur_s);
@@ -238,4 +260,5 @@ private:
 	double heavy_window_start_ = 0;
 	int heavy_window_dropped_ = 0, heavy_window_decoded_ = 0;
 	double fps_ = 0;
+#endif
 };

@@ -73,8 +73,19 @@ bool prepare_log_directory() noexcept {
     // Never create a different /data inside a sandbox. The console must make
     // its existing /data directory accessible first.
     if (!is_directory("/data")) return false;
-    if (::mkdir(kLogDirectory, 0700) != 0 && errno != EEXIST) return false;
+    const bool created = ::mkdir(kLogDirectory, 0777) == 0;
+    if (!created && errno != EEXIST) return false;
+    if (created && ::chmod(kLogDirectory, 0777) != 0) return false;
     return is_directory(kLogDirectory);
+}
+
+bool shared_directory_mode(int descriptor, const char* stage, StorageProbe& result) noexcept {
+    struct stat info{};
+    if (::fchmod(descriptor, 0777) != 0 || ::fstat(descriptor, &info) != 0)
+        return result.fail(stage);
+    if (!S_ISDIR(info.st_mode) || (info.st_mode & 0777) != 0777)
+        return result.fail(stage, EPERM);
+    return true;
 }
 
 // A loader can expose /data and allow stat/mkdir/open while the native title
@@ -152,10 +163,13 @@ bool probe_storage(StorageProbe& result) noexcept {
     struct stat info{};
     if (::lstat("/data", &info) != 0) return result.fail("lstat /data");
     if (!S_ISDIR(info.st_mode)) return result.fail("directory /data", ENOTDIR);
-    if (::mkdir(kLogDirectory, 0700) != 0 && errno != EEXIST)
+    if (::mkdir(kLogDirectory, 0777) != 0 && errno != EEXIST)
         return result.fail("mkdir /data/Stremio");
     if (::lstat(kLogDirectory, &info) != 0) return result.fail("lstat /data/Stremio");
     if (!S_ISDIR(info.st_mode)) return result.fail("directory /data/Stremio", ENOTDIR);
+    Descriptor shared(::open(kLogDirectory, O_RDONLY | O_DIRECTORY | O_NOFOLLOW));
+    if (shared.value < 0) return result.fail("open /data/Stremio directory");
+    if (!shared_directory_mode(shared.value, "permissions /data/Stremio", result)) return false;
     for (const char* directory : {"/data", kLogDirectory}) {
         DIR* entries = ::opendir(directory);
         if (!entries) return result.fail(directory == kLogDirectory ? "opendir /data/Stremio" : "opendir /data");
@@ -253,9 +267,9 @@ bool migrate_file(const char* legacy, const char* name, off_t limit,
 }
 
 bool prepare_appdata(StorageProbe& result, unsigned& copied) noexcept {
-    // Called only after the genuine /data probe. Never manufacture /data or
-    // change modes of an existing appdata, Stremio, or downloads directory.
-    if (::mkdir(kAppDataDirectory, 0700) != 0 && errno != EEXIST)
+    // Called after the genuine /data probe. Repair only the app-owned leaf;
+    // setting its mode after creation also handles a restrictive loader umask.
+    if (::mkdir(kAppDataDirectory, 0777) != 0 && errno != EEXIST)
         return result.fail("mkdir appdata");
     struct stat before{};
     if (::lstat(kAppDataDirectory, &before) != 0) return result.fail("lstat appdata");
@@ -267,6 +281,7 @@ bool prepare_appdata(StorageProbe& result, unsigned& copied) noexcept {
     if (::fstat(directory.value, &opened) != 0) return result.fail("fstat appdata directory");
     if (!S_ISDIR(opened.st_mode) || opened.st_dev != before.st_dev || opened.st_ino != before.st_ino)
         return result.fail("appdata directory changed", EAGAIN);
+    if (!shared_directory_mode(directory.value, "permissions appdata", result)) return false;
     if (!probe_writes(kAppDataDirectory, result)) return false;
 
     struct MigrationFile { const char* name; off_t limit; };

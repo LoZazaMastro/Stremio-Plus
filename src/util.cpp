@@ -2,6 +2,8 @@
 
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <cerrno>
 #include <cstdarg>
 #include <cstdio>
@@ -348,13 +350,29 @@ bool make_dirs(const std::string& path) {
 	for (size_t i = 0; i < path.size(); i++) {
 		cur += path[i];
 		if ((path[i] == '/' && i > 0) || i == path.size() - 1) {
-			if (mkdir(cur.c_str(), 0777) != 0 && errno != EEXIST) {
-				struct stat st;
-				if (stat(cur.c_str(), &st) != 0) return false;
-			}
+			const bool created = mkdir(cur.c_str(), 0777) == 0;
+			if (!created && errno != EEXIST) return false;
+			struct stat st{};
+			if (stat(cur.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) return false;
+			// umask applies to mkdir even when its requested mode is 0777.
+			// Existing ancestors belong to their caller and keep their mode.
+			if (created && chmod(cur.c_str(), 0777) != 0) return false;
 		}
 	}
 	return true;
+}
+
+bool make_shared_dirs(const std::string& path) {
+	if (!make_dirs(path)) return false;
+	const int fd = ::open(path.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+	if (fd < 0) return false;
+	struct stat st{};
+	const bool applied = ::fchmod(fd, 0777) == 0 && ::fstat(fd, &st) == 0;
+	const bool ok = applied && S_ISDIR(st.st_mode) && (st.st_mode & 0777) == 0777;
+	const int error = applied ? EPERM : errno;
+	::close(fd);
+	if (!ok) errno = error;
+	return ok;
 }
 
 bool read_file(const std::string& path, std::string& out) {

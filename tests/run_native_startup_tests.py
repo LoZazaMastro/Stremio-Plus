@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regression checks for native memory imports and process-parameter edits."""
 import importlib.util
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -47,6 +48,66 @@ class NativeStartupTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_video_bootstrap_precedes_filesystem_credentials(self):
+        source = (ROOT / 'src/main.cpp').read_text()
+        first = source.index('int main(int argc, char** argv) {')
+        last = source.index('    boot_step("entered application main");', first)
+        bootstrap = source[first:last]
+        harness = self.folder / 'video-bootstrap.cpp'
+        harness.write_text(r'''
+#include <cstdlib>
+#include <cstdio>
+#include <vector>
+static std::vector<int> calls;
+static bool changed_credentials;
+static bool loaded;
+struct HwDecoder {
+    static void load_module() {
+        if (changed_credentials) std::abort();
+        calls.push_back(1);
+        loaded = std::getenv("STREMIO_TEST_MODULE_REFUSED") == nullptr;
+    }
+    static bool available() { return loaded; }
+};
+extern "C" void vlc_ps5_vdec_prepare() {
+    if (!loaded || changed_credentials) std::abort();
+    calls.push_back(2);
+}
+static int ps5_prepare_storage() {
+    changed_credentials = true;
+    calls.push_back(3);
+    return 0;
+}
+''' + bootstrap + r'''
+    (void)argc; (void)argv; (void)native_storage;
+    std::vector<int> expected{1};
+#ifdef STREMIO_USE_LIBVLC
+    if (loaded) expected.push_back(2);
+#endif
+    expected.push_back(3);
+    if (calls != expected || !changed_credentials) return 1;
+    std::puts("Decoder bootstrap preserves module, queue, filesystem order");
+    return 0;
+}
+''')
+        for vlc in (False, True):
+            binary = self.folder / ('vlc-bootstrap' if vlc else 'legacy-bootstrap')
+            command = [os.environ.get('CXX', 'c++'), '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                       '-DPLATFORM_PS5=1', str(harness), '-o', str(binary)]
+            if vlc:
+                command.append('-DSTREMIO_USE_LIBVLC=1')
+            subprocess.run(command, check=True)
+            for refused in (False, True):
+                with self.subTest(vlc=vlc, module_refused=refused):
+                    environment = os.environ.copy()
+                    environment.pop('STREMIO_TEST_MODULE_REFUSED', None)
+                    if refused:
+                        environment['STREMIO_TEST_MODULE_REFUSED'] = '1'
+                    result = subprocess.run([str(binary)], env=environment,
+                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                            text=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_heap_update_is_restricted_and_idempotent(self):
         path = self.folder / 'native.elf'

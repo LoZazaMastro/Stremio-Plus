@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "../src/diagnostics_native.h"
 
 #define ONLY_MSPACES 1
 #define MSPACES 1
@@ -119,8 +120,26 @@ static inline int ours(const void* p) {
 	return (uintptr_t)p >= g_lo && (uintptr_t)p < g_hi;
 }
 
-void* __wrap_malloc(size_t size) {
+static void* allocate(size_t size) {
 	return heap_ready() ? mspace_malloc(g_heap, size) : __real_malloc(size);
+}
+
+static void* record_allocation(void* result, unsigned operation, size_t size,
+                               size_t alignment, uintptr_t caller) {
+	if (!result && size) {
+		const int saved_errno = errno;
+		/* The allocator has returned and released its lock before this call. */
+		stremio_diagnostics_allocation_failure(operation, size, alignment, caller);
+		errno = saved_errno;
+	}
+	return result;
+}
+
+#define ALLOCATION_CALLER ((uintptr_t)__builtin_extract_return_addr(__builtin_return_address(0)))
+
+__attribute__((noinline)) void* __wrap_malloc(size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
+	return record_allocation(allocate(size), STREMIO_ALLOC_MALLOC, size, 0, caller);
 }
 
 void __wrap_free(void* p) {
@@ -131,45 +150,94 @@ void __wrap_free(void* p) {
 		__real_free(p);  // allocated by the system
 }
 
-void* __wrap_calloc(size_t n, size_t size) {
-	if (heap_ready()) return mspace_calloc(g_heap, n, size);
-	if (size && n > SIZE_MAX / size) return NULL;
-	void* p = __real_malloc(n * size);
-	if (p) memset(p, 0, n * size);
-	return p;
+__attribute__((noinline)) void* __wrap_calloc(size_t n, size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
+	if (size && n > SIZE_MAX / size) {
+		errno = ENOMEM;
+		return record_allocation(NULL, STREMIO_ALLOC_CALLOC, SIZE_MAX, 0, caller);
+	}
+	const size_t total = n * size;
+	void* p;
+	if (heap_ready()) p = mspace_calloc(g_heap, n, size);
+	else {
+		p = __real_malloc(total);
+		if (p) memset(p, 0, total);
+	}
+	return record_allocation(p, STREMIO_ALLOC_CALLOC, total, 0, caller);
 }
 
-void* __wrap_realloc(void* p, size_t size) {
-	if (!p) return __wrap_malloc(size);
+static void* reallocate(void* p, size_t size) {
+	if (!p) return allocate(size);
 	if (ours(p)) return mspace_realloc(g_heap, p, size);
 	return __real_realloc(p, size);
 }
 
-void* __wrap_reallocf(void* p, size_t size) {
-	void* q = __wrap_realloc(p, size);
+__attribute__((noinline)) void* __wrap_realloc(void* p, size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
+	return record_allocation(reallocate(p, size), STREMIO_ALLOC_REALLOC, size, 0, caller);
+}
+
+__attribute__((noinline)) void* __wrap_reallocf(void* p, size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
+	void* q = reallocate(p, size);
+	const int saved_errno = errno;
 	if (!q && size) __wrap_free(p);
-	return q;
+	errno = saved_errno;
+	return record_allocation(q, STREMIO_ALLOC_REALLOCF, size, 0, caller);
 }
 
 static void* aligned(size_t align, size_t size) {
-	if (align <= 32) return __wrap_malloc(size);
-	return heap_ready() ? mspace_memalign(g_heap, align, size) : NULL;
+	if (align <= 32) return allocate(size);
+	if (heap_ready()) return mspace_memalign(g_heap, align, size);
+	errno = ENOMEM;
+	return NULL;
 }
 
-int __wrap_posix_memalign(void** out, size_t align, size_t size) {
+__attribute__((noinline)) int __wrap_posix_memalign(void** out, size_t align, size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
 	if (align < sizeof(void*) || (align & (align - 1)) != 0) return EINVAL;
 	void* p = aligned(align, size);
-	if (!p) return ENOMEM;
+	if (!p) {
+		(void)record_allocation(NULL, STREMIO_ALLOC_POSIX_MEMALIGN, size, align, caller);
+		return ENOMEM;
+	}
 	*out = p;
 	return 0;
 }
 
-void* __wrap_memalign(size_t align, size_t size) { return aligned(align, size); }
-void* __wrap_aligned_alloc(size_t align, size_t size) { return aligned(align, size); }
-void* __wrap_valloc(size_t size) { return aligned(16384, size); }
+__attribute__((noinline)) void* __wrap_memalign(size_t align, size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
+	return record_allocation(aligned(align, size), STREMIO_ALLOC_MEMALIGN, size, align, caller);
+}
+__attribute__((noinline)) void* __wrap_aligned_alloc(size_t align, size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
+	return record_allocation(aligned(align, size), STREMIO_ALLOC_ALIGNED_ALLOC, size, align, caller);
+}
+__attribute__((noinline)) void* __wrap_valloc(size_t size) {
+	const uintptr_t caller = ALLOCATION_CALLER;
+	return record_allocation(aligned(16384, size), STREMIO_ALLOC_VALLOC, size, 16384, caller);
+}
 
 size_t __wrap_malloc_usable_size(const void* p) {
 	return p && ours(p) ? mspace_usable_size(p) : 0;
+}
+
+__attribute__((noinline)) void stremio_heap_snapshot(unsigned checkpoint) {
+	static size_t observed_peak;
+	const uintptr_t caller = ALLOCATION_CALLER;
+	const int saved_errno = errno;
+	/* Only the main thread requests checkpoints. Never called by an allocator
+	 * wrapper or signal handler; mallinfo may take the allocator's lock. */
+	size_t used = 0, available = 0;
+	if (g_heap) {
+		const struct mallinfo usage = mspace_mallinfo(g_heap);
+		used = usage.uordblks;
+		available = usage.fordblks;
+	}
+	if (used > observed_peak) observed_peak = used;
+	stremio_diagnostics_heap_snapshot(checkpoint, (size_t)(g_hi - g_lo), used,
+	                                 available, observed_peak, caller);
+	errno = saved_errno;
 }
 
 // Start-up check, written to the kernel log: which allocation sizes work.

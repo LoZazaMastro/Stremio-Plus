@@ -29,6 +29,7 @@ public:
 
 	// Loads the decoder module; call once at start-up (before SDL).
 	static void load_module();
+	static bool available();
 
 	// A decoder for this stream, or nullptr (why says so) when the hardware
 	// can't take it.

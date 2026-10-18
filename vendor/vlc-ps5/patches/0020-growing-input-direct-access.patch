@@ -1,0 +1,14 @@
+--- a/src/input/access.c
++++ b/src/input/access.c
+@@ -313,7 +313,10 @@
+     s->pf_control = AStreamControl;
+     s->p_sys      = access;
+ 
+-    if (cachename != NULL)
++    /* A guarded growing-file input already owns its buffering. An extra
++     * prefetch reader could block at its prefix and prevent metadata seeks
++     * from reaching the application's seek and cancellation callbacks. */
++    if (cachename != NULL && !var_InheritBool(parent, "stremio-input-direct"))
+         s = stream_FilterChainNew(s, cachename);
+     return stream_FilterAutoNew(s);
+ }

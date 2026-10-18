@@ -1,4 +1,4 @@
-// Exercise the real FFmpeg/SDL Player with locally generated synthetic fixtures.
+// Exercise the production VLC or reference FFmpeg Player with synthetic media.
 #include "diagnostics.h"
 #include "http.h"
 #include "player.h"
@@ -20,6 +20,10 @@ extern "C" {
 #include <signal.h>
 #include <stdexcept>
 #include <unistd.h>
+
+#ifdef STREMIO_USE_LIBVLC
+extern "C" void vlc_ps5_vdec_failed();
+#endif
 
 namespace {
 int checks = 0;
@@ -119,9 +123,31 @@ void local_av(const std::string& folder) {
     if (occupied) SDL_CloseAudioDevice(occupied);
     require(occupied == 0, "Player did not acquire the audio output");
     const auto subs = player.subtitle_tracks();
-    require(subs.size() == 1 && subs.front().lang == "ita", "Embedded SRT track was not exposed");
-    pump.until([&] { return player.embedded_subtitle(subs.front().stream, 1.0).find("Primo") != std::string::npos; },
+    require(subs.size() == 2, "Embedded SRT and ASS tracks were not exposed");
+    int srt = -1, ass = -1;
+    for (const auto& track : subs) {
+        if (track.lang == "ita") srt = track.stream;
+        if (track.lang == "eng") ass = track.stream;
+    }
+    require(srt >= 0 && ass >= 0, "Subtitle languages were not preserved");
+    player.select_subtitle(srt);
+#ifdef STREMIO_USE_LIBVLC
+    // Request the earlier cue explicitly. Selecting a track must not rewind playback.
+    player.seek(0);
+#endif
+    pump.until([&] { return player.embedded_subtitle(srt, 1.0).find("Primo") != std::string::npos; },
                2, "Embedded SRT was not decoded");
+#ifdef STREMIO_USE_LIBVLC
+    player.select_subtitle(ass);
+    player.seek(.4);
+    pump.until([&] { return player.embedded_subtitle(ass, 1.5).find("VLC ASS subtitle") != std::string::npos; },
+               3, "Embedded ASS was not delivered to the custom subtitle renderer");
+    require(player.embedded_subtitle(srt, 1.0).empty(), "Old subtitle selection survived its track change");
+    player.select_subtitle(-1);
+    pump.for_time(.1);
+    require(player.embedded_subtitle(ass, 1.5).empty(), "Subtitles Off retained decoded text");
+    player.select_subtitle(srt);
+#endif
 
     player.set_paused(true);
     pump.for_time(.05);
@@ -138,6 +164,9 @@ void local_av(const std::string& folder) {
                4, "Seek/resume did not reach the requested media time");
     require(!player.paused(), "Resume left the player paused");
     pump.until([&] { return player.state() == Player::State::Ended; }, 7, "Playback did not drain to EOF");
+    require(player.position() > 5.5 && player.duration() > 5.8, "EOF discarded the final playback bookmark");
+    const auto retained_frame = pump.frame;
+    const std::vector<uint8_t> retained_bytes(retained_frame.data(), retained_frame.data() + 64);
     const int before_restart = pump.frames;
     player.seek(1.0);
     require(!player.buffering(), "Restarting a completed file after EOF exposed a buffering label");
@@ -148,10 +177,12 @@ void local_av(const std::string& folder) {
     player.close();
     require(player.state() == Player::State::Idle && seconds() - closing < 3.0,
             "Closing playback did not stop its workers promptly");
+    require(std::equal(retained_bytes.begin(), retained_bytes.end(), retained_frame.data()),
+            "Reopening or closing playback overwrote a frame still leased by the renderer");
     const auto released = audio_probe();
     require(released != 0, "Player close did not release the audio output for UI sounds");
     SDL_CloseAudioDevice(released);
-    std::cout << "PASS H264, Italian/English tracks, embedded SRT, pause, seek, EOF restart, audio release; no network buffering for local files\n";
+    std::cout << "PASS H264, Italian/English tracks, embedded text subtitles, pause, seek, EOF restart, retained frames and audio release; no network buffering for local files\n";
 }
 
 void main10(const std::string& folder) {
@@ -167,7 +198,7 @@ void main10(const std::string& folder) {
             "Main10 did not retain its wide YUV source planes");
     require(pump.frame.shift == 0 && pump.frame.colors == YuvColors::Hdr10 && !pump.frame.full_range && !pump.frame.hlg,
             "Main10 alignment, PQ or limited-range metadata was lost");
-    require(pump.frame.pixels.size() == std::size_t(3840) * 2160 * 3, "Packed Main10 plane size is incorrect");
+    require(pump.frame.size() == std::size_t(3840) * 2160 * 3, "Packed Main10 plane size is incorrect");
     require(pump.frame.offsets[1] == std::size_t(3840) * 2160 * 2 &&
             pump.frame.offsets[2] == pump.frame.offsets[1] + std::size_t(1920) * 1080 * 2,
             "Main10 chroma plane offsets are incorrect");
@@ -178,10 +209,31 @@ void main10(const std::string& folder) {
     std::cout << "PASS 4K HEVC Main10 software decode, source resolution, plane packing and PQ metadata\n";
 }
 
+double prefix_video_time(const std::string& path, int64_t prefix) {
+    AVFormatContext* format = nullptr;
+    require(avformat_open_input(&format, path.c_str(), nullptr, nullptr) >= 0 &&
+            avformat_find_stream_info(format, nullptr) >= 0, "Prefix oracle could not open the complete fixture");
+    const int video = av_find_best_stream(format, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    require(video >= 0, "Prefix oracle did not find a video track");
+    const double scale = av_q2d(format->streams[video]->time_base);
+    AVPacket* packet = av_packet_alloc();
+    double last = 0;
+    while (av_read_frame(format, packet) >= 0) {
+        if (packet->stream_index == video && packet->pts >= 0 && packet->pos >= 0 &&
+            packet->pos <= prefix && packet->size <= prefix - packet->pos)
+            last = std::max(last, double(packet->pts) * scale);
+        av_packet_unref(packet);
+    }
+    av_packet_free(&packet);
+    avformat_close_input(&format);
+    return last;
+}
+
 void growing_download(const std::string& folder) {
     std::ifstream original(folder + "/multi.mkv", std::ios::binary);
     const std::string bytes{std::istreambuf_iterator<char>(original), {}};
     const auto prefix = bytes.size() * 3 / 5;
+    const double local_end = prefix_video_time(folder + "/multi.mkv", int64_t(prefix));
     const std::string path = folder + "/live-download.part";
     { std::ofstream output(path, std::ios::binary); output.write(bytes.data(), std::streamsize(prefix)); }
     auto source = std::make_shared<GrowingFilePlayback>();
@@ -212,6 +264,16 @@ void growing_download(const std::string& folder) {
     pump.until([&] { return player.buffering() && player.position() > 1.0; }, 7,
                "Playback did not wait when it caught the background download");
     require(player.state() == Player::State::Playing, "Temporary prefix EOF incorrectly ended playback");
+    require(player.position() <= local_end + .05 && player.seekable_until() <= local_end + .05,
+            "Input starvation advanced the bookmark or seek proof beyond actual local video packets");
+    const double starved_position = player.position();
+    pump.for_time(.35);
+    require(std::abs(player.position() - starved_position) < .01,
+            "Repeated last-picture displays advanced the playback clock during starvation");
+    previous = pump.frames;
+    player.seek(.1);
+    pump.until([&] { return pump.frames > previous && player.position() >= .08 && player.position() < 1.0; }, 3,
+               "Rewinding a starved download stayed blocked in the old prefix read");
     { std::ofstream output(path, std::ios::binary | std::ios::app);
       output.write(bytes.data() + prefix, std::streamsize(bytes.size() - prefix)); }
     std::filesystem::rename(path, folder + "/live-download.mkv");
@@ -276,17 +338,39 @@ void growing_vbr(const std::string& folder) {
                "VBR partial playback did not start from local bytes");
     require(player.seekable_until() > .2 && player.seekable_until() <= 3.01 && player.seekable_until() < linear_estimate - .5,
             "VBR seek limit was derived from file percentage instead of actual local timestamps");
-    // The next keyframe is at 4 s, outside this prefix. Even a timestamp
-    // below the demuxed limit must be rejected if its index span is absent.
     pump.until([&] { return player.position() > 1.5 && !player.buffering(); }, 4,
                "VBR fixture did not reach its short remaining local queue");
+#ifdef STREMIO_USE_LIBVLC
+    // Native VLC exposes a conservative range of already presented times.
+    // Freeze its coarse clock to separate a rejected seek from natural
+    // playback reaching that same timestamp during the next clock update.
+    player.set_paused(true);
+    pump.for_time(.2);
     const double before_index_request = player.position();
     const int before_index_frames = pump.frames;
-    player.seek(2.0);
+    const double index_request = player.seekable_until() + .5;
+    player.seek(index_request);
+    pump.for_time(.15);
+    require(std::abs(player.position() - before_index_request) < .08 &&
+            player.state() == Player::State::Playing && player.paused() && !player.buffering(),
+            "A rejected VBR seek changed the paused timeline or readiness state");
+    player.set_paused(false);
+    pump.until([&] { return pump.frames > before_index_frames && player.position() > before_index_request + .1; }, 2,
+               "A rejected VBR seek prevented playback from continuing within the local prefix");
+    require(player.position() <= 3.01 && player.seekable_until() <= 3.01 && !player.buffering(),
+            "VBR playback exceeded the physical packet prefix or entered a new buffering wait");
+#else
+    // The next keyframe is at 4 s, outside this prefix. Even a timestamp
+    // below the demuxed limit must be rejected if its index span is absent.
+    const double before_index_request = player.position();
+    const int before_index_frames = pump.frames;
+    const double index_request = 2.0;
+    player.seek(index_request);
     pump.until([&] { return pump.frames > before_index_frames && player.position() > before_index_request + .1; }, 2,
                "A rejected local-index seek started a new buffering wait instead of continuing playback");
-    require(player.position() < 1.95 && !player.buffering(),
+    require(player.position() < index_request && !player.buffering(),
             "A rejected local-index seek changed the timeline or readiness state");
+#endif
     player.set_paused(true);
     const double old_position = player.position();
     player.seek(linear_estimate - .2);
@@ -328,6 +412,27 @@ void network_av(const std::string& base, bool hls, bool byteranges = false) {
     std::cout << "PASS " << (byteranges ? "HLS single-file byte ranges" : hls ? "HLS playlist/segments" : "HTTP Range file")
               << " with custom headers and seek\n";
 }
+
+#ifdef STREMIO_USE_LIBVLC
+void fallback_resume(const std::string& folder) {
+    Player player;
+    Player::Options options;
+    options.url = folder + "/multi.mkv";
+    options.start = 2.5;
+    player.open(options);
+    // Exercise the same failure notification used by a rejected PS5 stream,
+    // before any frame is presented. The host still performs real VLC decode.
+    vlc_ps5_vdec_failed();
+    Pump pump{player};
+    require(player.position() == 0, "An unpresented resume target was exposed as a saved position");
+    pump.until([&] { return pump.frames > 1 && player.state() == Player::State::Playing; },
+               6, "Software fallback did not start after a decoder rejection");
+    require(pump.frame.pts >= 2.4 && player.position() >= 2.4,
+            "Fallback before the first frame discarded the chosen resume time");
+    player.close();
+    std::cout << "PASS decoder-failure fallback preserves the validated resume target before the first frame\n";
+}
+#endif
 } // namespace
 
 int main(int argc, char** argv) {
@@ -368,6 +473,9 @@ int main(int argc, char** argv) {
         {"http", [&] { network_av(base, false); }},
         {"hls", [&] { network_av(base, true); }},
         {"hls-byteranges", [&] { network_av(base, true, true); }},
+#ifdef STREMIO_USE_LIBVLC
+        {"fallback-resume", [&] { fallback_resume(folder); }},
+#endif
     };
     for (const auto& test : cases) {
         std::cout << "RUN " << test.first << '\n';

@@ -15,6 +15,7 @@ enum class DownloadState { Queued, Downloading, Paused, Complete, Failed, Waitin
 
 struct DownloadRequest {
 	std::string media_id, type, video_id, title, subtitle;
+	std::string episode_title;
 	// Cached local RGBA artwork only. Copies are deferred while media is being
 	// written and completed before this video's transfer starts. Completed
 	// offline videos therefore do not depend on the shared artwork cache.
@@ -29,6 +30,9 @@ struct DownloadRequest {
 
 struct DownloadEntry {
 	std::string id, media_id, type, video_id, title, subtitle;
+	std::string episode_title;
+	// Stable digest of the selected source and episode, retained during moves.
+	std::string source_identity;
 	std::string poster_path, background_path, logo_path, local_path, error;
 	std::string poster_url;
 	DownloadState state = DownloadState::Queued;
@@ -99,6 +103,9 @@ public:
 	// Copies a published inventory without waiting for storage or network I/O.
 	std::vector<DownloadEntry> snapshot() const;
 	std::optional<DownloadEntry> find(const std::string& id) const;
+	// Exact selected source/headers/file and episode identity. This never opens
+	// media, starts a second transfer or waits on filesystem operations.
+	std::optional<DownloadEntry> find_matching(const DownloadRequest& request) const;
 	// Queue a cached cover/source without filesystem work or waiting for the
 	// storage mutex. The artwork worker validates and publishes cached paths;
 	// private copies and persistence wait until the media writer is idle.

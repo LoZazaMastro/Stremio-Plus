@@ -40,6 +40,7 @@ def main():
         for symbol, marker in [('BT_ASYNC_DISK_WORKER', 'start_disk_worker_locked'),
                                ('BT_PEER_TURNOVER', 'void turnover_peer('),
                                ('BT_TIMEOUT_CANCEL', '++t->timeout_cancels;'),
+                               ('BT_HEAD_HANDOFF', 'uint64_t request_head_handoffs ='),
                                ('BT_HANDOFF_BOOTSTRAP', 'unsigned handoff_probe_requests')]:
             if marker in source:
                 cmd.insert(1, '-D' + symbol + '=1')

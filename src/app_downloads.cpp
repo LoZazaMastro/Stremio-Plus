@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app.h"
 #include "download_text.h"
+#include "download_metadata.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -18,6 +19,13 @@ std::string download_bytes(int64_t bytes) {
     if (bytes >= (1ll << 30)) std::snprintf(value, sizeof(value), "%.2f GiB", double(bytes) / (1ll << 30));
     else std::snprintf(value, sizeof(value), "%.1f MiB", double(bytes) / (1ll << 20));
     return value;
+}
+const Progress* saved_download_progress(const DownloadEntry& entry,
+    const std::map<std::string, Progress>& videos, const std::map<std::string, Progress>& series) {
+    const auto video = videos.find(video_progress_key(entry.type, entry.media_id, entry.video_id));
+    if (video != videos.end()) return &video->second;
+    const auto legacy = series.find(entry.media_id);
+    return legacy == series.end() || legacy->second.type != entry.type ? nullptr : &legacy->second;
 }
 }
 
@@ -46,7 +54,7 @@ void App::download_selected_stream(const Stream& stream) {
     request.video_id = d_video_id_;
     request.title = d_meta_loaded_ && !d_meta_.name.empty() ? d_meta_.name : d_item_.name;
     request.stream = stream; // Exactly one selected result, including this installation's headers.
-    request.live = d_meta_loaded_ && (d_meta_.is_live || d_meta_.has_scheduled_videos);
+    request.live = download_is_live(d_meta_loaded_ ? d_meta_ : Meta{}, d_item_.type);
     const auto poster = d_meta_loaded_ && !d_meta_.poster.empty() ? d_meta_.poster : d_item_.poster;
     const auto background = d_meta_loaded_ && !d_meta_.background.empty() ? d_meta_.background : d_item_.background;
     const auto logo = d_meta_loaded_ && !d_meta_.logo.empty() ? d_meta_.logo : d_item_.logo;
@@ -57,12 +65,7 @@ void App::download_selected_stream(const Stream& stream) {
     if (request.background_path.empty()) request.background_path = g_art.peek_cached(background, ArtKind::Background);
     request.logo_path = g_art.peek_cached(logo, ArtKind::LaunchLogo);
     if (request.logo_path.empty()) request.logo_path = g_art.peek_cached(logo, ArtKind::LogoBox);
-    if (d_series) for (const auto& video : d_meta_.videos) if (video.id == d_video_id_) {
-        request.season = video.season; request.episode = video.episode;
-        request.subtitle = "S" + std::to_string(video.season) + " · E" + std::to_string(video.episode);
-        if (!video.title.empty()) request.subtitle += " · " + video.title;
-        break;
-    }
+    download_episode_metadata(request, d_meta_loaded_ ? d_meta_ : Meta{});
     if (request.subtitle.empty()) request.subtitle = d_year;
     if (request.live) {
         show_toast(it ? "Le dirette non possono essere scaricate per la visione offline." :
@@ -322,28 +325,27 @@ void App::play_download(const std::string& id, bool progressive) {
     }
     if (entry && entry->state == DownloadState::Complete) progressive = false;
     double resume = 0;
-    if (entry && !progressive) {
-        const auto saved = progress_.find(entry->media_id);
-        if (saved != progress_.end() && saved->second.video_id == entry->video_id &&
-            std::isfinite(saved->second.time) && saved->second.time > 5 &&
-            (saved->second.duration <= 0 || saved->second.time < saved->second.duration))
-            resume = saved->second.time;
+    if (entry) {
+        const auto* saved = saved_download_progress(*entry, video_progress_, progress_);
+        if (saved && resumable_progress(*saved, entry->video_id) &&
+            (!progressive || (entry->playable_while_downloading &&
+                progressive_resume_proven(*saved, entry->id, entry->source_identity, entry->done, entry->total))))
+            resume = saved->time;
     }
-    if (resume > 0 && entry->state == DownloadState::Complete) {
+    if (resume > 0) {
         const bool it = settings_.ui_language == "it";
         const auto generation = account_generation_;
-        open_dropdown(entry->title,
+        open_dropdown(entry->title + (entry->subtitle.empty() ? "" : " · " + entry->subtitle),
             {it ? "Riproduci dall'inizio" : "Play from beginning",
              (it ? "Riproduci da " : "Resume from ") + format_time(resume)}, 1,
-            [this, id, resume, generation](int choice) {
+            [this, id, resume, generation, progressive](int choice) {
                 if (generation != account_generation_ || choice < 0 || choice > 1) return;
-                start_download_playback(id, false, choice == 0 ? 0 : resume);
+                start_download_playback(id, progressive, choice == 0 ? 0 : resume);
             });
         return;
     }
-    // A byte percentage does not establish a resumable timestamp in a VBR
-    // container. Partial files start at the beginning; later seeks use the
-    // player's verified media boundary once their timestamps are known.
+    // A byte percentage cannot prove a timestamp. An incomplete download may
+    // resume only an actually viewed position whose saved prefix is present.
     start_download_playback(id, progressive, 0);
 }
 
@@ -374,11 +376,24 @@ void App::start_download_playback(const std::string& id, bool progressive, doubl
         downloads_refresh();
         return;
     }
+    if (progressive && start > 0) {
+        const auto* saved = saved_download_progress(*entry, video_progress_, progress_);
+        const auto prefix = growing->state->snapshot();
+        if (!saved || !resumable_progress(*saved, entry->video_id) || start > saved->time ||
+            prefix.generation != growing->generation || prefix.total != growing->total ||
+            !progressive_resume_proven(*saved, entry->id, entry->source_identity, prefix.available, prefix.total)) {
+            dlog("download playback: saved position waits for its verified prefix");
+            start = 0;
+        }
+    }
     if (!entry || (!progressive && (entry->state != DownloadState::Complete || entry->local_path.empty() || !file_exists(entry->local_path)))) {
         show_toast(settings_.ui_language == "it" ? "Il file scaricato non è disponibile." : "The downloaded file is unavailable.");
         downloads_refresh();
         return;
     }
+    const auto* saved = saved_download_progress(*entry, video_progress_, progress_);
+    const bool hold_bookmark = progressive && start == 0 && saved && resumable_progress(*saved, entry->video_id) &&
+        !progressive_resume_proven(*saved, entry->id, entry->source_identity, growing->state->snapshot().available, growing->total);
     if (watching_) watch_stop(false);
     w_offline_ = true; w_download_id_ = id;
     w_growing_download_ = std::move(growing);
@@ -387,6 +402,7 @@ void App::start_download_playback(const std::string& id, bool progressive, doubl
     w_download_logo_ = entry->logo_path;
     w_item_ = {};
     w_item_.id = entry->media_id; w_item_.type = entry->type; w_item_.name = entry->title;
+    w_item_.poster = entry->poster_url;
     w_video_id_ = entry->video_id;
     const auto path = w_growing_download_ ? w_growing_download_->path : entry->local_path;
     w_stream_ = {}; w_stream_.kind = StreamKind::Direct; w_stream_.url = path;
@@ -396,4 +412,5 @@ void App::start_download_playback(const std::string& id, bool progressive, doubl
     autoplay_pending_ = false;
     launch_title = entry->title; launch_image = entry->background_path; launch_logo = entry->logo_path;
     watch_start(path, {}, start, entry->title, entry->subtitle, false);
+    w_hold_download_bookmark_ = hold_bookmark;
 }

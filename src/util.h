@@ -51,6 +51,8 @@ std::string format_time(double secs);  // "1:02:03" or "2:03"
 // Files
 bool file_exists(const std::string& path);
 bool make_dirs(const std::string& path);
+// App-owned shared storage: repair the leaf directory's mode after umask.
+bool make_shared_dirs(const std::string& path);
 bool read_file(const std::string& path, std::string& out);
 bool write_file(const std::string& path, const std::string& data);  // atomic
 bool load_json(const std::string& path, json& out, std::string* err = nullptr);
