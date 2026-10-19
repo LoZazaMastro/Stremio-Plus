@@ -9,7 +9,8 @@ extern "C" {
 
 enum stremio_heap_checkpoint {
     STREMIO_HEAP_APP_INITIALIZED = 1,
-    STREMIO_HEAP_VIDEO_PRESENTED = 2
+    STREMIO_HEAP_VIDEO_PRESENTED = 2,
+    STREMIO_HEAP_PLAYBACK_PERIODIC = 3
 };
 
 enum stremio_allocation_operation {
@@ -31,6 +32,7 @@ void stremio_heap_snapshot(unsigned checkpoint);
  * They never enter the regular logger or allocate memory. Callers must supply
  * the return address captured at the outer native wrapper. */
 void stremio_diagnostics_abort(uintptr_t caller);
+void stremio_diagnostics_native_exit(int status, uintptr_t caller);
 void stremio_diagnostics_assert(const char* function, const char* file, int line,
                                 const char* expression, uintptr_t caller);
 void stremio_diagnostics_allocation_failure(unsigned operation, size_t requested,

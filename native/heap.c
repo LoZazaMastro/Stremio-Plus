@@ -12,7 +12,8 @@
 // The link wraps malloc, free, calloc, realloc, the aligned variants and
 // malloc_usable_size (native/build.sh), so every call in the app and its
 // libraries comes here. A pointer outside the block was allocated by the
-// system itself (inside a system module) and goes back to the system.
+// system itself (inside a system module) or by the shared large-block pool.
+// The latter also serves FFmpeg's aligned buffers, not only VLC pictures.
 
 #include <errno.h>
 #include <pthread.h>
@@ -21,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "../src/diagnostics_native.h"
+#include "../src/native_memory.h"
 
 #define ONLY_MSPACES 1
 #define MSPACES 1
@@ -65,6 +67,7 @@ static void* map_direct(size_t size) {
 	static const int types[] = {12, 0};
 	static const int protections[] = {0x03, 0x33};
 	int64_t limit = sceKernelGetDirectMemorySize();
+	if (limit <= 0) return NULL;
 	for (unsigned t = 0; t < 2; t++) {
 		int64_t start = -1;
 		if (sceKernelAllocateDirectMemory(0, limit, size, 0x4000, types[t], &start) != 0) continue;
@@ -78,23 +81,19 @@ static void* map_direct(size_t size) {
 	return NULL;
 }
 
-// Direct memory left for everything else: the hardware video decoder maps
-// its buffers there (about 550 MB for a 4K stream, Nuvio PS5's measurement),
-// and a media app only gets about 2.3 GB of direct memory in all
-// (klog: "DMEM size: 0x90000000"). A 2 GB heap left the decoder short.
-#define RESERVE_MB 800
+// Keep ordinary UI/control allocations in a moderate arena. Large codec and
+// rendering buffers use the shared pool on demand and return physical memory
+// when released, so their capacity is not trapped inside a 1280 MiB mspace.
+// The pool separately enforces its physical reserve and total byte bound.
 
 static void heap_init(void) {
-	static const size_t sizes_mb[] = {2048, 1792, 1536, 1280, 1024, 768, 512, 256};
+	static const size_t sizes_mb[] = {768, 512, 256};
 	int64_t total = sceKernelGetDirectMemorySize(), avail_start = 0;
 	size_t avail = 0;
-	if (sceKernelAvailableDirectMemorySize(0, total, 0x4000, &avail_start, &avail) != 0) avail = 0;
+	if (total <= 0 || sceKernelAvailableDirectMemorySize(0, total, 0x4000, &avail_start, &avail) != 0) avail = 0;
 	heap_log("[stremio] heap: direct memory %lld MB, %lld MB free\n", (long long)(total >> 20),
 	         (long long)(avail >> 20));
-	// Sized from the total (the free figure is one free block, not all of
-	// them): 2.3 GB - 800 MB gives a 1280 MB heap.
-	size_t cap = total > ((int64_t)(RESERVE_MB + 768) << 20) ? (size_t)total - ((size_t)RESERVE_MB << 20)
-	                                                          : (size_t)768 << 20;
+	const size_t cap = total > 0 ? (size_t)total : 0;
 	for (unsigned i = 0; i < sizeof(sizes_mb) / sizeof(sizes_mb[0]); i++) {
 		size_t size = sizes_mb[i] << 20;
 		if (size > cap) continue;
@@ -121,7 +120,12 @@ static inline int ours(const void* p) {
 }
 
 static void* allocate(size_t size) {
-	return heap_ready() ? mspace_malloc(g_heap, size) : __real_malloc(size);
+	const int ready = heap_ready();
+	if (size >= STREMIO_DIRECT_MIN_BYTES) {
+		void* direct = stremio_direct_alloc(size, MALLOC_ALIGNMENT);
+		if (direct) return direct;
+	}
+	return ready ? mspace_malloc(g_heap, size) : __real_malloc(size);
 }
 
 static void* record_allocation(void* result, unsigned operation, size_t size,
@@ -146,7 +150,7 @@ void __wrap_free(void* p) {
 	if (!p) return;
 	if (ours(p))
 		mspace_free(g_heap, p);
-	else
+	else if (!stremio_direct_free(p))
 		__real_free(p);  // allocated by the system
 }
 
@@ -157,18 +161,43 @@ __attribute__((noinline)) void* __wrap_calloc(size_t n, size_t size) {
 		return record_allocation(NULL, STREMIO_ALLOC_CALLOC, SIZE_MAX, 0, caller);
 	}
 	const size_t total = n * size;
-	void* p;
-	if (heap_ready()) p = mspace_calloc(g_heap, n, size);
-	else {
-		p = __real_malloc(total);
-		if (p) memset(p, 0, total);
-	}
+	void* p = allocate(total);
+	if (p) memset(p, 0, total);
 	return record_allocation(p, STREMIO_ALLOC_CALLOC, total, 0, caller);
 }
 
 static void* reallocate(void* p, size_t size) {
 	if (!p) return allocate(size);
-	if (ours(p)) return mspace_realloc(g_heap, p, size);
+	if (!size) { __wrap_free(p); return NULL; }
+	if (ours(p)) {
+		const size_t old_size = mspace_usable_size(p);
+		if (size >= STREMIO_DIRECT_MIN_BYTES && size > old_size) {
+			void* direct = stremio_direct_alloc(size, MALLOC_ALIGNMENT);
+			if (direct) {
+				memcpy(direct, p, old_size);
+				mspace_free(g_heap, p);
+				return direct;
+			}
+		}
+		return mspace_realloc(g_heap, p, size);
+	}
+	const size_t old_size = stremio_direct_usable_size(p);
+	if (old_size) {
+		if (size >= STREMIO_DIRECT_MIN_BYTES && size <= old_size &&
+		    ((size + 16383) & ~(size_t)16383) == old_size) return p;
+		const int saved_errno = errno;
+		void* replacement = allocate(size);
+		if (!replacement) {
+			// A shrink still fits its live mapping when temporary capacity is
+			// unavailable. Keep that valid allocation without reporting OOM.
+			if (size <= old_size) { errno = saved_errno; return p; }
+			errno = ENOMEM;
+			return NULL;
+		}
+		memcpy(replacement, p, size < old_size ? size : old_size);
+		stremio_direct_free(p);
+		return replacement;
+	}
 	return __real_realloc(p, size);
 }
 
@@ -188,29 +217,39 @@ __attribute__((noinline)) void* __wrap_reallocf(void* p, size_t size) {
 
 static void* aligned(size_t align, size_t size) {
 	if (align <= 32) return allocate(size);
-	if (heap_ready()) return mspace_memalign(g_heap, align, size);
+	const int ready = heap_ready();
+	if (size >= STREMIO_DIRECT_MIN_BYTES) {
+		void* direct = stremio_direct_alloc(size, align);
+		if (direct) return direct;
+	}
+	if (ready) return mspace_memalign(g_heap, align, size);
 	errno = ENOMEM;
 	return NULL;
 }
 
 __attribute__((noinline)) int __wrap_posix_memalign(void** out, size_t align, size_t size) {
 	const uintptr_t caller = ALLOCATION_CALLER;
-	if (align < sizeof(void*) || (align & (align - 1)) != 0) return EINVAL;
+	if (!out || align < sizeof(void*) || (align & (align - 1)) != 0) return EINVAL;
+	const int saved_errno = errno;
 	void* p = aligned(align, size);
 	if (!p) {
 		(void)record_allocation(NULL, STREMIO_ALLOC_POSIX_MEMALIGN, size, align, caller);
+		errno = saved_errno;
 		return ENOMEM;
 	}
 	*out = p;
+	errno = saved_errno;
 	return 0;
 }
 
 __attribute__((noinline)) void* __wrap_memalign(size_t align, size_t size) {
 	const uintptr_t caller = ALLOCATION_CALLER;
+	if (!align || (align & (align - 1)) != 0) { errno = EINVAL; return NULL; }
 	return record_allocation(aligned(align, size), STREMIO_ALLOC_MEMALIGN, size, align, caller);
 }
 __attribute__((noinline)) void* __wrap_aligned_alloc(size_t align, size_t size) {
 	const uintptr_t caller = ALLOCATION_CALLER;
+	if (!align || (align & (align - 1)) != 0 || (size & (align - 1)) != 0) { errno = EINVAL; return NULL; }
 	return record_allocation(aligned(align, size), STREMIO_ALLOC_ALIGNED_ALLOC, size, align, caller);
 }
 __attribute__((noinline)) void* __wrap_valloc(size_t size) {
@@ -219,7 +258,8 @@ __attribute__((noinline)) void* __wrap_valloc(size_t size) {
 }
 
 size_t __wrap_malloc_usable_size(const void* p) {
-	return p && ours(p) ? mspace_usable_size(p) : 0;
+	if (!p) return 0;
+	return ours(p) ? mspace_usable_size(p) : stremio_direct_usable_size(p);
 }
 
 __attribute__((noinline)) void stremio_heap_snapshot(unsigned checkpoint) {

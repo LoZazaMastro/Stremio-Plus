@@ -4,6 +4,7 @@
 
 #include "app.h"
 #include <curl/curl.h>
+#include <algorithm>
 #include <chrono>
 #include <deque>
 #include <iostream>
@@ -13,6 +14,7 @@
 namespace {
 int checks = 0;
 std::atomic<int> calls{0}, http_calls{0};
+std::vector<ArtKind> requested_art;
 void expect(bool value, const char* message) { ++checks; if (!value) throw std::runtime_error(message); }
 template<class Predicate> void until(Predicate predicate) {
     const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(4);
@@ -62,7 +64,10 @@ bool wrapped_fetch(const std::string& url, json& document, std::string& error, l
     document = r->data; error = r->ok ? "" : "fixture failure"; return r->ok;
 }
 std::string wrapped_art(App*, const std::string&, ArtKind, bool) asm(WRAP_APP_ART);
-std::string wrapped_art(App*, const std::string& url, ArtKind, bool) { return url; }
+std::string wrapped_art(App*, const std::string& url, ArtKind kind, bool) {
+    if (!url.empty()) requested_art.push_back(kind);
+    return url;
+}
 extern "C" CURLcode __wrap_curl_easy_perform(CURL*) { ++http_calls; return CURLE_COULDNT_CONNECT; }
 
 struct AppProtocolTest {
@@ -126,6 +131,39 @@ struct AppProtocolTest {
         app.view = "detail"; app.update_preview_metadata();
         expect(!app.preview_metadata_loading_ && app.preview_metadata_key_.empty(), "leaving catalog pages clears preview work state");
     }
+    static void discover_details_without_hero() {
+        App app; prepare(app);
+        app.view = "discover";
+        app.disc_items_ = {app.board_[0].items[0]};
+        app.disc_items_[0].logo = "https://art.test/existing-logo.png";
+        app.disc_items_[0].background = "https://art.test/existing-hero.jpg";
+        app.disc_cards.resize(1);
+        const int before = calls;
+        auto metadata = art();
+        metadata["meta"]["releaseInfo"] = "2026";
+        metadata["meta"]["runtime"] = "121 min";
+        metadata["meta"]["imdbRating"] = "8.2";
+        metadata["meta"]["genres"] = json::array({"Drama", "Mystery"});
+        metadata["meta"]["director"] = json::array({"Example director"});
+        metadata["meta"]["cast"] = json::array({"Actor one", "Actor two", "Actor three", "Actor four", "Actor five", "Actor six"});
+        reply(std::move(metadata));
+        requested_art.clear();
+        settle(app); until([&] { return !app.preview_metadata_loading_; });
+        expect(calls == before + 1, "Discover fills descriptive metadata even when the title logo already exists");
+        expect(app.dp_name == "Catalog title" && app.dp_logo == "https://art.test/existing-logo.png" && app.dp_still.empty(),
+               "Discover preserves the selected title and logo while suppressing the backdrop model");
+        expect(app.dp_year == "2026" && app.dp_runtime == "121 min" && app.dp_imdb == "8.2" &&
+               app.dp_genres == "Drama · Mystery" && app.dp_directors == "Example director" &&
+               app.dp_desc == "Provider description", "provider year, rating, duration, genres, director and description reach Discover");
+        expect(app.dp_cast.find("Actor five") != std::string::npos && app.dp_cast.find("Actor six") == std::string::npos,
+               "Discover bounds the visible principal cast to five names");
+        expect(std::none_of(requested_art.begin(), requested_art.end(), [](ArtKind kind) {
+            return kind == ArtKind::Background || kind == ArtKind::Backdrop || kind == ArtKind::Still;
+        }), "Discover enrichment never requests or decodes a hidden hero image");
+        for (int i = 0; i < 100; ++i) app.update_preview_metadata();
+        expect(calls == before + 1, "complete Discover metadata is reused without duplicate provider requests");
+        fence();
+    }
     static void provider_bound_and_retry() {
         App app; prepare(app);
         const int before = calls;
@@ -177,17 +215,18 @@ struct AppProtocolTest {
         app.dp_logo.clear(); app.dp_still = "ready-hero.rgba";
         expect(app.visible_art_missing(), "Discover retries a failed title logo even with all posters loaded");
         app.dp_logo = "ready-logo.rgba"; app.dp_still.clear();
-        expect(app.visible_art_missing(), "Discover retries a failed hero even with all posters loaded");
-        app.disc_items_[0].poster.clear(); // Only the wrapped hero/logo art boundary is needed below.
+        expect(!app.visible_art_missing(), "a missing Discover hero never wakes artwork work for a hidden image");
+        app.dp_logo.clear();
+        app.disc_items_[0].poster.clear(); // Only the wrapped logo art boundary is needed below.
         app.images_retry_at_ = 0; app.images_refreshed_ = 0;
         app.update();
-        expect(app.dp_still == "https://art.test/hero.jpg" && app.images_refreshed_ > 0,
+        expect(app.dp_logo == "https://art.test/logo.png" && app.dp_still.empty() && app.images_refreshed_ > 0,
             "failed Discover artwork recovers through periodic App update without navigation");
         expect(!app.visible_art_missing(), "recovered Discover artwork stops retry work");
-        app.dp_still.clear(); app.update();
-        expect(app.dp_still.empty(), "periodic retry is throttled instead of running every frame");
+        app.dp_logo.clear(); app.update();
+        expect(app.dp_logo.empty(), "periodic retry is throttled instead of running every frame");
         app.images_retry_at_ = 0; app.images_refreshed_ = 0; app.update();
-        expect(!app.dp_still.empty(), "the next periodic retry can recover a later missing image");
+        expect(!app.dp_logo.empty() && app.dp_still.empty(), "the next periodic retry recovers the title logo without adding a hero");
     }
 };
 
@@ -196,6 +235,7 @@ int main() {
     try {
         AppProtocolTest::load_and_cache();
         AppProtocolTest::stale_selection_and_account();
+        AppProtocolTest::discover_details_without_hero();
         AppProtocolTest::provider_bound_and_retry();
         AppProtocolTest::bounded_cache_and_offline();
         AppProtocolTest::visible_art_retry();

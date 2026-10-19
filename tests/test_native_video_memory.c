@@ -15,10 +15,11 @@
 
 #define MIB ((size_t)1 << 20)
 #define PAGE_BYTES ((size_t)0x4000)
-#define MIN_PICTURE (4 * MIB)
-#define POOL_LIMIT (512 * MIB)
+#define MIN_PICTURE (1 * MIB)
+#define POOL_LIMIT (1536 * MIB)
 #define RESERVE (128 * MIB)
-#define EXTENTS 128
+#define EXTENTS 2048
+#define MAX_PAGES (4096 * MIB / PAGE_BYTES)
 
 struct extent {
     int owned;
@@ -30,9 +31,12 @@ struct extent {
     void *address;
 };
 static struct extent extents[EXTENTS];
+/* Independent physical-page ledger: 1 belongs to the allocator, 2 simulates
+ * other title components. Queries return real largest free extents. */
+static unsigned char physical_pages[MAX_PAGES];
 static size_t physical_bytes;
-static size_t available_budget = 1024 * MIB;
-static int64_t direct_total = (int64_t)2304 << 20;
+static size_t available_budget = 2048 * MIB;
+static int64_t direct_total = (int64_t)4096 << 20;
 static int fail_query, fail_allocate, fail_map, null_map, fail_unmap, fail_release;
 static unsigned queries, allocations, maps, unmaps, releases;
 static int last_type, last_protection;
@@ -85,6 +89,16 @@ static void *picture_alloc(size_t size)
     return p;
 }
 
+static void *aligned_direct_alloc(size_t size, size_t alignment)
+{
+    errno = EDOM;
+    ++mapper_depth;
+    void *p = stremio_direct_alloc(size, alignment);
+    --mapper_depth;
+    require(errno == EDOM, "aligned allocation changed caller errno");
+    return p;
+}
+
 static int picture_free(void *p)
 {
     errno = EDOM;
@@ -124,7 +138,7 @@ static void begin_case(const char *name)
     case_first_check = atomic_load(&checks);
     require(!fail_query && !fail_allocate && !fail_map && !null_map && !fail_unmap && !fail_release,
             "an earlier case left failure injection enabled");
-    require(available_budget == 1024 * MIB && direct_total == ((int64_t)2304 << 20),
+    require(available_budget == 2048 * MIB && direct_total == ((int64_t)4096 << 20),
             "an earlier case changed the kernel budget");
     check_empty();
 }
@@ -165,22 +179,32 @@ int64_t sceKernelGetDirectMemorySize(void) { errno = EIO; return direct_total; }
 int sceKernelAvailableDirectMemorySize(int64_t first, int64_t last, size_t alignment,
                                        int64_t *start, size_t *size)
 {
-    require(first == 0 && last == direct_total && alignment == PAGE_BYTES,
+    require(first >= 0 && first < last && last <= direct_total && alignment == PAGE_BYTES,
             "available-memory query changed its search extent or alignment");
     ++queries;
     errno = EIO;
     if (injected(&fail_query)) return EIO;
-    *start = 0;
-    *size = available_budget > physical_bytes ? available_budget - physical_bytes : 0;
+    *start = first;
+    *size = 0;
+    const size_t limit = ((uint64_t)last < available_budget ? (size_t)last : available_budget) / PAGE_BYTES;
+    for (size_t page = ((size_t)first + PAGE_BYTES - 1) / PAGE_BYTES; page < limit;) {
+        if (physical_pages[page]) { ++page; continue; }
+        const size_t begin = page;
+        while (page < limit && !physical_pages[page]) ++page;
+        if ((page - begin) * PAGE_BYTES > *size) {
+            *start = (int64_t)(begin * PAGE_BYTES);
+            *size = (page - begin) * PAGE_BYTES;
+        }
+    }
     return 0;
 }
 
 int sceKernelAllocateDirectMemory(int64_t first, int64_t last, size_t length,
                                   size_t alignment, int type, int64_t *offset)
 {
-    require(first == 0 && last == direct_total && alignment == PAGE_BYTES,
+    require(first == 0 && last == direct_total && alignment >= PAGE_BYTES && !(alignment & (alignment - 1)),
             "physical allocation changed its search extent or alignment");
-    require(length && !(length & (PAGE_BYTES - 1)) && (type == 12 || type == 0),
+    require(length && !(length & (PAGE_BYTES - 1)) && (type == 11 || type == 12),
             "physical allocation used invalid size or memory type");
     ++allocations;
     last_type = type;
@@ -192,22 +216,21 @@ int sceKernelAllocateDirectMemory(int64_t first, int64_t last, size_t length,
     for (unsigned i = 0; i < EXTENTS; ++i)
         if (!extents[i].owned) { slot = &extents[i]; break; }
     require(slot != NULL, "the mapper exceeded its physical extent table");
-    int64_t candidate = 0;
-    for (unsigned pass = 0; pass <= EXTENTS; ++pass) {
-        int collision = 0;
-        for (unsigned i = 0; i < EXTENTS; ++i) {
-            const struct extent *e = &extents[i];
-            if (!e->owned || candidate >= e->offset + (int64_t)e->length ||
-                candidate + (int64_t)length <= e->offset) continue;
-            candidate = e->offset + (int64_t)e->length;
-            collision = 1;
-            break;
-        }
-        if (!collision) break;
+    const size_t limit = available_budget / PAGE_BYTES;
+    const size_t pages = length / PAGE_BYTES, page_alignment = alignment / PAGE_BYTES;
+    size_t candidate_page = 0;
+    while (candidate_page < limit && pages <= limit - candidate_page) {
+        size_t used = 0;
+        while (used < pages && !physical_pages[candidate_page + used]) ++used;
+        if (used == pages) break;
+        candidate_page = (candidate_page + used + page_alignment) & ~(page_alignment - 1);
     }
+    if (candidate_page >= limit || pages > limit - candidate_page) return ENOMEM;
+    const int64_t candidate = (int64_t)(candidate_page * PAGE_BYTES);
     require(candidate >= 0 && candidate + (int64_t)length <= direct_total,
             "the kernel fixture ran out of physical address space");
     *slot = (struct extent){.owned = 1, .type = type, .offset = candidate, .length = length};
+    memset(physical_pages + candidate_page, 1, pages);
     physical_bytes += length;
     *offset = candidate;
     return 0;
@@ -217,7 +240,7 @@ int sceKernelMapDirectMemory(void **address, size_t length, int protection, int 
                              int64_t offset, size_t alignment)
 {
     struct extent *e = by_offset(offset);
-    require(!e->mapped && e->length == length && flags == 0 && alignment == PAGE_BYTES,
+    require(!e->mapped && e->length == length && flags == 0 && alignment >= PAGE_BYTES && !(alignment & (alignment - 1)),
             "mapping lost physical ownership or changed extent");
     require(protection == 0x03 || protection == 0x33, "mapping used an unsupported protection");
     ++maps;
@@ -225,12 +248,12 @@ int sceKernelMapDirectMemory(void **address, size_t length, int protection, int 
     errno = EIO;
     if (injected(&fail_map)) return ENOMEM;
     if (injected(&null_map)) { *address = NULL; return 0; }
-    void *raw = mmap(NULL, length + PAGE_BYTES, PROT_READ | PROT_WRITE,
+    void *raw = mmap(NULL, length + alignment, PROT_READ | PROT_WRITE,
                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     require(raw != MAP_FAILED, "host mmap could not create the fixture pages");
-    const uintptr_t aligned = ((uintptr_t)raw + PAGE_BYTES - 1) & ~(uintptr_t)(PAGE_BYTES - 1);
+    const uintptr_t aligned = ((uintptr_t)raw + alignment - 1) & ~(uintptr_t)(alignment - 1);
     const size_t prefix = aligned - (uintptr_t)raw;
-    const size_t suffix = PAGE_BYTES - prefix;
+    const size_t suffix = alignment - prefix;
     if (prefix) require(munmap(raw, prefix) == 0, "could not trim host mapping prefix");
     if (suffix) require(munmap((void *)(aligned + length), suffix) == 0, "could not trim host mapping suffix");
     e->address = *address = (void *)aligned;
@@ -262,6 +285,7 @@ int sceKernelReleaseDirectMemory(int64_t offset, size_t length)
     errno = EIO;
     if (injected(&fail_release)) return EIO;
     require(physical_bytes >= length, "physical ownership underflowed");
+    memset(physical_pages + (size_t)offset / PAGE_BYTES, 0, length / PAGE_BYTES);
     physical_bytes -= length;
     memset(e, 0, sizeof(*e));
     return 0;
@@ -330,22 +354,67 @@ static void test_limits(void)
     require(picture_free(p) == 1, "full-pool release lost ownership");
     end_case();
 
-    begin_case("all_128_mapping_slots_and_reuse");
-    void *pictures[EXTENTS];
-    for (unsigned i = 0; i < EXTENTS; ++i) {
+    begin_case("one_mib_blocks_reach_pool_bound_without_slot_exhaustion");
+    enum { blocks = POOL_LIMIT / MIN_PICTURE };
+    void *pictures[blocks];
+    for (unsigned i = 0; i < blocks; ++i) {
         pictures[i] = picture_alloc(MIN_PICTURE);
         mark_picture(pictures[i], MIN_PICTURE, (unsigned char)i);
     }
     const struct stremio_video_memory_stats full = snapshot();
-    require(full.active_mappings == EXTENTS && full.direct_bytes == POOL_LIMIT,
-            "mapping table did not reach its documented capacity");
-    require(!picture_alloc(MIN_PICTURE), "mapping table overflow did not use the heap fallback");
-    for (unsigned i = 0; i < EXTENTS; ++i) {
+    require(full.active_mappings == blocks && full.direct_bytes == POOL_LIMIT,
+            "one-MiB allocations exhausted slots before reaching the byte bound");
+    require(!picture_alloc(MIN_PICTURE), "a full one-MiB pool did not use the heap fallback");
+    for (unsigned i = 0; i < blocks; ++i) {
         check_picture(pictures[i], MIN_PICTURE, (unsigned char)i);
         require(picture_free(pictures[i]) == 1, "mapping table release lost an entry");
     }
     void *reused = picture_alloc(MIN_PICTURE);
     require(reused != NULL && picture_free(reused) == 1, "released mapping slots were not reusable");
+    end_case();
+}
+
+static void test_aligned_and_fragmented(void)
+{
+    begin_case("generic_alignment_and_exact_usable_size");
+    const size_t alignments[] = {32, 64, PAGE_BYTES, 64 * 1024, MIB};
+    for (unsigned i = 0; i < sizeof(alignments) / sizeof(alignments[0]); ++i) {
+        void *p = aligned_direct_alloc(MIN_PICTURE + 19, alignments[i]);
+        mark_picture(p, MIN_PICTURE + 19, (unsigned char)i);
+        require(!((uintptr_t)p & (alignments[i] - 1)), "generic allocation lost its requested alignment");
+        require(stremio_direct_usable_size(p) == MIN_PICTURE + PAGE_BYTES,
+                "generic usable size did not match its page-rounded allocation");
+        require(stremio_direct_usable_size((char *)p + 1) == 0 && stremio_direct_usable_size(NULL) == 0,
+                "usable size accepted an interior or NULL pointer");
+        require(picture_free(p), "legacy VLC free did not recognize a generic allocation");
+    }
+    const unsigned calls_before = queries + allocations;
+    require(!aligned_direct_alloc(MIN_PICTURE, 0) && !aligned_direct_alloc(MIN_PICTURE, 3) &&
+            !aligned_direct_alloc(SIZE_MAX, 64), "invalid generic size or alignment reached allocation");
+    require(queries + allocations == calls_before, "invalid generic request queried the kernel");
+    end_case();
+
+    begin_case("fragmented_free_extents_preserve_total_reserve");
+    available_budget = 384 * MIB;
+    for (unsigned i = 0; i < 4; ++i)
+        memset(physical_pages + (64 + i * 80) * MIB / PAGE_BYTES, 2, 16 * MIB / PAGE_BYTES);
+    const unsigned query_before = queries;
+    require(!picture_alloc(80 * MIB), "scattered free memory was mistaken for a contiguous allocation");
+    void *held[3];
+    for (unsigned i = 0; i < 3; ++i) {
+        held[i] = picture_alloc(64 * MIB);
+        mark_picture(held[i], 64 * MIB, (unsigned char)i);
+    }
+    require(queries > query_before + 4, "fragmented reserve was not checked across disjoint extents");
+    const unsigned allocations_before = allocations;
+    require(!picture_alloc(MIN_PICTURE) && allocations == allocations_before,
+            "fragmented allocation consumed the final 128 MiB reserve");
+    for (unsigned i = 0; i < 3; ++i) {
+        check_picture(held[i], 64 * MIB, (unsigned char)i);
+        require(picture_free(held[i]), "fragmented allocation lost ownership");
+    }
+    memset(physical_pages, 0, sizeof(physical_pages));
+    available_budget = 2048 * MIB;
     end_case();
 }
 
@@ -361,7 +430,7 @@ static void test_available_memory(void)
     require(!picture_alloc(MIN_PICTURE), "allocation ignored the reserve after a live mapping");
     check_picture(p, MIN_PICTURE, 0x55);
     require(picture_free(p) == 1, "reserve-bound mapping was not released");
-    available_budget = 1024 * MIB;
+    available_budget = 2048 * MIB;
     before = allocations;
     fail_query = 1;
     require(!picture_alloc(MIN_PICTURE) && allocations == before, "failed availability query proceeded to allocation");
@@ -369,7 +438,28 @@ static void test_available_memory(void)
     require(!picture_alloc(MIN_PICTURE) && allocations == before, "zero direct-memory size proceeded to allocation");
     direct_total = -1;
     require(!picture_alloc(MIN_PICTURE) && allocations == before, "negative direct-memory size proceeded to allocation");
-    direct_total = (int64_t)2304 << 20;
+    direct_total = (int64_t)4096 << 20;
+    end_case();
+}
+
+static void test_main10_working_set(void)
+{
+    begin_case("main10_reference_pool_and_render_leases_exceed_old_512_mib_cap");
+    const size_t bytes = 3840u * 2160u * 3u;
+    void *pictures[40];
+    const struct stremio_video_memory_stats before = snapshot();
+    for (unsigned i = 0; i < 40; ++i) {
+        pictures[i] = picture_alloc(bytes);
+        mark_picture(pictures[i], bytes, (unsigned char)i);
+    }
+    const struct stremio_video_memory_stats after = snapshot();
+    require(after.direct_bytes > 512 * MIB && after.direct_bytes < POOL_LIMIT &&
+            after.heap_fallbacks == before.heap_fallbacks,
+            "the 4K10 reference and render working set overflowed into the small arena");
+    for (unsigned i = 0; i < 40; ++i) {
+        check_picture(pictures[i], bytes, (unsigned char)i);
+        require(picture_free(pictures[i]) == 1, "a Main10 buffer lost its direct-memory owner");
+    }
     end_case();
 }
 
@@ -378,7 +468,7 @@ static void test_native_fallbacks(void)
     begin_case("memory_type_and_protection_fallbacks");
     fail_allocate = 1;
     void *p = picture_alloc(MIN_PICTURE);
-    require(p && last_type == 0, "allocation did not fall back from memory type 12 to 0");
+    require(p && last_type == 12, "allocation did not fall back from memory type 11 to 12");
     require(picture_free(p) == 1, "fallback memory type lost ownership");
     fail_map = 1;
     p = picture_alloc(MIN_PICTURE);
@@ -387,7 +477,7 @@ static void test_native_fallbacks(void)
     const unsigned release_before = releases;
     fail_map = 2;
     p = picture_alloc(MIN_PICTURE);
-    require(p && last_type == 0 && releases == release_before + 1,
+    require(p && last_type == 12 && releases == release_before + 1,
             "mapping fallback did not release the first physical allocation");
     require(picture_free(p) == 1, "second-type mapped pointer lost ownership");
     end_case();
@@ -427,8 +517,9 @@ static void test_retirement(void)
     begin_case("failed_unmap_preserves_pages_and_existing_live_picture");
     p = picture_alloc(MIN_PICTURE);
     mark_picture(p, MIN_PICTURE, 0x38);
-    fail_unmap = 2;
+    fail_unmap = 3;
     require(picture_free(p) == 1, "failed unmap allowed an owned pointer to reach heap free");
+    require(picture_free(p) == 1, "retained mapped ownership forwarded a repeated free to the system heap");
     check_picture(p, MIN_PICTURE, 0x38);
     void *held = picture_alloc(MIN_PICTURE);
     mark_picture(held, MIN_PICTURE, 0x79);
@@ -523,6 +614,8 @@ int main(void)
     test_regular_and_unknown();
     test_limits();
     test_available_memory();
+    test_aligned_and_fragmented();
+    test_main10_working_set();
     test_native_fallbacks();
     test_retirement();
     test_concurrent();

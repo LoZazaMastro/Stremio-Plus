@@ -3,11 +3,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "video_gl.h"
+#include "video_dovi.h"
+#include "video_evo_shaders.h"
 #include "gfx/gl_program.hpp"
 #include "util.h"
 #include <GL/glcorearb.h>
-#include <algorithm>
 #include <cmath>
+#include <chrono>
+#include <string>
 
 namespace {
 constexpr const char* vertex = R"GLSL(
@@ -21,11 +24,13 @@ void main() {
 
 // PQ/Hable constants and BT.2020->709 transform match the existing CPU
 // reference in yuv_convert.cpp. HLG follows its inverse OETF and SDR output.
-constexpr const char* fragment = R"GLSL(
+constexpr const char* fragment_begin = R"GLSL(
 in vec2 uv;
 out vec4 color;
 uniform sampler2D ytex, utex, vtex;
-uniform int layout_mode, color_mode, wide, sample_shift, full_range, hlg;
+uniform int layout_mode, color_mode, wide, sample_shift, full_range, hlg, dovi_active;
+)GLSL";
+constexpr const char* fragment_end = R"GLSL(
 
 vec3 pq(vec3 v) {
     vec3 p = pow(clamp(v, 0.0, 1.0), vec3(1.0 / 78.84375));
@@ -60,8 +65,9 @@ void main() {
     if (color_mode == 2 || hlg != 0) rgb = vec3(y + 1.4746*c.y, y - 0.16455*c.x - 0.57135*c.y, y + 1.8814*c.x);
     else if (color_mode == 0) rgb = vec3(y + 1.402*c.y, y - 0.344136*c.x - 0.714136*c.y, y + 1.772*c.x);
     else rgb = vec3(y + 1.5748*c.y, y - 0.187324*c.x - 0.468124*c.y, y + 1.8556*c.x);
-    if (color_mode == 2 || hlg != 0) {
-        vec3 light = hlg != 0 ? vec3(hlg_linear(rgb.r), hlg_linear(rgb.g), hlg_linear(rgb.b)) : pq(rgb);
+    if (color_mode == 2 || hlg != 0 || dovi_active != 0) {
+        vec3 light = dovi_active != 0 ? dovi_nits(code / maximum) / 100.0 :
+            hlg != 0 ? vec3(hlg_linear(rgb.r), hlg_linear(rgb.g), hlg_linear(rgb.b)) : pq(rgb);
         light *= 2.5;
         light = vec3(dot(light, vec3(1.6605, -0.5876, -0.0728)),
                      dot(light, vec3(-0.1246, 1.1329, -0.0083)),
@@ -80,35 +86,98 @@ void texture_params() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 }
+
+GLenum consume_gl_errors() {
+    const GLenum first = glGetError();
+    // There is one error flag per GL error kind. Bound the drain even if the
+    // context has failed; a sticky error must not block the interface.
+    if (first != GL_NO_ERROR)
+        for (unsigned i = 0; i < 8 && glGetError() != GL_NO_ERROR; ++i) {}
+    return first;
+}
 }
 
+VideoGl::VideoGl() = default;
 VideoGl::~VideoGl() { release(); }
+uint32_t VideoGl::texture() const { return valid_ ? output_ : 0; }
+double VideoGl::fps() const { return period_ > 0 ? 1.0 / period_ : 0; }
 bool VideoGl::init() {
-    program_ = hui::gfx::build_program("Stremio YUV video", vertex, fragment);
+    const std::string fragment = std::string(fragment_begin) + evo_shader::dovi + fragment_end;
+    program_ = hui::gfx::build_program("Stremio YUV video", vertex, fragment.c_str());
     if (!program_) return false;
     glGenVertexArrays(1, &vao_); glGenFramebuffers(1, &framebuffer_);
     glUseProgram(program_);
     glUniform1i(glGetUniformLocation(program_, "ytex"), 0);
     glUniform1i(glGetUniformLocation(program_, "utex"), 1);
     glUniform1i(glGetUniformLocation(program_, "vtex"), 2);
+    glGenBuffers(1, &dovi_buffer_);
+    glBindBuffer(GL_UNIFORM_BUFFER, dovi_buffer_);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(VideoDoviParams), nullptr, GL_DYNAMIC_DRAW);
+    glUniformBlockBinding(program_, glGetUniformBlockIndex(program_, "DoviParams"), 3);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
     glUseProgram(0);
     return true;
 }
-void VideoGl::clear() { valid_ = false; }
+void VideoGl::discard_textures() {
+    if (output_ || planes_[0] || planes_[1] || planes_[2]) {
+        // A texture deleted while attached to an unbound FBO retains its
+        // backing store. Detach it before allocating the next video surface.
+        if (framebuffer_) {
+            GLint previous_draw = 0, previous_read = 0;
+            glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &previous_draw);
+            glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previous_read);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, GLuint(previous_draw));
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, GLuint(previous_read));
+        }
+        glDeleteTextures(3, planes_);
+        glDeleteTextures(1, &output_);
+    }
+    output_ = planes_[0] = planes_[1] = planes_[2] = 0;
+    width_ = height_ = 0;
+    format_ = -1;
+    valid_ = false;
+}
+void VideoGl::clear() {
+    discard_textures();
+    dovi_active_ = false;
+    stamp_ = period_ = 0;
+    previous_media_pts_ = -1;
+    serial_ = -1;
+}
 void VideoGl::release() {
-    if (output_) glDeleteTextures(1, &output_);
-    if (planes_[0] || planes_[1] || planes_[2]) glDeleteTextures(3, planes_);
+    clear();
+    if (dovi_buffer_) glDeleteBuffers(1, &dovi_buffer_);
+    dovi_buffer_ = 0; dovi_active_ = false;
     if (framebuffer_) glDeleteFramebuffers(1, &framebuffer_);
     if (vao_) glDeleteVertexArrays(1, &vao_);
     if (program_) glDeleteProgram(program_);
     output_ = framebuffer_ = vao_ = program_ = 0;
     planes_[0] = planes_[1] = planes_[2] = 0;
-    width_ = height_ = 0; format_ = -1; valid_ = false;
+    failure_ = Failure::None;
+}
+
+bool VideoGl::reject(Failure failure, const char* stage, const Player::VideoFrame& f,
+                     int plane, uint32_t gl_error, uint32_t framebuffer_status) {
+    failure_ = failure;
+    if (rejection_notes_++ < 16)
+        dlog("video: frame rejected stage=%s gl_error=0x%04x framebuffer=0x%04x "
+             "size=%dx%d layout=%d bits=%d bytes=%zu plane=%d "
+             "offsets=%zu,%zu,%zu pitches=%zu,%zu,%zu",
+             stage, gl_error, framebuffer_status, f.w, f.h, int(f.layout), f.wide ? 10 : 8,
+             f.size(), plane, f.offsets[0], f.offsets[1], f.offsets[2],
+             f.pitches[0], f.pitches[1], f.pitches[2]);
+    return false;
 }
 
 bool VideoGl::upload(const Player::VideoFrame& f) {
     using Layout = Player::VideoFrame::Layout;
-    if (!program_ || f.w <= 0 || f.h <= 0 || f.w > 8192 || f.h > 8192 || !f.data() || !f.size()) return false;
+    failure_ = Failure::None;
+    if (!program_ || !framebuffer_ || !vao_ || !dovi_buffer_)
+        return reject(Failure::InvalidFrame, "renderer_objects", f);
+    if (f.w <= 0 || f.h <= 0 || f.w > 8192 || f.h > 8192 || !f.data() || !f.size())
+        return reject(Failure::InvalidFrame, "frame_descriptor", f);
     const int layout = f.layout == Layout::Bgra ? 0 : f.layout == Layout::Nv12 ? 1 : 2;
     const int format = layout + (f.wide ? 4 : 0);
     const int cw = (f.w + 1) / 2, ch = (f.h + 1) / 2;
@@ -121,25 +190,55 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
         const size_t height = size_t(i == 0 ? f.h : ch);
         const size_t pitch = f.pitches[i] ? f.pitches[i] : row;
         if (pitch < row || pitch % pixel_bytes || pitch / pixel_bytes > 32768 ||
-            f.offsets[i] > f.size() || (height - 1) * pitch + row > f.size() - f.offsets[i]) return false;
+            f.offsets[i] > f.size() || (height - 1) * pitch + row > f.size() - f.offsets[i])
+            return reject(Failure::InvalidPlane, "plane_descriptor", f, i);
         row_pitches[i] = pitch;
     }
     GLint previous_fbo = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previous_fbo);
-    if (width_ != f.w || height_ != f.h || format_ != format) {
-        glDeleteTextures(3, planes_); glDeleteTextures(1, &output_);
-        glGenTextures(3, planes_); glGenTextures(1, &output_);
-        for (int i = 0; i < count; ++i) {
-            glBindTexture(GL_TEXTURE_2D, planes_[i]); texture_params();
-            const GLenum internal = layout == 0 ? GL_RGBA8 : (i == 1 && layout == 1) ? (f.wide ? GL_RG16 : GL_RG8) : (f.wide ? GL_R16 : GL_R8);
-            glTexStorage2D(GL_TEXTURE_2D, 1, internal, i == 0 ? f.w : cw, i == 0 ? f.h : ch);
-        }
-        glBindTexture(GL_TEXTURE_2D, output_); texture_params();
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, f.w, f.h);
+    const bool size_changed = width_ != f.w || height_ != f.h;
+    if (size_changed || format_ != format) {
+        const GLenum prior_error = consume_gl_errors();
+        if (prior_error != GL_NO_ERROR && prior_gl_notes_++ < 8)
+            dlog("video: prior GL error before resource setup gl_error=0x%04x", unsigned(prior_error));
+        discard_textures();
+        glActiveTexture(GL_TEXTURE0);
+        auto failed_setup = [&](Failure failure, const char* stage, int plane,
+                                GLenum error, GLenum status = 0) {
+            discard_textures();
+            glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo));
+            glActiveTexture(GL_TEXTURE0);
+            return reject(failure, stage, f, plane, error, status);
+        };
+        GLenum allocation_error = GL_NO_ERROR;
+        auto allocate = [&](GLuint& texture, GLenum internal, GLenum external, GLenum type,
+                            int width, int height) {
+            glGenTextures(1, &texture);
+            glBindTexture(GL_TEXTURE_2D, texture); texture_params();
+            // This pinned Mesa's mutable allocation path flushes and retries
+            // once on resource exhaustion. TexStorage returns OOM immediately.
+            // MAX_LEVEL and the non-mipmap filter above keep one image level.
+            glTexImage2D(GL_TEXTURE_2D, 0, GLint(internal), width, height, 0, external, type, nullptr);
+            allocation_error = consume_gl_errors();
+            return texture != 0 && allocation_error == GL_NO_ERROR;
+        };
+        // The 4K RGBA target needs a contiguous 32 MiB region aligned to 2 MiB.
+        // Allocate it before smaller planes fragment the remaining regions.
+        if (!allocate(output_, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, f.w, f.h))
+            return failed_setup(Failure::Allocation, "output_storage", -1, allocation_error);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output_, 0);
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo)); valid_ = false; return false;
+        const GLenum framebuffer_status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        const GLenum framebuffer_error = consume_gl_errors();
+        if (framebuffer_status != GL_FRAMEBUFFER_COMPLETE || framebuffer_error != GL_NO_ERROR)
+            return failed_setup(framebuffer_error == GL_OUT_OF_MEMORY ? Failure::Allocation : Failure::Framebuffer,
+                                "output_framebuffer", -1, framebuffer_error, framebuffer_status);
+        for (int i = 0; i < count; ++i) {
+            const GLenum internal = layout == 0 ? GL_RGBA8 : (i == 1 && layout == 1) ? (f.wide ? GL_RG16 : GL_RG8) : (f.wide ? GL_R16 : GL_R8);
+            const GLenum external = layout == 0 ? GL_BGRA : (i == 1 && layout == 1) ? GL_RG : GL_RED;
+            const GLenum type = f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
+            if (!allocate(planes_[i], internal, external, type, i == 0 ? f.w : cw, i == 0 ? f.h : ch))
+                return failed_setup(Failure::Allocation, "plane_storage", i, allocation_error);
         }
         width_ = f.w; height_ = f.h; format_ = format;
         dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output SDR", f.w, f.h, layout, f.wide ? 10 : 8);
@@ -161,8 +260,33 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
     auto uniform = [&](const char* name, int value) { glUniform1i(glGetUniformLocation(program_, name), value); };
     uniform("layout_mode", layout); uniform("wide", f.wide); uniform("sample_shift", f.shift);
     uniform("full_range", f.full_range); uniform("hlg", f.hlg);
+    dovi_active_ = bool(f.dovi);
+    uniform("dovi_active", dovi_active_);
+    if (f.dovi) {
+        glBindBuffer(GL_UNIFORM_BUFFER, dovi_buffer_);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(VideoDoviParams), f.dovi.get());
+        glBindBufferBase(GL_UNIFORM_BUFFER, 3, dovi_buffer_);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
     uniform("color_mode", f.colors == YuvColors::Bt601 ? 0 : f.colors == YuvColors::Hdr10 ? 2 : 1);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+    // Cadence is diagnostic only. Rendering always exposes this source-sized
+    // conversion texture, and the UI applies ordinary bilinear scaling.
+    const double time = f.presentation_time > 0 ? f.presentation_time :
+        std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (size_changed || serial_ != f.serial || stamp_ <= 0 || time != stamp_) {
+        const bool jumped = size_changed || serial_ != f.serial || !std::isfinite(time) ||
+            (stamp_ > 0 && (time <= stamp_ || time - stamp_ > 0.2)) ||
+            (previous_media_pts_ >= 0 && std::abs(f.pts - previous_media_pts_) > 1.0);
+        if (jumped) period_ = 0;
+        else if (stamp_ > 0) {
+            const double elapsed = time - stamp_;
+            period_ = period_ > 0 ? period_ * 0.8 + elapsed * 0.2 : elapsed;
+        }
+        stamp_ = time;
+        previous_media_pts_ = f.pts;
+        serial_ = f.serial;
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo)); glActiveTexture(GL_TEXTURE0);
     valid_ = true;
     aspect_ = std::isfinite(f.display_aspect) && f.display_aspect > 0 ? f.display_aspect : double(f.w)/f.h;

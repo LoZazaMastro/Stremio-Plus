@@ -370,10 +370,13 @@ void basic_queue(const fs::path& data) {
 	std::string error;
 	check(manager.init(data.string(), &error) && error.empty(), "initialization creates private download storage");
 	auto first = request("one"); first.poster_path = first.background_path = first.logo_path = image.string();
+	first.release_year = 1999;
 	const auto revision = manager.revision();
 	const auto id = manager.enqueue(first, error);
 	check(!id.empty() && error.empty() && manager.snapshot().size() == 1, "only the explicitly selected stream is queued");
 	check(manager.revision() > revision, "inventory revisions notify the UI of a queued stream");
+	check(manager.find(id)->release_year == 1999 && manager.find(id)->created_ms > 0 && manager.find(id)->completed_ms == 0,
+		"a new request retains its catalog year and queue date without inventing a completion time");
 	check(until([&] { auto e = manager.find(id); return e && !e->logo_path.empty(); }), "cached poster, hero and logo are copied on the worker");
 	check(inspect(selected, [](const Fake& f) { return f.starts == 0; }), "init and enqueue do not start networking while disabled");
 	check(manager.enqueue(first, error) == id && manager.snapshot().size() == 1, "same selected stream is deduplicated");
@@ -394,6 +397,8 @@ void basic_queue(const fs::path& data) {
 	change(selected, [](Fake& f) { f.release = true; });
 	check(until([&] { return state(manager, id, DownloadState::Complete); }), "successful transfer is published as complete");
 	const auto completed = *manager.find(id);
+	check(completed.completed_ms >= completed.created_ms && completed.completed_ms > 0,
+		"successful media promotion records an actual completion timestamp");
 	check(completed.done == 8192 && completed.total == 8192 && completed.progress == 1, "complete inventory records exact final bytes");
 	check(fs::is_regular_file(completed.local_path) && !fs::exists(data / "downloads" / id / "media.part"), "only atomic part promotion creates the offline media path");
 	check(bytes(completed.poster_path) == bytes(image) && bytes(completed.background_path) == bytes(image), "offline artwork matches the cached RGBA bytes");
@@ -408,11 +413,34 @@ void basic_queue(const fs::path& data) {
 	check(manager.init(data.string()), "inventory can restart without a server or account request");
 	check(state(manager, id, DownloadState::Complete), "completed local file survives restart");
 	check(manager.find(id)->local_path == completed.local_path && fs::exists(manager.find(id)->logo_path), "restart retains offline playback and artwork independently of art cache");
+	check(manager.find(id)->release_year == 1999 && manager.find(id)->created_ms == completed.created_ms &&
+		manager.find(id)->completed_ms == completed.completed_ms,
+		"release year and both original timestamps survive restart without being replaced by file modification times");
+	manager.shutdown();
+	auto legacy = json::parse(bytes(data / "downloads" / id / "manifest.json"));
+	legacy.erase("release_year"); legacy.erase("completed_ms");
+	legacy["subtitle"] = " 1999 "; legacy["created_ms"] = 946684800000ll;
+	write(data / "downloads" / id / "manifest.json", legacy.dump());
+	check(manager.init(data.string()) && manager.find(id)->release_year == 1999 &&
+		manager.find(id)->created_ms == 946684800000ll && manager.find(id)->completed_ms == 0,
+		"legacy completed movie recovers only the saved year and admission date, never the rewritten manifest time");
+	manager.shutdown();
+	legacy["type"] = "series"; legacy["subtitle"] = "2024";
+	write(data / "downloads" / id / "manifest.json", legacy.dump());
+	check(manager.init(data.string()) && manager.find(id)->release_year == 0,
+		"legacy series subtitle cannot be misread as its release year");
 	manager.shutdown();
 }
 
 void episode_metadata_and_permissions(const fs::path& data) {
 	fs::create_directories(data);
+	check(download_release_year("2024") == 2024 && download_release_year(" 2018–2023 ") == 2018 &&
+		download_release_year("2019 -") == 2019,
+		"catalog years and bounded or ongoing series ranges retain their start year");
+	check(download_release_year("1080p") == 0 && download_release_year("S01E02 · 2024") == 0 &&
+		download_release_year("Movie.2024.1080p.mkv") == 0 && download_release_year("2024 · Provider") == 0 &&
+		download_release_year("2024-2019") == 0,
+		"resolution, episode text, filenames, provider labels and invalid ranges never become release years");
 	const mode_t original_umask = ::umask(0077);
 	struct ResetMask { mode_t value; ~ResetMask() { ::umask(value); } } reset{original_umask};
 	DownloadManager manager;
@@ -422,6 +450,7 @@ void episode_metadata_and_permissions(const fs::path& data) {
 	first.media_id = "series:metadata"; first.type = "series"; first.video_id = "opaque:selected";
 	first.title = "A series"; first.season = 0; first.episode = 7; first.episode_title = "The special episode";
 	first.subtitle = "Old incomplete label";
+	first.release_year = 2017;
 	const auto id = manager.enqueue(first, error);
 	check(!id.empty(), "selected episode metadata is accepted without requiring a numeric video ID");
 	const auto job = data / "downloads" / id;
@@ -456,6 +485,9 @@ void episode_metadata_and_permissions(const fs::path& data) {
 	check(::stat(unrelated.c_str(), &repaired) == 0 && (repaired.st_mode & 0777) == 0700,
 		"automatic permission repair leaves unrelated user directories untouched");
 	const auto restored = manager.find(id);
+	check(restored && restored->release_year == 2017 && restored->created_ms == saved->created_ms &&
+		restored->created_ms > 0 && restored->completed_ms == 0 && restored->state == DownloadState::Paused,
+		"pending entry restart retains its catalog year and admission time without claiming a completed download");
 	check(restored && restored->episode_title == first.episode_title && restored->subtitle == "S00E07 · The special episode" &&
 		restored->source_identity == saved->source_identity,
 		"episode title and stable selected-source identity survive restart without provider metadata");

@@ -15,7 +15,8 @@ obj = output / "heap.o"
 binary = output / "test_native_heap"
 common = [compiler, "-std=gnu11", "-O2", "-g", "-fno-pie", "-fno-omit-frame-pointer", "-pthread", "-I", str(root / "src")]
 subprocess.run([*common, "-c", str(root / "native/heap.c"), "-o", str(obj)], check=True)
-subprocess.run([*common, "-no-pie", str(root / "tests/test_native_heap.c"), str(obj), "-o", str(binary)], check=True)
+subprocess.run([*common, "-no-pie", str(root / "tests/test_native_heap.c"), str(root / "native/vlc_memory.c"),
+                str(obj), "-o", str(binary)], check=True)
 result = subprocess.run([str(binary)], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=15)
 (output / "test-output.txt").write_text(result.stdout)
 events = []
@@ -37,10 +38,11 @@ else:
     errors.append("No allocation failure was exercised.")
 if set(event["operation"] for event in events) != set(range(1, 9)):
     errors.append("The failure test did not cover all eight public allocation operations.")
-files = [root / "native/heap.c", root / "native/dlmalloc.c", root / "src/diagnostics_native.h",
+files = [root / "native/heap.c", root / "native/vlc_memory.c", root / "native/dlmalloc.c",
+         root / "src/diagnostics_native.h", root / "src/native_memory.h",
          root / "tests/test_native_heap.c", Path(__file__).resolve()]
 report = {"result": "FAIL" if errors else "PASS",
-    "scope": "Production native heap wrappers and dlmalloc, 256 MiB host-backed PS5 mapping stub, real oversized and arena-exhausting requests",
+    "scope": "Production native heap wrappers, shared direct allocator and dlmalloc; real host-backed mappings verify 256 MiB arena fallback, all large allocation entry points, aligned FFmpeg-size buffers, realloc migration/failure, physical ownership, retained cleanup, concurrent use and diagnostic attribution",
     "limits": ["Existing dlmalloc size-wraparound rejection may leave errno unchanged for malloc(SIZE_MAX) and realloc(NULL, SIZE_MAX); the diagnostic recorder preserves that result. Actual arena exhaustion sets ENOMEM."],
     "checks": [line for line in result.stdout.splitlines() if line.startswith("NATIVE_HEAP_TESTS_OK")],
     "events": events, "errors": errors,

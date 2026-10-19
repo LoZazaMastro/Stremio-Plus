@@ -24,19 +24,19 @@ struct TextureCache::Impl {
         unsigned failures = 0;
         bool loading = false, failed = false;
     };
-    struct Request { std::string path; uint64_t frame = 0; int priority = 0; };
-    struct Ready { std::string path; std::vector<uint8_t> pixels; int w = 0, h = 0; };
+    struct Request { std::string path; uint64_t frame = 0, generation = 0; int priority = 0; };
+    struct Ready { std::string path; std::vector<uint8_t> pixels; int w = 0, h = 0; uint64_t generation = 0; };
     hui::gfx::GlBatch& batch;
     std::string base;
     size_t budget, bytes = 0, ready_bytes = 0;
-    uint64_t frame = 0;
+    uint64_t frame = 0, generation = 0;
     std::map<std::string, Entry> entries;
     mutable std::mutex mutex;
     std::condition_variable wake;
     std::deque<Request> queue;
     std::deque<Ready> ready;
     std::vector<std::thread> workers;
-    bool stopping = false;
+    bool stopping = false, playback = false;
     unsigned active = 0;
     static int priority(const std::string& path) {
         // ArtCache's already-resized hero/title files. Local chrome/assets
@@ -51,6 +51,7 @@ struct TextureCache::Impl {
     void run() {
         for (;;) {
             std::string path;
+            uint64_t request_generation = 0;
             {
                 std::unique_lock<std::mutex> lock(mutex);
                 wake.wait(lock, [&] { return stopping || !queue.empty(); });
@@ -60,9 +61,10 @@ struct TextureCache::Impl {
                 auto chosen = queue.begin();
                 for (auto it = queue.begin(); it != queue.end(); ++it)
                     if (it->frame > chosen->frame || (it->frame == chosen->frame && it->priority > chosen->priority)) chosen = it;
-                path = std::move(chosen->path); queue.erase(chosen); ++active;
+                path = std::move(chosen->path); request_generation = chosen->generation;
+                queue.erase(chosen); ++active;
             }
-            Ready image; image.path = path;
+            Ready image; image.path = path; image.generation = request_generation;
             try {
                 if (!load_image_rgba(path, image.pixels, image.w, image.h) || image.w <= 0 || image.h <= 0 ||
                     image.w > 4096 || image.h > 4096 || image.pixels.size() != size_t(image.w)*image.h*4)
@@ -75,10 +77,13 @@ struct TextureCache::Impl {
                 std::unique_lock<std::mutex> lock(mutex);
                 // Workers cannot accumulate a screenful of decoded 4K art
                 // while the GPU is busy presenting video.
-                wake.wait(lock, [&] { return stopping || (ready.size() < 6 &&
+                wake.wait(lock, [&] { return stopping || request_generation != generation || (ready.size() < 6 &&
                     ready_bytes + image.pixels.size() <= (64u << 20)); });
                 --active;
                 if (stopping) return;
+                // A decode already running when playback started must not
+                // refill the gallery queue or replace a new same-path load.
+                if (request_generation != generation) continue;
                 ready_bytes += image.pixels.size();
                 ready.push_back(std::move(image));
             }
@@ -89,6 +94,23 @@ struct TextureCache::Impl {
 TextureCache::TextureCache(hui::gfx::GlBatch& batch, std::string base, size_t budget)
     : impl_(std::make_unique<Impl>(batch, std::move(base), budget)) {}
 TextureCache::~TextureCache() { release(); }
+void TextureCache::set_playback(bool active) {
+    if (!impl_ || impl_->playback == active) return;
+    auto& p = *impl_; p.playback = active;
+    if (!active) return;
+    std::deque<Impl::Ready> discarded;
+    {
+        std::lock_guard<std::mutex> lock(p.mutex);
+        ++p.generation;
+        p.queue.clear();
+        discarded.swap(p.ready); p.ready_bytes = 0;
+    }
+    p.wake.notify_all();
+    for (auto& [path, entry] : p.entries) if (entry.texture) glDeleteTextures(1, &entry.texture);
+    p.entries.clear(); p.bytes = 0;
+    // On-disk artwork and the configured gallery budget are unchanged. No
+    // worker join or decode is needed at this playback transition.
+}
 void TextureCache::begin_frame() {
     if (!impl_) return;
     auto& p = *impl_; ++p.frame;
@@ -112,6 +134,7 @@ void TextureCache::begin_frame() {
             p.ready_bytes -= image.pixels.size();
         }
         p.wake.notify_all();
+        if (image.generation != p.generation) continue;
         auto it = p.entries.find(image.path);
         if (it == p.entries.end()) continue;
         auto& entry = it->second; entry.loading = false;
@@ -133,7 +156,8 @@ void TextureCache::begin_frame() {
         entry.width = image.w; entry.height = image.h;
         entry.bytes = image.pixels.size(); p.bytes += entry.bytes; uploaded += entry.bytes;
     }
-    while (p.bytes > p.budget) {
+    const size_t budget = p.playback ? (16u << 20) : p.budget;
+    while (p.bytes > budget) {
         auto oldest = p.entries.end();
         for (auto it = p.entries.begin(); it != p.entries.end(); ++it)
             if (it->second.texture && it->second.used + 2 < p.frame &&
@@ -163,7 +187,7 @@ uint32_t TextureCache::get(const std::string& path) {
         }
         if (p.queue.size() >= 128 || p.stopping) return 0;
         e.loading = true; e.failed = false;
-        p.queue.push_back(Impl::Request{key, p.frame, Impl::priority(key)});
+        p.queue.push_back(Impl::Request{key, p.frame, p.generation, Impl::priority(key)});
     }
     p.wake.notify_one(); return 0;
 }

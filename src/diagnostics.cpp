@@ -220,8 +220,25 @@ bool write_small(const std::string& path, const std::string& data) {
         if (count <= 0) { ::close(fd); ::unlink(temporary.c_str()); return false; }
         done += std::size_t(count);
     }
+    // A rename alone does not make the newly written checkpoint durable.
+    // Sync its contents first so a failed writeback retains the previous
+    // complete runtime snapshot. This runs on the writer, never per frame.
+    int synced;
+    do { synced = ::fsync(fd); } while (synced != 0 && errno == EINTR);
     const bool closed = ::close(fd) == 0;
-    return closed && ::rename(temporary.c_str(), path.c_str()) == 0;
+    if (synced != 0 || !closed) { ::unlink(temporary.c_str()); return false; }
+    if (::rename(temporary.c_str(), path.c_str()) != 0) { ::unlink(temporary.c_str()); return false; }
+    const auto separator = path.find_last_of('/');
+    const auto parent = separator == std::string::npos ? "." : separator == 0 ? "/" : path.substr(0, separator);
+    const int directory = ::open(parent.c_str(), O_RDONLY | O_DIRECTORY);
+    if (directory < 0) return false;
+    do { synced = ::fsync(directory); } while (synced != 0 && errno == EINTR);
+    const int sync_error = synced != 0 ? errno : 0;
+    const bool directory_closed = ::close(directory) == 0;
+    // Match the storage probe's handling of mounts without directory fsync.
+    // File data was synced and rename succeeded; keep logging available even
+    // where the OS cannot additionally confirm directory-entry durability.
+    return directory_closed && (synced == 0 || sync_error == EINVAL || sync_error == ENOTSUP);
 }
 
 json build_metadata() {
@@ -247,7 +264,10 @@ bool runtime_key(const std::string& key) {
         "fps", "frame_ms", "dropped_frames", "decoded_frames", "presented_frames", "rebuffer_count",
         "queue_depth", "audio_underruns", "decoder_errors", "http_status", "error_code", "state", "status",
         "hardware_decode_enabled", "output_mode", "vsync", "reduced_motion", "subtitle_language",
-        "audio_language", "interface_language", "language", "log_io_failures", "log_dropped_events"
+        "audio_language", "interface_language", "language", "log_io_failures", "log_dropped_events",
+        "display_refresh", "preference", "available", "active", "refresh_code", "video_processing",
+        "source_fps", "upscaler_preference", "upscaler", "sharpness", "smoothing_preference", "smoothing",
+        "dolby_vision_reshape", "audio_passthrough_requested", "audio_output"
     };
     for (const char* name : allowed) if (key == name) return true;
     return false;
@@ -502,6 +522,7 @@ CrashRecordKind inspect_crash_record(const char* path, int& error) {
             if (prefix_size == sizeof(prefix)) continue;
             prefix[prefix_size++] = buffer[i];
             if ((prefix_size == 7 && std::memcmp(prefix, "signal=", 7) == 0) ||
+                (prefix_size == 11 && std::memcmp(prefix, "event=exit ", 11) == 0) ||
                 (prefix_size == 12 && std::memcmp(prefix, "event=abort ", 12) == 0) ||
                 (prefix_size == 13 && std::memcmp(prefix, "event=assert ", 13) == 0)) {
                 (void)::close(fd);
@@ -655,6 +676,19 @@ extern "C" void stremio_diagnostics_abort(std::uintptr_t caller) {
     CrashRecord record;
     record.header();
     record.literal("event=abort caller="); record.hex(caller);
+    record.literal(" anchor="); record.hex(reinterpret_cast<std::uintptr_t>(&diagnostics_start));
+    record.cached_heap();
+    record.finish(true);
+}
+
+extern "C" void stremio_diagnostics_native_exit(int status, std::uintptr_t caller) {
+    // Driver fail-stop paths use _Exit, which intentionally bypasses signals,
+    // destructors and the asynchronous logger. Preserve its numeric origin
+    // without running cleanup or changing the requested process termination.
+    CrashRecord record;
+    record.header();
+    record.literal("event=exit status="); record.signed_number(status);
+    record.literal(" caller="); record.hex(caller);
     record.literal(" anchor="); record.hex(reinterpret_cast<std::uintptr_t>(&diagnostics_start));
     record.cached_heap();
     record.finish(true);

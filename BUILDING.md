@@ -4,6 +4,48 @@ The project has a native PS5 target and a Linux development target. Run the
 commands below from the repository root. Linux or WSL with Ubuntu 24.04 is
 the reference build environment.
 
+## Source delivery
+
+Use [tag 0.5.18](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.18)
+for the source corresponding to the 0.5.18 native packages. GitHub provides
+ZIP and tar.gz downloads of that tag on the
+[release page](https://github.com/LoZazaMastro/Stremio-Plus/releases/tag/0.5.18),
+or check it out directly:
+
+```sh
+git clone --branch 0.5.18 --depth 1 https://github.com/LoZazaMastro/Stremio-Plus.git
+cd Stremio-Plus
+```
+
+The repository contains the application source and assets, the modified
+EVO Player components, vendored UI source, all 24 numbered VLC patches,
+dependency recipes and build scripts. Media dependency archive URLs are in
+[`vendor/vlc-ps5/sources.json`](vendor/vlc-ps5/sources.json), with exact
+checksums in [`vendor/vlc-ps5/sources.sha256`](vendor/vlc-ps5/sources.sha256).
+[`tools/setup-vlc.sh`](tools/setup-vlc.sh) downloads those sources into
+`.deps/vlc/dl/`, verifies them and applies the retained patches.
+[`tools/setup-toolchain.sh`](tools/setup-toolchain.sh) pins the native SDK
+and graphics dependencies. See **Dependency versions** below for their
+versions and source locations. No separate application-source archive is
+required beyond the release tag.
+
+The release also supplies `Stremio-Plus-0.5.18-source.zip` and
+`Stremio-Plus-0.5.18-dependency-source.zip` for a local copy of the application
+and its verified dependency archives. Extract both into the same directory,
+then run the build commands from
+`Stremio-Plus-0.5.18-source/repository/Stremio-Plus/`. The sibling
+`dependency-sources/` directory contains the pinned upstream archives and
+its own checksum list; `provenance/build-receipt.json` preserves the receipt
+from the accepted native build. The separate repository ZIP contains the
+application repository alone.
+
+The [dependency source index](docs/DEPENDENCY_SOURCES.md) records exact
+source revisions and retrieval links for the native SDK, PacBrew libraries,
+SDL, LLVM runtimes and OpenGL components. The repository also includes the
+exact NASM and FreeType source archives used by this release in
+`source-archives/`. Copy them into the appropriate build cache with the
+commands below; the normal checksum checks still apply.
+
 ## Prerequisites
 
 Install the host compiler, development libraries, and packaging tools:
@@ -25,18 +67,30 @@ SDK; a proprietary Sony SDK is not required.
 ## Native PS5 build
 
 ```sh
+mkdir -p .deps/vlc/dl
+cp source-archives/nasm-2.16.03.tar.xz source-archives/freetype-2.13.3.tar.xz .deps/vlc/dl/
 BUILD_JOBS=4 ./build.sh deps
 BUILD_JOBS=4 ./build.sh ps5
 ```
 
-The first command prepares the toolchain and builds the pinned static VLC
-engine and its media dependencies. The second compiles the app,
-links the native executable, validates imports and metadata, signs the
-executable, and packages the title. Subsequent builds reuse verified
-dependencies. Adjust `BUILD_JOBS` for your machine's available memory.
+The `./build.sh deps` command prepares the toolchain and builds the pinned
+static VLC engine and its media dependencies. The `./build.sh ps5` command
+compiles the app, links the native executable, validates imports and
+metadata, signs the executable, and packages the title. Subsequent builds
+reuse verified dependencies. Adjust `BUILD_JOBS` for your machine's
+available memory.
 The native target requires `STREMIO_USE_LIBVLC=ON`; there is no player-engine
 selector in the PS5 application. The decoder, application and VLC modules all
 use the same FFmpeg 8.1.2 headers and static archives to avoid mixing ABIs.
+
+The video renderer and encoded-audio output include adaptations from
+[EVO Player PS5](https://github.com/sainsaji/EVO-PLAYER-PS5), with attribution
+and retained license notices in `THIRD_PARTY.md`. These changes use the same
+pinned media dependencies. The native link also wraps `sceVideoOutOpen` and
+`sceVideoOutClose` so display-refresh selection observes the output owned by
+the OpenGL renderer; it does not open another VideoOut port. The Sony Media
+Remote input adapter and encoded-audio output are compiled only for the
+appropriate platform paths.
 
 | Output | Purpose |
 | --- | --- |
@@ -92,6 +146,8 @@ Build the same patched VLC core and media dependencies for the host, then
 select that prefix for the application build:
 
 ```sh
+mkdir -p .deps/vlc-host/dl
+cp source-archives/nasm-2.16.03.tar.xz source-archives/freetype-2.13.3.tar.xz .deps/vlc-host/dl/
 STREMIO_VLC_TARGET=host STREMIO_VLC_ROOT="$PWD/.deps/vlc-host" BUILD_JOBS=4 \
   bash tools/setup-vlc.sh
 cmake -S . -B build/host-vlc -G 'Unix Makefiles' \
@@ -99,6 +155,8 @@ cmake -S . -B build/host-vlc -G 'Unix Makefiles' \
 cmake --build build/host-vlc --parallel 4
 python3 tests/run_player_tests.py build/host-vlc
 python3 tests/run_player_memory_tests.py build/host-vlc
+python3 tests/run_player_decoder_recovery_tests.py build/host-vlc
+python3 tests/run_player_audio_lifecycle_tests.py build/host-vlc
 python3 tests/run_vlc_output_tests.py
 ```
 
@@ -133,10 +191,10 @@ Archive hashes and the OpenGL SDK manifest are checked during setup.
 The VLC engine is built by `tools/setup-vlc.sh`, using the retained recipes
 and patches in `vendor/vlc-ps5/`. That directory's `sources.json` and
 `sources.sha256` pin its media and TLS dependency archives. Downloads are
-stored in `.deps/vlc/dl`; the corresponding-source delivery includes these
-same archives. Place them there before running setup to reuse the supplied
-sources instead of downloading them again. Changes to the dependency recipes
-invalidate their build fingerprint.
+stored in `.deps/vlc/dl`. To build with previously downloaded sources, place
+the exact pinned archives there before running setup; they pass the same
+checksum checks. Changes to the dependency recipes invalidate their build
+fingerprint.
 
 To use an existing compatible toolchain, set `PS5_PAYLOAD_SDK`,
 `PS5_OPENGL_PREFIX`, and `BOILERPLATE_DIR`. The same revision and file checks
@@ -177,6 +235,11 @@ python3 tests/run_download_app_tests.py build/desktop
 python3 tests/run_next_episode_tests.py build/desktop
 python3 tests/run_preferences_tests.py build/desktop
 python3 tests/run_preferences_tests.py build/desktop --console-policy
+python3 tests/run_media_controls_tests.py
+python3 tests/run_ps5_audio_tests.py
+python3 tests/run_video_gl_tests.py
+python3 tests/run_video_gl_allocation_tests.py
+python3 tests/run_texture_cache_tests.py
 ```
 
 The host integration runners expect CMake's Unix Makefiles generator. They
@@ -194,14 +257,34 @@ Fatal-diagnostic checks run aborts and signals in separate processes and
 reject allocator, stdio, and mutex use while recording the fatal event.
 The native picture-memory runner checks mapping ownership, size limits,
 failure cleanup and concurrent use with real host mappings. The player-memory
-runner decodes real 4K Main10 HEVC through the native 1280 MiB arena and the
-bounded picture allocator, with simulated PS5 memory syscalls and additional
-application-memory pressure. It validates decoded planes and retained-frame
-ownership; OpenGL presentation is checked separately by the player runner.
+runner decodes real 4K Main10 HEVC through the production native arena and
+bounded shared direct-memory allocator, with simulated PS5 memory syscalls
+and separate application and graphics memory pressure. It validates decoded
+planes, actual allocation failures and retained-frame ownership. The decoder
+recovery runner injects critical FFmpeg returns into real libVLC playback and
+verifies one resume at the last presented position followed by an explicit
+error if failure repeats. OpenGL presentation is checked separately by the
+player runner.
 
 These checks validate behavior on the build host. Playback compatibility,
 download throughput, and filesystem behavior also require testing on the
 intended PS5 and homebrew environment.
+
+Media-control checks use simulated Sony input and display calls to verify
+remote-button handling, supported refresh modes, output readback and rollback.
+The native-audio check uses real host VLC objects and mocked HDMI imports to
+exercise receiver negotiation, encoded carriers, PCM restoration and output
+failure recovery under AddressSanitizer and UndefinedBehaviorSanitizer.
+Its deferred-consumption sink checks submitted-buffer lifetime and output
+draining; it models the native contract without reproducing console firmware.
+The player audio-lifecycle runner checks that a failed native shutdown blocks
+later PCM opens, including a failure reported while the player is stopping.
+The OpenGL allocation runner injects exhausted allocations and incomplete
+framebuffers into real host GL to verify cleanup and reopening. Texture-cache
+checks cover playback budget changes and rejection of stale decoding work.
+They complement the native compile and import checks. HDMI audio passthrough,
+120 Hz output and controller behavior still require a PS5 connected to the
+intended television or receiver.
 
 See [Torrent engine](docs/torrent-engine.md) for the scheduling and storage
 model, diagnostic counters, and repeatable TCP performance comparisons.

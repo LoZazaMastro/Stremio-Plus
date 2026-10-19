@@ -19,7 +19,7 @@ shims = BUILD / 'opengl-shims.o'
 binary = BUILD / 'native-diagnostics-test'
 subprocess.run([CC, '-std=c11', '-O2', '-g', '-ffunction-sections', '-fdata-sections',
                 '-fno-builtin-abort', '-c', str(ROOT / 'native/opengl_shims.c'), '-o', str(shims)], check=True)
-wraps = ['abort', 'malloc', 'calloc', 'realloc', 'free', 'pthread_mutex_lock', 'pthread_mutex_trylock',
+wraps = ['abort', '_Exit', 'malloc', 'calloc', 'realloc', 'free', 'pthread_mutex_lock', 'pthread_mutex_trylock',
          'fprintf', 'vfprintf', 'fflush', 'snprintf', 'vsnprintf']
 command = [CXX, '-std=c++20', '-O2', '-g', '-Wall', '-Wextra', '-Werror',
            '-fno-builtin-abort', '-fno-optimize-sibling-calls',
@@ -45,7 +45,7 @@ def require(condition, message):
 with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder:
     for name, expected in [('abort', -signal.SIGABRT), ('assert', -signal.SIGABRT),
                            ('assert_privacy', -signal.SIGABRT), ('signal_abort', -signal.SIGABRT),
-                           ('segv', -signal.SIGSEGV), ('allocation', 0)]:
+                           ('segv', -signal.SIGSEGV), ('allocation', 0), ('immediate_exit', 37)]:
         path = Path(folder) / name
         result = subprocess.run([str(binary), str(path), name], capture_output=True, text=True, timeout=15)
         output.append(name + '\n' + result.stdout + result.stderr)
@@ -56,7 +56,7 @@ with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder
         require(all(len(line.encode()) <= 1024 for line in receipt.splitlines()), name + ': unbounded record')
         require('/private/build' not in receipt and 'private.example' not in receipt and 'secret' not in receipt,
                 name + ': private assertion text leaked')
-        if name != 'allocation':
+        if name not in ('allocation', 'immediate_exit'):
             require('signal=0x' in receipt and ' si_code=' in receipt, name + ': signal metadata missing')
             for field in ('pc', 'sp', 'anchor'):
                 value = re.search(r'\b' + field + r'=(0x[0-9a-f]+)', receipt)
@@ -84,7 +84,13 @@ with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder
             require('heap_capacity=1024 heap_used_snapshot=256 heap_free_snapshot=768 heap_observed_peak=256' in receipt,
                     'allocation: cached heap snapshot missing')
             require('signal=' not in receipt, 'allocation: nonfatal failure misclassified as a signal')
-        if name == 'abort':
+        if name == 'immediate_exit':
+            require('event=exit status=37 caller=0x' in receipt, 'immediate exit: status/caller missing')
+            for field in ('caller', 'anchor'):
+                value = re.search(r'\b' + field + r'=(0x[0-9a-f]+)', receipt)
+                require(value is not None and int(value.group(1), 16) != 0, 'immediate exit: missing ' + field)
+            require('signal=' not in receipt, 'immediate exit: ordinary exit misclassified as signal')
+        if name in ('abort', 'immediate_exit'):
             # A healthy session writes numeric snapshots/failures into current;
             # it must not replace the last real crash on the following launch.
             for restart in range(2):
@@ -93,7 +99,7 @@ with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder
                 require((path / 'crash-last.txt').read_text() == receipt,
                         'rotation: a clean session replaced the last fatal receipt')
             # Exercise a real rename failure even when the host user is root.
-            blocked = Path(folder) / 'blocked-rotation'
+            blocked = Path(folder) / (name + '-blocked-rotation')
             blocked.mkdir()
             (blocked / 'crash-current.txt').write_text(receipt)
             (blocked / 'crash-last.txt').mkdir()
@@ -106,7 +112,7 @@ with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder
             require('could not be rotated' in (blocked / 'log.txt').read_text(),
                     'rotation: rename failure was not logged')
             # The 0.5.9 receipt used signal= without an event= prefix.
-            legacy = Path(folder) / 'legacy-rotation'
+            legacy = Path(folder) / (name + '-legacy-rotation')
             legacy.mkdir()
             old_receipt = 'Stremio Plus 0.5.9 (PPSA74126) build=fixture\nsignal=0x0000000000000006 pc=0x1234 sp=0x5678\n'
             (legacy / 'crash-current.txt').write_text(old_receipt)
@@ -121,9 +127,9 @@ inputs = ['src/diagnostics.h', 'src/diagnostics_native.h', 'src/diagnostics.cpp'
           'third_party/json.hpp',
           'native/opengl_shims.c', 'tools/build-native-entry.sh',
           'tests/test_native_diagnostics.cpp', 'tests/run_native_diagnostics_tests.py']
-report = {'status': 'PASS', 'version': VERSION, 'scope': 'Real host subprocesses executing native abort/assert hooks and fatal signal capture',
+report = {'status': 'PASS', 'version': VERSION, 'scope': 'Real host subprocesses executing native abort/assert/nonzero _Exit hooks and fatal signal capture',
           'checks': checks, 'cases': cases,
-          'rotationChecks': 'Real abort followed by two clean starts; actual rename failure; legacy signal= receipt',
+          'rotationChecks': 'Real abort and immediate exit followed by two clean starts; actual rename failure; legacy signal= receipt',
           'runtimeServicesRejectedInEmergencyPath': ['malloc', 'calloc', 'realloc', 'free', 'operator new/delete',
                                                     'pthread mutex lock/trylock', 'fprintf/vfprintf', 'fflush', 'snprintf/vsnprintf'],
           'limitations': 'Host signal ABI only; console fatal behavior and PS5 addresses require hardware verification.',

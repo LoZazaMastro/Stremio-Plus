@@ -21,6 +21,8 @@ affiliated with or endorsed by Stremio.
 | `src/netstream.cpp` (several connections for big files) | the approach and sizes of Nuvio PS5's `evo_parallel_io.c` | GPL-3.0-or-later |
 | `src/app_detail.cpp` (torrent stream set-up) | follows the behaviour of `createTorrent` in [stremio-video](https://github.com/Stremio/stremio-video) (Stremio) | MIT |
 | `vendor/vlc-ps5/`, native VLC callback integration in `src/player_vlc*` | [ZiZc3/VLC](https://github.com/ZiZc3/VLC), PS5 port 0.4 of VideoLAN VLC 3.0.24, adapted to Stremio Plus's existing UI and media inputs | GPL-3.0 for the PS5 project; retained file-specific GPL-2.0-or-later compatibility shims and VideoLAN licenses; see `vendor/vlc-ps5/NOTICE.md` |
+| `src/video_evo_shaders.h`, Dolby Vision frame metadata, native HDMI audio transport, `src/display_refresh.cpp`, picture-memory policy | Selected algorithms and PS5 API integration adapted from [EVO Player PS5](https://github.com/sainsaji/EVO-PLAYER-PS5), sainsaji and contributors, based on KINGDKAK's ProsperoPlayer. Retained attribution, source archive identity, upstream paths and local changes are in `vendor/evo-player/NOTICE.md`. | GPL-3.0-or-later; AMD FidelityFX FSR 1 MIT and libplacebo component notices retained |
+| `src/media_remote.cpp` | Independent input adapter using the Media Remote port, data layout and key definitions documented in `src/video/ps5/SDL_ps5remote.c` from [ps5-payload-dev/SDL](https://github.com/ps5-payload-dev/SDL), source blob `615aa00c429335fbdf6726e6f45ab37630162ece` | Application adapter GPL-3.0-or-later; SDL upstream zlib notice retained in `app/licenses/SDL2.txt` |
 
 ## Linked into the app (downloaded at build time, not included here)
 

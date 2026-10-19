@@ -20,10 +20,12 @@
 #include "ui/components/range_slider.hpp"
 #include "ui/components/sheet.hpp"
 #include "ui/components/stat.hpp"
+#include "ui/components/surface.hpp"
 #include "ui/components/tabs.hpp"
 #include "ui/components/text_field.hpp"
 #include "ui/components/text_view.hpp"
 #include "ui/components/toast.hpp"
+#include "ui/components/transition.hpp"
 #include "ui/glyphs.hpp"
 
 #include <algorithm>
@@ -602,6 +604,10 @@ struct HomeUi::Impl {
     ui::Carousel episodes;
     ui::TabBar sources;
     ui::ListView streams, choices, audio, subtitles, downloads, directories;
+    ui::Carousel download_wheel;
+    ui::TabBar download_seasons;
+    ui::Panel download_panel;
+    ui::Transition download_panel_transition;
     ui::Breadcrumb directory_path;
     std::unordered_map<std::string, ui::ProgressBar> download_progress;
     ui::TabBar track_tabs;
@@ -626,10 +632,15 @@ struct HomeUi::Impl {
     std::uint64_t last_toast_revision = 0;
     std::string episodes_stamp, streams_stamp, choices_stamp, audio_stamp, subs_stamp, dropdown_stamp, downloads_stamp;
     std::string directories_stamp, directory_path_stamp;
+    std::string download_groups_stamp, download_seasons_stamp, download_open_id, download_open_image, download_open_title;
+    int download_open_index = 0;
+    std::vector<std::string> download_episode_ids;
+    std::vector<UiDownload> download_closing_rows;
     std::string last_language, sub_source, sub_text;
     std::string hero_name, hero_image, hero_logo, hero_desc, hero_meta;
     std::string old_hero_name, old_hero_image, old_hero_logo, old_hero_desc, old_hero_meta;
     hui::tween::Spring row_scroll, page_enter, watch_alpha;
+    hui::tween::Spring download_position, download_lift;
     float hero_mix = 1, time = 0, delay_focus = 0, next_enter = 0;
     bool last_input = false, last_dropdown = false, last_launch = false;
     bool use_dialog = false;
@@ -702,17 +713,38 @@ struct HomeUi::Impl {
             paint_addon(c, box, index, focus);
         };
 
-        style_list(downloads, 194, 30);
-        downloads.style.gap = 18;
+        style_list(downloads, 142, 27);
+        downloads.style.gap = 10;
         downloads.style.panel = false;
-        downloads.style.cards = true;
+        downloads.style.cards = false;
         downloads.style.focus_shift = 0;
         downloads.style.padding = 0;
         downloads.style.highlight.radius = 18;
-        downloads.set_bounds({kLeft, 294, kWidth, 672});
+        downloads.set_bounds({650, 358, 1136, 562});
         downloads.content = [this](Canvas& c, const Rect& box, const ui::ListItem&, int index, float focus) {
             paint_download(c, box, index, focus);
         };
+        download_wheel.style.mode = ui::CarouselMode::centered;
+        download_wheel.style.item_width = 320;
+        download_wheel.style.item_height = 480;
+        download_wheel.style.card.art_aspect = 2.0f / 3.0f;
+        download_wheel.style.card.radius = 16;
+        download_wheel.style.card.text = ui::CardText::none;
+        download_wheel.style.counter = download_wheel.style.dots = false;
+        download_wheel.set_bounds({kLeft, 254, kWidth, 500});
+        download_seasons.style = season.style;
+        download_seasons.style.kind = ui::TabKind::underline;
+        download_seasons.style.width = ui::TabWidth::fit;
+        download_seasons.style.text_size = 26;
+        download_seasons.style.padding = 20;
+        download_seasons.style.track = false;
+        download_seasons.set_bounds({658, 275, 1114, 64});
+        download_panel.style.radius = 28;
+        download_panel.set_bounds({620, 250, 1204, 700});
+        download_panel_transition.style.duration = .32f;
+        download_panel_transition.style.distance = 44;
+        download_panel_transition.hide();
+        download_position.snap(0); download_lift.snap(0);
 
         style_list(directories, 76, 27);
         directories.style.panel = false;
@@ -1207,6 +1239,10 @@ struct HomeUi::Impl {
         component_theme(episodes, reduced);
         component_theme(streams, reduced);
         component_theme(downloads, reduced);
+        component_theme(download_wheel, reduced);
+        component_theme(download_seasons, reduced);
+        component_theme(download_panel, reduced);
+        component_theme(download_panel_transition, reduced);
         component_theme(directories, reduced);
         component_theme(directory_path, reduced);
         component_theme(directory_spinner, reduced);
@@ -1436,91 +1472,161 @@ struct HomeUi::Impl {
     }
 
     void paint_download(Canvas& c, const Rect& box, int index, float focus) {
-        if (!model || index < 0 || index >= static_cast<int>(model->download_rows.size())) return;
-        const auto& item = model->download_rows[static_cast<std::size_t>(index)];
-        const Rect poster{box.x + 22, box.y + 23, 92, 140};
-        if (texture(item.image)) picture(c, item.image, poster, 10);
+        if (!model || index < 0) return;
+        const UiDownload* selected = nullptr;
+        if (model->download_series_id.empty() && download_panel_transition.leaving()) {
+            if (index < int(download_closing_rows.size())) selected = &download_closing_rows[static_cast<size_t>(index)];
+        } else if (index < int(model->download_episode_rows.size())) {
+            const int row = model->download_episode_rows[static_cast<size_t>(index)];
+            if (row >= 0 && row < int(model->download_rows.size())) selected = &model->download_rows[static_cast<size_t>(row)];
+        }
+        if (!selected) return;
+        const auto& item = *selected;
+        const Rect poster{box.x + 18, box.y + 17, 192, 108};
+        if (texture(item.thumbnail)) picture(c, item.thumbnail, poster, 10);
         else {
             c.list.gradient_rect(poster, 10, theme.primary.with_alpha(.3f), theme.surface);
-            icon(c, {poster.x + 23, poster.y + 46, 46, 46}, 18, theme.accent.with_alpha(.65f));
+            icon(c, {poster.cx() - 21, poster.cy() - 21, 42, 42}, 18, theme.accent.with_alpha(.65f));
         }
-        const float left = box.x + 144, right = box.x + box.w - 28;
+        const float left = box.x + 232, right = box.x + box.w - 24;
         const float room = right - left;
-        const Color state_color = item.complete ? theme.success : item.failed ? theme.danger
-            : item.paused ? theme.warning : theme.accent;
-        text(c, c.fonts.semibold, plain_text(item.title), left, box.y + 48,
-             30, theme.text, room - 68);
-        text(c, c.fonts.regular, plain_text(item.subtitle), left, box.y + 84,
-             23, theme.text_muted, room - 68);
+        const std::string number = item.episode >= 0 ? std::to_string(item.episode) + ". " : "";
+        const std::string title = item.episode_title.empty() ? tr("Episodio", "Episode") : plain_text(item.episode_title);
+        text(c, c.fonts.semibold, number + title, left, item.complete ? poster.cy() + 9 : box.y + 39,
+             26, theme.text, item.complete ? room : room - 48);
+        if (item.complete) return;
+        const Color state_color = item.failed ? theme.danger : item.paused ? theme.warning : theme.accent;
         std::string state = item.status;
-        if (state.empty()) state = item.complete ? tr("Disponibile offline", "Available offline")
-            : item.failed ? tr("Download interrotto", "Download interrupted")
+        if (state.empty()) state = item.failed ? tr("Download interrotto", "Download interrupted")
             : item.paused ? tr("In pausa", "Paused")
             : item.active ? tr("Download in corso", "Downloading") : tr("In coda", "Queued");
         if (item.playable_while_downloading)
             state += tr(" · Pronto da guardare", " · Ready to watch");
-        text(c, c.fonts.regular, translated(plain_text(state)), left, box.y + 126,
-             23, state_color, room - 110);
-        if (item.progress >= 0 || item.complete) {
-            const int percent = item.complete ? 100 : static_cast<int>(std::clamp(item.progress, 0.0f, 1.0f) * 100);
-            text(c, c.fonts.semibold, std::to_string(percent) + "%", right, box.y + 126,
-                 24, state_color, 104, gfx::Align::right);
+        text(c, c.fonts.regular, translated(plain_text(state)), left, box.y + 72,
+             21, state_color, room - 95);
+        if (item.progress >= 0) {
+            const int percent = static_cast<int>(std::clamp(item.progress, 0.0f, 1.0f) * 100);
+            text(c, c.fonts.semibold, std::to_string(percent) + "%", right, box.y + 72,
+                 23, state_color, 88, gfx::Align::right);
         }
         const auto progress = download_progress.find(item.id);
         if (progress != download_progress.end()) {
-            progress->second.set_bounds({left, box.y + 147, room, 6});
+            progress->second.set_bounds({left, box.y + 88, room, 6});
             progress->second.draw(c);
         }
-        // Keep all transfer details beside the same bar. Measured columns give
-        // the size/speed, ETA and real peer counts their own space without
-        // changing card height or introducing a second download surface.
         std::string transfer = item.size;
         if (!item.speed.empty()) transfer += (transfer.empty() ? "" : " · ") + item.speed;
-        float details_right = right;
-        if (!item.connections.empty()) {
-            const float width = std::min(room * .36f, c.fonts.regular.measure(item.connections, 21));
-            text(c, c.fonts.regular, item.connections, details_right, box.y + 182,
-                 21, theme.text_muted, width, gfx::Align::right);
-            details_right -= width + 30;
-        }
-        if (!item.remaining.empty()) {
-            const float width = std::min(room * .34f, c.fonts.regular.measure(item.remaining, 21));
-            text(c, c.fonts.regular, item.remaining, details_right, box.y + 182,
-                 21, theme.text_muted, width, gfx::Align::right);
-            details_right -= width + 30;
-        }
-        text(c, c.fonts.regular, transfer, left, box.y + 182,
-             21, theme.text_muted, std::max(0.0f, details_right - left));
-        const Rect state_icon{right - 39, box.y + 27, 34, 34};
+        if (!item.remaining.empty()) transfer += (transfer.empty() ? "" : " · ") + item.remaining;
+        text(c, c.fonts.regular, transfer, left, box.y + 123,
+             20, theme.text_muted, room);
+        const Rect state_icon{right - 30, box.y + 15, 28, 28};
         if (item.active)
-            c.list.arc(state_icon.cx(), state_icon.cy(), 13, 3,
+            c.list.arc(state_icon.cx(), state_icon.cy(), 11, 3,
                        model->ui_reduced_motion ? 0 : time * 2, kPi * 1.4f, state_color);
-        else icon(c, state_icon, item.complete ? 13 : item.failed ? 24 : 9,
+        else icon(c, state_icon, item.failed ? 24 : 9,
                   state_color.with_alpha(.65f + .35f * focus));
     }
     void sync_downloads(const App& app, float dt) {
-        std::string signature;
-        for (const auto& item : app.download_rows) signature += std::to_string(item.id.size()) + ":" + item.id;
-        if (signature != downloads_stamp || downloads.items().size() != app.download_rows.size()) {
-            std::vector<ui::ListItem> rows;
-            rows.reserve(app.download_rows.size());
-            for (const auto& item : app.download_rows) {
-                ui::ListItem row;
-                row.title = item.title;
-                rows.push_back(std::move(row));
+        std::string groups_signature;
+        for (const auto& group : app.download_groups) groups_signature += std::to_string(group.id.size()) + ':' + group.id;
+        const bool order_changed = groups_signature != download_groups_stamp;
+        if (order_changed) {
+            std::vector<ui::CardItem> cards;
+            cards.reserve(app.download_groups.size());
+            for (const auto& group : app.download_groups) {
+                ui::CardItem item;
+                item.title = group.title;
+                cards.push_back(std::move(item));
             }
-            downloads.set_items(std::move(rows));
-            downloads_stamp = std::move(signature);
+            download_wheel.set_items(std::move(cards));
+            download_groups_stamp = std::move(groups_signature);
+            // A sort changes indices, not the selected media. Keep that cover
+            // centered instead of animating through unrelated new positions.
+            download_position.snap(static_cast<float>(app.download_group_sel));
+            if (!download_open_id.empty() || download_panel_transition.visible())
+                download_open_index = app.download_group_sel;
         }
-        downloads.set_focus(app.download_sel, false);
-        downloads.set_active(app.zone == "content" && !modal(app));
+        download_wheel.set_focus(app.download_group_sel, order_changed);
+        download_wheel.set_active(app.download_series_id.empty() && !modal(app));
+        download_position.target = static_cast<float>(app.download_group_sel);
+        download_position.update(dt, app.ui_reduced_motion ? 60.0f : 13.0f);
+        if (download_open_id != app.download_series_id) {
+            const bool opening = !app.download_series_id.empty();
+            if (opening && app.download_group_sel >= 0 && app.download_group_sel < int(app.download_groups.size())) {
+                const auto& group = app.download_groups[static_cast<size_t>(app.download_group_sel)];
+                download_open_index = app.download_group_sel;
+                download_open_image = group.image; download_open_title = group.title;
+                download_closing_rows.clear();
+                download_panel_transition.start(ui::TransitionKind::slide, Direction::left);
+                downloads.enter();
+            } else {
+                download_closing_rows.clear();
+                for (const auto& id : download_episode_ids) {
+                    const auto row = std::find_if(app.download_rows.begin(), app.download_rows.end(),
+                        [&](const UiDownload& item) { return item.id == id; });
+                    if (row != app.download_rows.end()) download_closing_rows.push_back(*row);
+                }
+                download_panel_transition.leave(ui::TransitionKind::fade);
+            }
+            download_open_id = app.download_series_id;
+        }
+        download_lift.target = app.download_series_id.empty() ? 0.0f : 1.0f;
+        download_lift.update(dt, app.ui_reduced_motion ? 60.0f : 12.0f);
+
+        const bool closing = app.download_series_id.empty() && download_panel_transition.visible();
+        if (!closing) {
+            download_closing_rows.clear();
+            std::string signature = app.download_series_id + ':' + std::to_string(app.download_season);
+            for (const int index : app.download_episode_rows) {
+                const auto& item = app.download_rows[static_cast<size_t>(index)];
+                signature += std::to_string(item.id.size()) + ':' + item.id;
+            }
+            if (signature != downloads_stamp || downloads.items().size() != app.download_episode_rows.size()) {
+                std::vector<ui::ListItem> rows;
+                rows.reserve(app.download_episode_rows.size());
+                download_episode_ids.clear();
+                for (const int index : app.download_episode_rows) {
+                    const auto& item = app.download_rows[static_cast<size_t>(index)];
+                    ui::ListItem row;
+                    row.title = item.episode_title;
+                    rows.push_back(std::move(row));
+                    download_episode_ids.push_back(item.id);
+                }
+                downloads.set_items(std::move(rows));
+                downloads_stamp = std::move(signature);
+            }
+            const auto selected = std::find(app.download_episode_rows.begin(), app.download_episode_rows.end(), app.download_sel);
+            downloads.set_focus(selected == app.download_episode_rows.end() ? 0 : int(selected - app.download_episode_rows.begin()), false);
+        }
+        downloads.set_active(!app.download_series_id.empty() && app.zone == "content" && !modal(app));
+        std::string seasons_signature = app.download_series_id + app.ui_language;
+        const auto group = std::find_if(app.download_groups.begin(), app.download_groups.end(),
+            [&](const UiDownloadGroup& item) { return item.id == app.download_series_id; });
+        if (group != app.download_groups.end()) {
+            for (const int value : group->seasons) seasons_signature += ':' + std::to_string(value);
+            if (seasons_signature != download_seasons_stamp) {
+                std::vector<ui::TabItem> tabs;
+                for (const int value : group->seasons) {
+                    ui::TabItem tab;
+                    tab.label = value == 0 ? tr("Speciali", "Specials") : value < 0 ? tr("Altri episodi", "Other episodes")
+                        : std::string(tr("Stagione ", "Season ")) + std::to_string(value);
+                    tabs.push_back(std::move(tab));
+                }
+                download_seasons.set_tabs(std::move(tabs));
+                download_seasons_stamp = std::move(seasons_signature);
+            }
+            const auto season = std::find(group->seasons.begin(), group->seasons.end(), app.download_season);
+            download_seasons.set_active(season == group->seasons.end() ? 0 : int(season - group->seasons.begin()), false);
+            download_seasons.set_focused(false);
+        }
         for (auto it = download_progress.begin(); it != download_progress.end();) {
             if (std::none_of(app.download_rows.begin(), app.download_rows.end(),
-                             [&](const UiDownload& row) { return row.id == it->first; }))
+                             [&](const UiDownload& row) { return row.id == it->first && !row.complete; }))
                 it = download_progress.erase(it);
             else ++it;
         }
         for (const auto& item : app.download_rows) {
+            if (item.complete) continue;
             auto [it, inserted] = download_progress.try_emplace(item.id);
             auto& bar = it->second;
             component_theme(bar, app.ui_reduced_motion);
@@ -1530,11 +1636,11 @@ struct HomeUi::Impl {
             bar.style.placement = ui::LabelPlacement::none;
             bar.style.finish_flash = false;
             bar.style.sheen = item.active;
-            bar.style.mode = item.progress < 0 && !item.paused && !item.failed && !item.complete
+            bar.style.mode = item.progress < 0 && !item.paused && !item.failed
                 ? ui::ProgressMode::indeterminate : ui::ProgressMode::determinate;
-            bar.style.status = item.complete ? ui::Status::success : item.failed ? ui::Status::danger
+            bar.style.status = item.failed ? ui::Status::danger
                 : item.paused ? ui::Status::warning : ui::Status::accent;
-            bar.set_value(item.complete ? 1.0f : std::max(item.progress, 0.0f), inserted);
+            bar.set_value(std::max(item.progress, 0.0f), inserted);
             bar.update(dt);
         }
     }
@@ -1622,11 +1728,29 @@ struct HomeUi::Impl {
     void sync_settings(const App& app) {
         std::string schema = app.ui_language;
         for (const auto& source : app.s_rows) schema += source.id + "/" + source.kind + ";";
-        if (schema != settings_schema || settings.row_count() != static_cast<int>(app.s_rows.size())) {
+        if (schema != settings_schema) {
             settings_schema = std::move(schema);
             settings.clear();
-            for (std::size_t i = 0; i < app.s_rows.size(); ++i) {
+            const auto section = [](const std::string& id) {
+                if (id == "display_resolution" || id == "display_refresh") return 1;
+                if (id == "audio_languages" || id == "audio_passthrough") return 2;
+                if (id.rfind("subtitle_", 0) == 0 || id == "auto_subtitles") return 3;
+                if (id == "autoplay_next" || id == "next_episode_delay_seconds" || id == "seek_seconds" || id == "shoulder_seek_seconds" || id == "show_stats") return 4;
+                if (id == "download_directory" || id == "torrent_speed_profile" || id == "addons" || id == "reload" || id == "server_url") return 5;
+                if (id == "reduced_motion" || id == "high_contrast" || id == "controller_ambient_light" || id == "ui_sounds" || id == "sound_volume") return 6;
+                if (id == "exit") return 7;
+                return 0;
+            };
+            const std::array<const char*, 8> headers{{tr("Generali", "General"), tr("Video e schermo", "Video & Display"),
+                "Audio", tr("Sottotitoli", "Subtitles"), tr("Riproduzione", "Playback"),
+                tr("Download e add-on", "Downloads & Add-ons"), tr("Interfaccia", "Interface"),
+                tr("Applicazione", "Application")}};
+            for (int group = 0; group < int(headers.size()); ++group) {
+                bool header = false;
+                for (std::size_t i = 0; i < app.s_rows.size(); ++i) {
                 const auto& source = app.s_rows[i];
+                if (section(source.id) != group) continue;
+                if (!header) { settings.add_header(headers[static_cast<size_t>(group)]); header = true; }
                 const int index = static_cast<int>(i);
                 if (source.kind == "toggle")
                     settings.add_toggle(index, translated(source.label), source.on);
@@ -1638,7 +1762,9 @@ struct HomeUi::Impl {
                     else if (source.id == "subtitle_offset_ms") row.unit = " ms";
                     else if (source.id == "seek_seconds" || source.id == "shoulder_seek_seconds") row.unit = " s";
                 } else settings.add_action(index, translated(source.label));
+                }
             }
+            settings.style.header_size = 22;
             settings.enter();
         }
         for (std::size_t i = 0; i < app.s_rows.size(); ++i) {
@@ -1655,7 +1781,7 @@ struct HomeUi::Impl {
             if (source.kind == "toggle") settings.set_toggle(index, source.on);
             if (source.kind == "slider") settings.set_slider(index, static_cast<float>(source.number));
         }
-        settings.set_focus(app.s_sel, false);
+        settings.focus_row(app.s_sel, false);
         settings.set_active(app.zone == "content" && !modal(app));
         settings.style.highlight.kind = app.zone == "content" && !modal(app)
                                       ? ui::HighlightKind::ring : ui::HighlightKind::none;
@@ -1919,6 +2045,9 @@ struct HomeUi::Impl {
             grid.enter();
             addon_grid.enter();
             downloads.enter();
+            download_wheel.enter();
+            if (app.view == "downloads") download_position.snap(static_cast<float>(app.download_group_sel));
+            else { download_lift.snap(0); download_panel_transition.hide(); download_open_id.clear(); }
             last_view = app.view;
         }
         nav.set_active(app.nav_sel, false);
@@ -2003,7 +2132,7 @@ struct HomeUi::Impl {
             empty.body = tr("Qui compaiono gli add-on sincronizzati con il tuo account Stremio.",
                             "Your Stremio account add-ons will appear here.");
         } else if (app.view == "downloads") {
-            empty.title = tr("Le tue storie, anche offline", "Your stories, available offline");
+            empty.title = tr("Nessun download", "No downloads");
             empty.body = tr("Seleziona una fonte nella pagina di un film o di un episodio e premi Quadrato per scaricare quel video.",
                             "Select a stream on a movie or episode page and press Square to download that video.");
         }
@@ -2069,6 +2198,7 @@ struct HomeUi::Impl {
         next_play.update(dt); next_ignore.update(dt); next_countdown.update(dt);
         nav.update(dt); search.update(dt); filters.update(dt);
         grid.update(dt); addon_grid.update(dt); settings.update(dt); downloads.update(dt);
+        download_wheel.update(dt); download_seasons.update(dt); download_panel_transition.update(dt);
         directories.update(dt); directory_path.update(dt); directory_spinner.update(dt); directory_move.update(dt);
         season.update(dt); sources.update(dt); episodes.update(dt); streams.update(dt);
         choices.update(dt); audio.update(dt); subtitles.update(dt);
@@ -2259,10 +2389,41 @@ struct HomeUi::Impl {
             if (row >= 0 && row < static_cast<int>(shelves.size()))
                 shelves[static_cast<std::size_t>(row)].handle(input_frame, feedback);
         } else if (app.view == "discover" || app.view == "library") grid.handle(input_frame, feedback);
-        else if (app.view == "downloads") downloads.handle(input_frame, feedback);
+        else if (app.view == "downloads") {
+            if (app.download_series_id.empty() &&
+                (input_frame.is_pressed(Action::jump_prev) || input_frame.is_pressed(Action::jump_next))) {
+                const int previous_sort = app.settings().download_sort;
+                app.on_button(input_frame.is_pressed(Action::jump_prev) ? Btn::L2 : Btn::R2);
+                if (app.settings().download_sort != previous_sort) feedback.play(hui::audio::Cue::tab);
+                return;
+            }
+            if (!app.download_series_id.empty()) {
+                if (input_frame.is_pressed(Action::page_prev) || input_frame.is_pressed(Action::page_next))
+                    download_seasons.step(input_frame.is_pressed(Action::page_prev) ? -1 : 1, input_frame, feedback);
+                else downloads.handle(input_frame, feedback);
+            } else {
+                InputFrame wheel_input = input_frame;
+                if (wheel_input.nav == Direction::up) wheel_input.nav = Direction::left;
+                if (wheel_input.nav == Direction::down) wheel_input.nav = Direction::right;
+                download_wheel.handle(wheel_input, feedback);
+            }
+        }
         else if (app.view == "addons") addon_grid.handle(input_frame, feedback);
         else if (app.view == "settings") {
+            if (input_frame.is_pressed(Action::jump_prev) || input_frame.is_pressed(Action::jump_next)) {
+                InputFrame page;
+                page.nav = input_frame.is_pressed(Action::jump_prev) ? Direction::up : Direction::down;
+                page.nav_repeat = true;
+                for (int i = 0; i < 5; ++i) settings.handle(page, feedback);
+                if (settings.focus_id() >= 0) app.s_sel = settings.focus_id();
+                return;
+            }
             const Event event = settings.handle(input_frame, feedback);
+            if ((event == Event::moved || event == Event::refused) &&
+                (input_frame.nav == Direction::up || input_frame.nav == Direction::down)) {
+                if (settings.focus_id() >= 0) app.s_sel = settings.focus_id();
+                return;
+            }
             if (event == Event::refused && input_frame.is_pressed(Action::confirm)) return;
             if (event == Event::changed) {
                 const int row = settings.changed_id();
@@ -2430,8 +2591,137 @@ struct HomeUi::Impl {
     }
     void paint_downloads(Canvas& c, const App& app) const {
         paint_page_title(c, tr("Download", "Downloads"), app.download_status);
-        if (app.download_rows.empty()) empty.draw(c);
-        else downloads.draw(c);
+        if (app.download_groups.empty()) { empty.draw(c); return; }
+        if (app.download_series_id.empty() && !download_panel_transition.visible()) {
+            const char* sort = app.settings().download_sort == 0 ? tr("Ordina: Titolo A–Z", "Sort: Title A–Z") :
+                app.settings().download_sort == 1 ? tr("Ordina: Anno", "Sort: Year") :
+                tr("Ordina: Data download", "Sort: Download date");
+            auto glyphs = ui::GlyphStyle::dark();
+            glyphs.ink = theme.text;
+            glyphs.label = theme.text_muted;
+            ui::HintLayout layout;
+            layout.cy = 202; layout.size = 30; layout.text_size = 24;
+            const ui::Hint hint{ui::Button::l2, sort, ui::Button::r2};
+            ui::draw_hints(c.list, c.fonts, glyphs, &hint, 1, kRight, true, layout);
+        }
+        const float lift = hui::tween::clamp01(download_lift.value);
+        const int selected = bounded(app.download_group_sel, app.download_groups.size());
+        // The cover wheel's depth follows the reference kit's Cover Wheel
+        // design: every pose is a smooth function of distance from the focus.
+        // Far covers are painted first, so moving across them never pops layers.
+        const auto pose = [&](int index) {
+            const float distance = static_cast<float>(index) - download_position.value;
+            const float away = std::fabs(distance);
+            const float soft = std::sqrt(distance * distance + .09f) - .3f;
+            const float scale = .34f + .66f * std::exp(-soft * .9f);
+            const float offset = std::copysign(536.0f * (1.0f - std::exp(-away * .88f)) + 54.0f * away, distance);
+            const float width = 320.0f * scale, height = 480.0f * scale;
+            const float bottom = 658.0f + 98.0f * scale;
+            Rect box{960 + offset - width * .5f, bottom - height, width, height};
+            if (index == download_open_index && lift > 0) {
+                constexpr Rect opened{166, 298, 332, 498};
+                const float transition = app.ui_reduced_motion ? (lift > .5f ? 1.0f : 0.0f) : hui::tween::smoothstep(lift);
+                box = {box.x + (opened.x - box.x) * transition, box.y + (opened.y - box.y) * transition,
+                       box.w + (opened.w - box.w) * transition, box.h + (opened.h - box.h) * transition};
+            }
+            return box;
+        };
+        const auto draw_cover = [&](int index) {
+            const auto& group = app.download_groups[static_cast<size_t>(index)];
+            const float away = std::fabs(static_cast<float>(index) - download_position.value);
+            const float open = index == download_open_index ? lift : 0;
+            const float alpha = hui::tween::clamp01(6.0f - away) * (index == download_open_index ? 1.0f : 1.0f - lift);
+            if (alpha <= .005f) return;
+            const Rect box = pose(index);
+            const float illumination = .35f + .65f * std::exp(-away * .65f);
+            const float radius = std::min(18.0f, box.w * .055f);
+            const auto image = texture(group.image);
+            ui::Painter paint(c.list, c.fonts, theme, c.glass);
+            if (index == selected)
+                paint.halo(box, radius, 42, theme.accent.with_alpha((.20f + .04f * std::sin(time)) * alpha));
+            c.list.shadow({box.x, box.y + 14, box.w, box.h}, radius, 38,
+                          Color::rgb(0x000000, .7f * alpha));
+            if (image) {
+                c.list.image(image, box, gfx::kFullUv,
+                    Color{illumination + (1 - illumination) * open, illumination + (1 - illumination) * open,
+                          illumination + (1 - illumination) * open, alpha}, radius);
+                const Rect reflection{box.x, box.y + box.h + 7, box.w, std::min(62.0f, box.h * .14f)};
+                c.list.image_gradient(image, reflection, {0, 1, 1, -.16f},
+                    Color::rgb(0xffffff, .18f * alpha * (1 - lift)), Color::rgb(0xffffff, 0), radius);
+            } else {
+                c.list.gradient_rect(box, radius, theme.surface_high.with_alpha(alpha), theme.surface.with_alpha(alpha));
+                icon(c, {box.cx() - 28, box.cy() - 28, 56, 56}, 18, theme.text_muted.with_alpha(alpha));
+            }
+            c.list.bordered_rect(box, radius, theme.surface.with_alpha(0),
+                index == selected ? 2.4f : 1, theme.text.with_alpha((index == selected ? .78f : .16f) * alpha));
+        };
+        const int first = std::max(0, int(std::floor(download_position.value)) - 6);
+        const int last = std::min(int(app.download_groups.size()) - 1, int(std::ceil(download_position.value)) + 6);
+        std::array<int, 15> order{};
+        const int count = std::max(0, last - first + 1);
+        for (int i = 0; i < count; ++i) order[static_cast<size_t>(i)] = first + i;
+        std::sort(order.begin(), order.begin() + count, [&](int a, int b) {
+            return std::fabs(float(a) - download_position.value) > std::fabs(float(b) - download_position.value);
+        });
+        for (int i = 0; i < count; ++i) draw_cover(order[static_cast<size_t>(i)]);
+        const auto& group = app.download_groups[static_cast<size_t>(selected)];
+        // Move one title with the cover instead of drawing it a second time
+        // when the episode panel opens or closes.
+        const float title_shift = app.ui_reduced_motion ? (lift > .5f ? 1.0f : 0.0f) : hui::tween::smoothstep(lift);
+        const auto title = plain_text(lift > .01f ? download_open_title : group.title);
+        const float title_size = 38 - 6 * title_shift;
+        const float title_width = 1296 - 916 * title_shift;
+        const auto title_lines = c.fonts.semibold.font->wrap(title, title_size, title_width);
+        const size_t max_title_lines = lift > .01f ? 2 : 1;
+        for (size_t line = 0; line < std::min(title_lines.size(), max_title_lines); ++line) {
+            const auto value = line + 1 == max_title_lines && title_lines.size() > max_title_lines
+                ? c.fonts.semibold.font->fit(title_lines[line] + " …", title_size, title_width)
+                : title_lines[line];
+            const float centered = 960 - c.fonts.semibold.measure(value, title_size) * .5f;
+            text(c, c.fonts.semibold, value, centered + (166 - centered) * title_shift,
+                 824 + 24 * title_shift + float(line) * (45 - 6 * title_shift),
+                 title_size, theme.text, title_width);
+        }
+        if (lift >= .995f) return;
+        c.list.push_opacity(1 - lift);
+        if (group.representative >= 0 && group.representative < int(app.download_rows.size())) {
+            const auto& item = app.download_rows[static_cast<size_t>(group.representative)];
+            if (item.complete) { c.list.pop_opacity(); return; }
+            const Color state = item.failed ? theme.danger
+                : item.paused ? theme.warning : theme.accent;
+            std::string label = translated(plain_text(item.status));
+            if (group.series) {
+                const std::string episode = (item.season >= 0 ? std::string("S") + std::to_string(item.season) : "") +
+                    (item.episode >= 0 ? std::string("E") + std::to_string(item.episode) : "");
+                if (!episode.empty()) label = episode + (label.empty() ? "" : " · " + label);
+            }
+            text(c, c.fonts.regular, label, 960, 866, 24, state, 1296, gfx::Align::center);
+            auto progress = download_progress.find(item.id);
+            if (progress != download_progress.end()) {
+                auto bar = progress->second;
+                bar.style.height = 9;
+                bar.set_bounds({520, 891, 880, 9});
+                bar.draw(c);
+            }
+            if (item.progress >= 0) {
+                char percentage[24];
+                std::snprintf(percentage, sizeof(percentage), "%.1f%%", double(item.progress) * 100.0);
+                text(c, c.fonts.semibold, percentage, 1458, 903, 23, state, 120);
+            }
+            std::string details = item.size;
+            for (const auto* part : {&item.speed, &item.remaining, &item.connections})
+                if (!part->empty()) details += (details.empty() ? "" : "  ·  ") + *part;
+            text(c, c.fonts.regular, details, 960, 947, 22, theme.text_muted, 1500, gfx::Align::center);
+        }
+        c.list.pop_opacity();
+    }
+    void paint_download_panel(Canvas& c, const App& app) const {
+        if (app.view != "downloads" || app.watching() || !download_panel_transition.visible()) return;
+        download_panel_transition.begin(c, download_panel.bounds());
+        download_panel.draw(c);
+        download_seasons.draw(c);
+        downloads.draw(c);
+        download_panel_transition.end(c);
     }
     void paint_discover(Canvas& c, const App& app) const {
         paint_page_title(c, tr("Scopri", "Discover"), "");
@@ -2441,20 +2731,36 @@ struct HomeUi::Impl {
             return;
         }
         grid.draw(c);
-        const Rect panel{1350, 350, 474, 604};
+        const Rect panel{1350, 332, 474, 628};
         ui::Painter paint(c.list, c.fonts, theme, c.glass);
         paint.panel(panel);
-        const Rect art{panel.x + 20, panel.y + 20, panel.w - 40, 244};
-        picture(c, app.dp_still, art, 13);
-        if (app.dp_still.empty()) c.list.gradient_rect(art, 13, theme.surface_high, theme.surface);
         const std::string name = !app.dp_name.empty() ? app.dp_name
             : app.disc_cards[static_cast<std::size_t>(bounded(app.disc_sel, app.disc_cards.size()))].title;
-        if (texture(app.dp_logo)) picture(c, app.dp_logo, {panel.x + 24, panel.y + 282, panel.w - 48, 92}, 0);
-        else ui::paragraph(c.list, c.fonts.semibold, name, panel.x + 24, panel.y + 312, 34,
+        if (texture(app.dp_logo)) picture(c, app.dp_logo, {panel.x + 24, panel.y + 22, panel.w - 48, 102}, 0);
+        else ui::paragraph(c.list, c.fonts.semibold, name, panel.x + 24, panel.y + 62, 34,
                            panel.w - 48, 40, theme.text, 2);
-        paint_metadata(c, app.dp_year, app.dp_runtime, app.dp_imdb, "", panel.x + 24, panel.y + 401, panel.w - 48, 21);
+        paint_metadata(c, app.dp_year, app.dp_runtime, app.dp_imdb, "", panel.x + 24, panel.y + 164, panel.w - 48, 21);
+        float baseline = panel.y + 203;
+        if (!app.dp_genres.empty()) {
+            ui::paragraph(c.list, c.fonts.regular, app.dp_genres, panel.x + 24, baseline, 22,
+                          panel.w - 48, 29, theme.text_muted, 2);
+            baseline += 72;
+        }
+        if (!app.dp_directors.empty()) {
+            text(c, c.fonts.semibold, tr("Regia", "Director"), panel.x + 24, baseline, 19, theme.accent, panel.w - 48);
+            ui::paragraph(c.list, c.fonts.regular, app.dp_directors, panel.x + 24, baseline + 30, 22,
+                          panel.w - 48, 29, theme.text, 2);
+            baseline += 96;
+        }
+        if (!app.dp_cast.empty()) {
+            text(c, c.fonts.semibold, tr("Interpreti principali", "Starring"), panel.x + 24, baseline, 19, theme.accent, panel.w - 48);
+            ui::paragraph(c.list, c.fonts.regular, app.dp_cast, panel.x + 24, baseline + 30, 22,
+                          panel.w - 48, 29, theme.text, 2);
+            baseline += 106;
+        }
+        const int lines = std::max(1, int((panel.y + panel.h - 20 - baseline) / 30));
         ui::paragraph(c.list, c.fonts.regular, plain_text(app.dp_desc), panel.x + 24,
-                      panel.y + 435, 23, panel.w - 48, 31, theme.text_muted, 5);
+                      baseline, 23, panel.w - 48, 30, theme.text_muted, lines);
         if (!app.disc_status.empty())
             text(c, c.fonts.regular, translated(app.disc_status), kLeft, 984, 21, theme.text_muted, 1030);
     }
@@ -2949,11 +3255,23 @@ struct HomeUi::Impl {
                                     {ui::Button::l1, tr("Sezioni", "Sections"), ui::Button::r1}});
             else {
                 const auto& item = app.download_rows[static_cast<std::size_t>(bounded(app.download_sel, app.download_rows.size()))];
+                const bool series = app.download_group_sel >= 0 && app.download_group_sel < int(app.download_groups.size()) &&
+                    app.download_groups[static_cast<size_t>(app.download_group_sel)].series;
                 const char* action = item.recovery_only ? tr("Informazioni", "Details")
-                    : item.complete ? tr("Riproduci offline", "Play offline")
+                    : item.complete ? tr("Riproduci", "Play")
                     : item.active ? tr("Pausa", "Pause") : item.failed ? tr("Riprova", "Retry")
                     : item.paused ? tr("Riprendi", "Resume") : tr("Pausa", "Pause");
-                if (item.playable_while_downloading)
+                if (!app.download_series_id.empty()) {
+                    if (item.playable_while_downloading)
+                        hint_row(c, theme, {{cross, action}, {ui::Button::options, tr("Riproduci ora", "Play now")},
+                            {square, tr("Elimina episodio", "Delete episode")},
+                            {ui::Button::l1, tr("Stagioni", "Seasons"), ui::Button::r1}, {circle, tr("Indietro", "Back")}});
+                    else hint_row(c, theme, {{cross, action}, {square, tr("Elimina episodio", "Delete episode")},
+                        {ui::Button::l1, tr("Stagioni", "Seasons"), ui::Button::r1}, {circle, tr("Indietro", "Back")}});
+                } else if (series) {
+                    hint_row(c, theme, {{cross, tr("Episodi", "Episodes")}, {dpad, tr("Naviga", "Browse")},
+                        {triangle, tr("Cerca", "Search")}, {ui::Button::l1, tr("Sezioni", "Sections"), ui::Button::r1}});
+                } else if (item.playable_while_downloading)
                     hint_row(c, theme, {{ui::Button::options, tr("Riproduci ora", "Play now")},
                                         {cross, action}, {square, tr("Elimina", "Delete")},
                                         {triangle, tr("Cerca", "Search")},
@@ -3026,6 +3344,7 @@ struct HomeUi::Impl {
     }
     void draw_overlays(const App& app, Canvas& c) const {
         if (app.login_visible) { toasts.draw(c); paint_footer(c, app); return; }
+        paint_download_panel(c, app);
         if (app.watching()) paint_playback_bar(c, app);
         if (dropdown.visible()) dropdown.draw(c);
         if (tracks.visible()) tracks.draw(c);
@@ -3070,6 +3389,8 @@ bool HomeUi::wants_glass() const {
     return (impl_->model && impl_->model->watching() && impl_->watch_alpha.value > .001f &&
             !impl_->model->menu_visible && !impl_->model->launch_visible) ||
            (impl_->model && impl_->model->next_episode_visible) ||
+           (impl_->model && !impl_->model->watching() && impl_->model->view == "downloads" &&
+            impl_->download_panel_transition.visible()) ||
            impl_->dropdown.visible() || impl_->tracks.visible() ||
            impl_->keyboard_sheet.visible() || impl_->dialog.visible() || impl_->directory_notice.visible() || impl_->source_info.visible();
 }

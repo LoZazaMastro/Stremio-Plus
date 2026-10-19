@@ -3,6 +3,8 @@
 #include "util.h"
 
 #include <cassert>
+#include <atomic>
+#include <cerrno>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -10,6 +12,28 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+// Fail a real asynchronous checkpoint sync without touching the prior file.
+// This verifies error behavior that a successful host write cannot exercise.
+static std::atomic<bool> fail_checkpoint_sync{false};
+static std::atomic<unsigned> failed_checkpoint_syncs{0};
+static std::atomic<bool> unsupported_directory_sync{false};
+static std::atomic<unsigned> skipped_directory_syncs{0};
+extern "C" int __real_fsync(int);
+extern "C" int __wrap_fsync(int fd) {
+    struct stat info{};
+    if (unsupported_directory_sync.load() && ::fstat(fd, &info) == 0 && S_ISDIR(info.st_mode)) {
+        ++skipped_directory_syncs;
+        errno = ENOTSUP;
+        return -1;
+    }
+    if (fail_checkpoint_sync.load() && ::fstat(fd, &info) == 0 && S_ISREG(info.st_mode)) {
+        ++failed_checkpoint_syncs;
+        errno = EIO;
+        return -1;
+    }
+    return __real_fsync(fd);
+}
 
 static std::string contents(const std::string& path) {
     std::string text;
@@ -60,14 +84,22 @@ int main(int argc, char** argv) {
     assert(normal.find("HEVC 3840x2160") != std::string::npos);
     assert(normal.find("HTTP 503") != std::string::npos);
 
+    unsupported_directory_sync = true;
     assert(diagnostics_start(root + "/Stremio/"));
+    assert(diagnostics_flush());
+    assert(skipped_directory_syncs > 0);
+    unsupported_directory_sync = false;
     matches_build(json::parse(contents(root + "/Stremio/session.json")));
     log_open(root + "/Stremio/log.txt"); // compatibility entry point uses the same exact folder
     assert(!file_exists(root + "/Stremio/logs/session.json"));
     diagnostics_set_runtime({{"display", {{"width", 3840}, {"height", 2160}, {"Authorization", "runtime-auth-secret"}}},
                              {"gpu_yuv", true}, {"gl_renderer", "AMD"}, {"auth_key", "runtime-secret"},
                              {"url", "https://example.test/private-url"}, {"email", "private-runtime@account.example"},
-                             {"video", {{"codec", "HEVC"}, {"token", "nested-secret"}}}});
+                             {"video", {{"codec", "HEVC"}, {"token", "nested-secret"}}},
+                             {"display_refresh", {{"preference", 2}, {"available", true}, {"active", true}, {"refresh_code", 13}}},
+                             {"video_processing", {{"upscaler", "fsr1"}, {"smoothing", "hdr_input"},
+                                  {"source_fps", 23.976}, {"dolby_vision_reshape", true},
+                                  {"audio_output", "active_eac3"}, {"token", "nested-secret"}}}});
     for (const auto& pair : cases) dlog("%s", pair.first);
     ffmpeg_event(8, "Fatal codec test https://addon.test/fatal-private-value/manifest.json");
     const auto fatal = contents(root + "/Stremio/log.txt");
@@ -83,6 +115,25 @@ int main(int argc, char** argv) {
     matches_build(runtime_json);
     assert(runtime_json["runtime"]["display"]["width"] == 3840);
     assert(runtime_json["runtime"]["video"]["codec"] == "HEVC");
+    assert(runtime_json["runtime"]["display_refresh"]["refresh_code"] == 13);
+    assert(runtime_json["runtime"]["display_refresh"]["active"] == true);
+    assert(runtime_json["runtime"]["video_processing"]["upscaler"] == "fsr1");
+    assert(runtime_json["runtime"]["video_processing"]["smoothing"] == "hdr_input");
+    assert(runtime_json["runtime"]["video_processing"]["audio_output"] == "active_eac3");
+    assert(runtime_json["runtime"]["video_processing"]["dolby_vision_reshape"] == true);
+
+    fail_checkpoint_sync = true;
+    diagnostics_set_runtime({{"video", {{"width", 1920}, {"height", 1080}}}});
+    assert(diagnostics_flush());
+    assert(failed_checkpoint_syncs > 0);
+    assert(contents(root + "/Stremio/runtime.json") == runtime);
+    assert(!file_exists(root + "/Stremio/runtime.json.tmp"));
+    fail_checkpoint_sync = false;
+    diagnostics_set_runtime({{"video", {{"width", 3840}, {"height", 2160}}}});
+    assert(diagnostics_flush());
+    const auto durable = json::parse(contents(root + "/Stremio/runtime.json"));
+    assert(durable["runtime"]["video"]["width"] == 3840);
+    assert(durable["log_io_failures"].get<unsigned>() >= 1);
 
     std::string payload;
     for (int i = 0; i < 32; ++i) payload += "Frame decoded at 3840x2160 with 8 ms latency; ";

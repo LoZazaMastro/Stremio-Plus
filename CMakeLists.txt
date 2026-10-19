@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(stremio-ps5 VERSION 0.5.11 LANGUAGES C CXX)
+project(stremio-ps5 VERSION 0.5.18 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT CMAKE_BUILD_TYPE)
@@ -39,21 +39,23 @@ set(STREMIO_SOURCES
     src/main.cpp src/app.cpp src/app_board.cpp src/app_browse.cpp src/app_detail.cpp src/app_preview_meta.cpp
     src/app_settings.cpp src/app_preferences.cpp src/app_watch.cpp src/home_ui.cpp src/download_directory.cpp
     src/calendar_date.cpp src/controller_ambient.cpp src/ui_language.cpp
+    src/media_remote.cpp src/display_refresh.cpp
     src/app_downloads.cpp src/download_manager.cpp src/download_transfer.cpp src/download_text.cpp
     src/growing_file_stream.cpp
     src/artcache.cpp src/bidi.cpp src/http.cpp src/hwdec_ps5.cpp src/player.cpp src/player_yuv.cpp
     src/netstream.cpp src/stremio.cpp src/stream_presentation.cpp src/subtitles.cpp src/tasks.cpp src/util.cpp
-    src/yuv_convert.cpp src/video_gl.cpp src/texture_cache.cpp src/diagnostics.cpp src/display_output.cpp
+    src/yuv_convert.cpp src/video_gl.cpp src/video_dovi.cpp src/texture_cache.cpp src/diagnostics.cpp src/display_output.cpp
     src/torrent/bencode.cpp src/torrent/engine.cpp src/torrent/torrent_stream.cpp
     ${HUI_SOURCES})
 if(STREMIO_USE_LIBVLC)
     list(REMOVE_ITEM STREMIO_SOURCES src/player.cpp)
     list(APPEND STREMIO_SOURCES src/player_vlc.cpp src/player_vlc_http.cpp src/player_vlc_subtitles.cpp
-        src/player_vlc_copy.cpp
+        src/player_vlc_copy.cpp src/player_vlc_dovi.cpp
         "${STREMIO_VLC_STATIC}/static_modules.c")
     if(PS5)
         list(APPEND STREMIO_SOURCES vendor/vlc-ps5/modules/ps5vdec.c
-            vendor/vlc-ps5/modules/ps5http.c src/player_vlc_vp9.cpp)
+            vendor/vlc-ps5/modules/ps5http.c src/player_vlc_vp9.cpp
+            src/player_vlc_passthrough.cpp src/player_iec61937.cpp)
     endif()
 endif()
 if(PS5 AND PS5_NATIVE)

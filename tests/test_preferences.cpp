@@ -62,6 +62,28 @@ struct AppProtocolTest {
         app.view = "settings"; app.zone = "content"; app.nav_sel = 4;
         app.settings_refresh();
     }
+    static void download_order(const std::string& directory) {
+        App app; prepare(app, directory);
+        expect(app.settings_.download_sort == 2, "download ordering defaults to newest download first");
+        app.settings_.audio_langs = "eng, ita";
+        app.settings_.download_directory = "/data/example-downloads";
+        for (int mode = 0; mode < 3; ++mode) {
+            app.settings_.download_sort = mode;
+            app.offline_ = false; app.save_settings(); app.flush_settings(true);
+            App restored; prepare(restored, directory); restored.load_settings();
+            expect(restored.settings_.download_sort == mode && restored.settings_.audio_langs == "eng, ita" &&
+                   restored.settings_.download_directory == "/data/example-downloads",
+                   "each gallery ordering restores without changing other preferences or the selected storage directory");
+        }
+        for (const json& bad : {json(-1), json(3), json(1.5), json("year"), json(nullptr)}) {
+            expect(save_json(directory + "/settings.json", json{{"download_sort", bad}}),
+                   "invalid saved download-order fixture is written");
+            App restored; prepare(restored, directory); restored.load_settings();
+            expect(restored.settings_.download_sort == 2, "invalid ordering safely restores the default date mode");
+        }
+        expect(std::none_of(app.s_rows.begin(), app.s_rows.end(), [](const UiSetting& item) { return item.id == "download_sort"; }),
+               "gallery ordering adds no unrelated row to the Settings page");
+    }
     static void checklist(const std::string& directory) {
         App app; prepare(app, directory);
         app.settings_.audio_langs = "it-IT, en, ita, ast";
@@ -332,6 +354,54 @@ struct AppProtocolTest {
         expect(migrated.settings_.date_components == 15 && migrated.settings_.date_format == "short" &&
             migrated.settings_.controller_ambient_light, "old settings acquire compatible date and controller light defaults");
     }
+    static void video_controls_and_persistence(const std::string& directory) {
+        const auto profile = directory + "/video-controls";
+        expect(make_dirs(profile), "video settings fixture directory is created");
+        App app; prepare(app, profile);
+        expect(app.settings_.display_refresh == 0 && !app.settings_.audio_passthrough,
+               "HDMI changes and passthrough remain opt-in");
+        for (const auto& language : {"it", "en"}) {
+            app.settings_.ui_language = language; app.settings_refresh();
+            expect(std::none_of(app.s_rows.begin(), app.s_rows.end(), [](const auto& setting) {
+                return setting.id == "video_upscaler" || setting.id == "video_sharpness" ||
+                       setting.id == "motion_smoothing";
+            }), "removed video effects are absent in both interface languages");
+        }
+        app.set_setting_value(row(app, "display_refresh"), 2);
+        app.s_sel = row(app, "audio_passthrough"); app.on_button(Btn::Cross);
+        expect(app.settings_.display_refresh == 2 && app.settings_.audio_passthrough,
+               "retained video options route to their own values after settings regrouping");
+        app.offline_ = false; app.save_settings(); app.flush_settings(true);
+        App restored; prepare(restored, profile); restored.load_settings(); restored.settings_refresh();
+        expect(restored.settings_.display_refresh == 2 && restored.settings_.audio_passthrough,
+               "HDMI and audio options survive a real settings file round trip");
+        restored.set_setting_value(row(restored, "display_refresh"), std::numeric_limits<float>::infinity());
+        expect(restored.settings_.display_refresh == 2, "nonfinite input cannot change the HDMI preference");
+        expect(save_json(profile + "/settings.json", json{{"video_upscaler", 1.5},
+            {"display_refresh", 1e100}, {"motion_smoothing", -1}, {"video_sharpness", 9},
+            {"audio_passthrough", "true"}}), "invalid video setting fixture saved");
+        App invalid; prepare(invalid, profile); invalid.load_settings();
+        expect(invalid.settings_.display_refresh == 0 && !invalid.settings_.audio_passthrough,
+               "malformed HDMI and boolean settings fall back safely alongside ignored legacy effects");
+        const json legacy = {{"video_upscaler", 2}, {"video_sharpness", .7}, {"motion_smoothing", 2},
+            {"audio_languages", "eng, jpn"}, {"display_output_mode", "2160p"},
+            {"display_refresh", 1}, {"audio_passthrough", true}, {"download_directory", profile + "/downloads"},
+            {"auth_key", "fixture-account-token"}, {"user_email", "viewer@example.invalid"}};
+        expect(save_json(profile + "/settings.json", legacy), "previous-version active video effects fixture saved");
+        App upgraded; prepare(upgraded, profile); upgraded.load_settings(); upgraded.settings_refresh();
+        upgraded.offline_ = false; upgraded.save_settings(); upgraded.flush_settings(true);
+        json saved;
+        expect(load_json(profile + "/settings.json", saved), "legacy effect preferences migrate through normal persistence");
+        expect(!saved.contains("video_upscaler") && !saved.contains("video_sharpness") &&
+               !saved.contains("motion_smoothing"), "retired effect values are ignored and omitted from the saved profile");
+        for (const auto* key : {"audio_languages", "display_output_mode", "display_refresh", "audio_passthrough",
+                               "download_directory", "auth_key", "user_email"})
+            expect(saved.at(key) == legacy.at(key), "removing effects preserves existing media, display, download and account preferences");
+        App restarted; prepare(restarted, profile); restarted.load_settings();
+        expect(restarted.settings_.display_refresh == 1 && restarted.settings_.audio_passthrough &&
+               restarted.settings_.display_resolution == 2 && restarted.settings_.audio_langs == "eng, jpn",
+               "the upgraded profile restores its retained video and audio choices after restart");
+    }
     static void engine_policy_and_migration(const std::string& directory) {
         const auto profile = directory + "/engine-policy";
         expect(make_dirs(profile), "engine migration fixture directory is created");
@@ -400,7 +470,9 @@ int main(int argc, char** argv) {
         AppProtocolTest::ambient_selection(argv[1]);
         AppProtocolTest::interface_language(argv[1]);
         AppProtocolTest::appearance_and_persistence(argv[1]);
+        AppProtocolTest::video_controls_and_persistence(argv[1]);
         AppProtocolTest::engine_policy_and_migration(argv[1]);
+        AppProtocolTest::download_order(argv[1]);
         expect(unexpected_http == 0, "no HTTP is required to edit settings or navigate offline");
         std::cout << "PREFERENCES_TESTS_OK checks=" << checks << " real_http_requests=" << unexpected_http << '\n';
         return 0;

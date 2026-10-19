@@ -18,7 +18,8 @@ enum Row {
     Account, Language, DateComponents, DateFormat, TorrentSpeed, DownloadDirectory, SubLangs, AutoSubs, SubSize,
     SubBackground, SubColor, SubEffect, SubFont, SubDelay,
     AudioLangs, Autoplay, NextEpisodeDelay, SeekStep, ShoulderSeekStep, Resolution, ReducedMotion, Contrast,
-    ControllerLight, Sounds, Volume, Statistics, Addons, Reload, Exit, Count
+    ControllerLight, Sounds, Volume, Statistics, Addons, Reload, Exit,
+    AudioPassthrough, DisplayRefresh, Count
 };
 
 struct LanguageChoice { const char* code; const char* italian; const char* english; };
@@ -219,6 +220,15 @@ void App::settings_refresh() {
         t("Gli add-on sincronizzati con il tuo account Stremio.", "Add-ons synchronized with your Stremio account."));
     row(Reload, "reload", t("Aggiorna add-on e cataloghi", "Refresh add-ons and catalogs"), "");
     row(Exit, "exit", t("Esci da Stremio", "Exit Stremio"), "");
+    row(AudioPassthrough, "audio_passthrough", "Audio passthrough",
+        t("Invia i formati audio compatibili al ricevitore HDMI. Se non disponibile, usa PCM. Si applica al prossimo video.",
+          "Send supported audio formats to the HDMI receiver. Use PCM when unavailable. Applies to the next video."));
+    toggle(AudioPassthrough, settings_.audio_passthrough);
+    row(DisplayRefresh, "display_refresh", t("Uscita 120 Hz", "120 Hz output"),
+        t("Automatico abilita l'uscita ad alta frequenza quando supportata. Solo riproduzione ripristina la frequenza di sistema nei menu.",
+          "Auto enables supported high refresh output. Playback only restores the system refresh rate in menus."));
+    choice(DisplayRefresh, {t("Disattivata", "Off"), t("Automatico", "Auto"), t("Solo riproduzione", "Playback only")},
+        settings_.display_refresh);
     s_sel = std::clamp(s_sel, 0, Count - 1);
     dirty_all();
 }
@@ -253,6 +263,8 @@ void App::set_setting_value(int row, float value) {
     case Sounds: settings_.ui_sounds = n != 0; break;
     case Volume: settings_.sound_volume = std::clamp(n, 0, 100); break;
     case Statistics: settings_.show_stats = n != 0; break;
+    case AudioPassthrough: settings_.audio_passthrough = n != 0; break;
+    case DisplayRefresh: settings_.display_refresh = std::clamp(n, 0, 2); break;
     default: return;
     }
     save_settings(); settings_refresh();

@@ -7,6 +7,8 @@
 #include "player.h"
 #include "player_vlc_audio.h"
 #include "player_vlc_bridge.h"
+#include "native_memory.h"
+#include "player_vlc_dovi.h"
 #include "growing_file_stream.h"
 #include "torrent/torrent_stream.h"
 #include "stremio.h"
@@ -16,11 +18,15 @@
 #include <vlc_common.h>
 #include <vlc_es.h>
 #include <vlc_subpicture.h>
+#include <vlc_picture.h>
 #include <vlc_variables.h>
 
 extern "C" {
 #include <libavformat/avio.h>
 #include <libavutil/error.h>
+#ifdef PLATFORM_PS5
+bool stremio_ps5_audio_pcm_available();
+#endif
 }
 
 #include <algorithm>
@@ -38,6 +44,10 @@ namespace {
 constexpr int kSlots = 4;
 constexpr size_t kPlaneAlignment = 64;
 constexpr uint64_t kAudioWithoutVideoLimit = VlcAudioTimeline::rate * 8;
+#ifdef PLATFORM_PS5
+constexpr const char* kNativeAudioShutdownError =
+    "The native audio output could not be released safely. Playback has been stopped.";
+#endif
 std::atomic<int> hardware_decoders{0};
 std::atomic<bool> hardware_failed{false};
 
@@ -187,6 +197,9 @@ struct Player::Vlc {
     std::atomic<bool> native_error{false}, end_reached{false}, opened_video{false};
     std::atomic<bool> native_playing{false}, frame_presented{false}, native_position_known{false};
     std::atomic<bool> expects_video{true};
+    std::atomic<int> decoder_error{0};
+    std::atomic<bool> recovering_decoder{false};
+    unsigned decoder_recoveries = 0;
     std::atomic<int> buffering_percent{0}, serial{0}, subtitle_serial{0}, wanted_audio{-2}, wanted_subtitle{-1};
     std::atomic<double> requested_seek{-1}, presented{0}, known_seek{0}, native_position{0};
     std::atomic<uint64_t> decoded{0}, shown{0}, dropped{0};
@@ -223,6 +236,9 @@ struct Player::Vlc {
     std::mutex audio_mutex;
     VlcAudioTimeline audio;
     SDL_AudioDeviceID device = 0;
+    std::atomic<bool> passthrough_active{false}, passthrough_retry{false};
+    std::atomic<bool> native_audio_shutdown_failed{false};
+    std::atomic<const char*> audio_mode_status{"pcm"};
     int audio_period_us = 0;
     bool audio_paused = false;
     int64_t audio_pause_stamp = 0;
@@ -238,6 +254,16 @@ struct Player::Vlc {
         { std::lock_guard lock(error_mutex); error = reason; }
         dlog("player/vlc: %s", reason.c_str());
         parent.state_ = State::Failed;
+    }
+
+    static void video_error(void* opaque, int code) {
+        if (!opaque) return;
+        auto& self = *static_cast<Vlc*>(opaque);
+        if (self.stop_requested || self.input.abort) return;
+        // This runs on VLC's decoder/frame workers. Stop and reopen belong
+        // to our worker, after these callbacks have released VLC's locks.
+        int expected = 0;
+        self.decoder_error.compare_exchange_strong(expected, code ? code : AVERROR(EINVAL));
     }
 
     double media_at(int64_t stamp, bool extrapolate = false) const {
@@ -370,6 +396,12 @@ struct Player::Vlc {
             session->format = frame;
             auto allocate = [size]() -> std::shared_ptr<void> {
                 void* pixels = nullptr;
+#ifdef PLATFORM_PS5_NATIVE
+                pixels = vlc_ps5_big_alloc(size);
+                if (pixels) return std::shared_ptr<void>(pixels, [](void* address) {
+                    vlc_ps5_big_free(address);
+                });
+#endif
                 if (posix_memalign(&pixels, kPlaneAlignment, size)) return {};
                 return std::shared_ptr<void>(pixels, std::free);
             };
@@ -441,6 +473,16 @@ struct Player::Vlc {
         if (session.slots[index].phase == Phase::Writing) session.slots[index].phase = Phase::Ready;
     }
 
+    static void video_metadata(void* opaque, void* picture, const picture_t* source) {
+        auto& session = *static_cast<Session*>(opaque);
+        const int index = int(reinterpret_cast<intptr_t>(picture)) - 1;
+        if (index < 0 || index >= kSlots || !source) return;
+        std::lock_guard lock(session.mutex);
+        auto& frame = session.slots[index].frame;
+        frame.presentation_time = source->date > 0 ? double(source->date) / 1000000.0 : 0;
+        frame.dovi = vlc_picture_dovi(source);
+    }
+
     static void video_display(void* opaque, void* picture) {
         auto& session = *static_cast<Session*>(opaque);
         auto& self = *session.owner;
@@ -456,7 +498,8 @@ struct Player::Vlc {
         std::lock_guard lock(session.mutex);
         auto& slot = session.slots[index];
         if (slot.phase != Phase::Ready) return;
-        if (slot.frame.serial != self.serial || !position_known || (self.seeking && !self.seek_time_seen)) {
+        if (self.decoder_error || slot.frame.serial != self.serial || !position_known ||
+            (self.seeking && !self.seek_time_seen)) {
             slot.phase = Phase::Free;
             return;
         }
@@ -529,6 +572,55 @@ struct Player::Vlc {
         std::lock_guard lock(self.audio_mutex);
         self.audio_gain = mute ? 0.0f : std::clamp(volume, 0.0f, 4.0f);
     }
+
+    bool open_pcm_device() {
+#ifdef PLATFORM_PS5
+        if (!stremio_ps5_audio_pcm_available()) {
+            SDL_SetError("Native audio output is still owned or could not be released safely.");
+            return false;
+        }
+#endif
+        if (device) return true;
+        SDL_AudioSpec wanted{}, obtained{};
+        wanted.freq = int(VlcAudioTimeline::rate); wanted.format = AUDIO_S16SYS; wanted.channels = 2;
+        wanted.samples = 1024; wanted.callback = audio_output; wanted.userdata = this;
+        device = SDL_OpenAudioDevice(nullptr, 0, &wanted, &obtained, 0);
+        if (!device) return false;
+        audio_period_us = int(int64_t(obtained.samples) * 1000000 / VlcAudioTimeline::rate);
+        SDL_PauseAudioDevice(device, 0);
+        return true;
+    }
+
+#ifdef PLATFORM_PS5
+    static void audio_mode(void* opaque, bool bitstream, const char* reason) {
+        auto& self = *static_cast<Vlc*>(opaque);
+        self.audio_mode_status = reason;
+        dlog("player/vlc: audio output %s", reason);
+        const bool shutdown_failed = std::strcmp(reason, "native_shutdown_failed") == 0;
+        if (shutdown_failed) {
+            // The native module retains its buffers and port ownership after
+            // a failed shutdown. Only the worker may stop VLC; opening PCM
+            // from this callback would race a still-live encoded output.
+            self.native_audio_shutdown_failed = true;
+            self.input.fatal = true;
+            self.passthrough_retry = false;
+        }
+        if (std::strcmp(reason, "output_failed") == 0) {
+            // Stop the encoded port before the PCM port is reopened. This
+            // retry is handled by the player worker outside VLC's aout lock.
+            self.passthrough_retry = true;
+            return;
+        }
+        const bool encoded_owned = bitstream || shutdown_failed;
+        self.passthrough_active = encoded_owned;
+        if (encoded_owned && self.device) {
+            SDL_CloseAudioDevice(self.device); self.device = 0;
+            std::lock_guard lock(self.audio_mutex); self.audio.clear();
+        } else if (!encoded_owned && !self.stop_requested && !self.input.abort && !self.open_pcm_device()) {
+            self.input.fatal = true;
+        }
+    }
+#endif
 
     static bool subtitle(void* opaque, int stream, subpicture_t* picture) {
         auto& self = *static_cast<Vlc*>(opaque);
@@ -658,6 +750,12 @@ struct Player::Vlc {
 
     bool start_media(double start) {
         if (stop_requested) return false;
+#ifdef PLATFORM_PS5
+        if (native_audio_shutdown_failed) {
+            fail(kNativeAudioShutdownError);
+            return false;
+        }
+#endif
         const auto& options = input.options;
         if (options.growing_download || TorrentStream::is_url(options.url))
             media = libvlc_media_new_callbacks(instance, media_open, stremio_vlc_input_read,
@@ -670,7 +768,7 @@ struct Player::Vlc {
         } else media = libvlc_media_new_location(instance, options.url.c_str());
         if (!media) { fail(libvlc_errmsg() ? libvlc_errmsg() : "VLC could not create this media input."); return false; }
         libvlc_media_add_option(media, ":network-caching=1500");
-        libvlc_media_add_option(media, ":file-caching=150");
+        libvlc_media_add_option(media, ":file-caching=750");
         libvlc_media_add_option(media, ":no-sub-autodetect-file");
         libvlc_media_add_option(media, ":sub-track=-1");
         const int initial_subtitle = wanted_subtitle;
@@ -687,6 +785,12 @@ struct Player::Vlc {
             libvlc_media_add_option(media, option);
         }
         if (software_fallback) libvlc_media_add_option(media, ":no-ps5vdec");
+#ifdef PLATFORM_PS5_NATIVE
+        // An exhausted decoder gets one retry with fewer retained threaded
+        // pictures. The normal playback path retains its four workers.
+        if (decoder_recoveries) libvlc_media_add_option(media, ":avcodec-threads=2");
+#endif
+        decoder_error = 0;
         native_error = end_reached = native_playing = opened_video = false;
         frame_presented = false;
         expects_video = true;
@@ -751,9 +855,40 @@ struct Player::Vlc {
         return start_media(resume);
     }
 
+    bool recover_decoder(int code) {
+        if (decoder_recoveries >= 1) {
+            dlog("player/vlc: video decoder failed again after recovery (error=%d)", code);
+            fail("The video decoder could not continue after recovery. Reopen the file or choose another stream.");
+            return false;
+        }
+        ++decoder_recoveries;
+        // Only a picture consumed by the renderer establishes a safe resume
+        // point. The demux/audio clocks can run ahead of a failed decoder.
+        const double resume = frame_presented ? presented.load() : media_start;
+        dlog("player/vlc: video decoder error=%d; recovery %u/1 at last presented position %.3fs",
+            code, decoder_recoveries, resume);
+        recovering_decoder = true;
+        parent.state_ = State::Opening;
+        input.abort = true;
+        libvlc_media_player_stop(player);
+        libvlc_media_release(media); media = nullptr;
+        clear_output();
+        if (stop_requested) return false;
+        input.abort = false;
+        // A decoder error must not send this input through an already
+        // rejected PS5 hardware path again.
+        software_fallback = true;
+        return start_media(resume);
+    }
+
     void run() {
         const char* arguments[] = {
             "--ignore-config", "--no-video-title-show", "--no-sub-autodetect-file", "--stats",
+            // Keep reference pictures intact when the input or decoder is
+            // temporarily late. Presentation can discard a decoded picture;
+            // skipping compressed P/B pictures corrupts the remainder of a GOP.
+            "--no-drop-late-frames", "--no-skip-frames", "--avcodec-skip-frame=0",
+            "--no-avcodec-hurry-up", "--no-avcodec-corrupted",
             "--aout=adummy",
 #ifdef PLATFORM_PS5_NATIVE
             // Frame threading adds two retained VLC pictures per worker.
@@ -778,6 +913,9 @@ struct Player::Vlc {
                 var_Create(object, name, VLC_VAR_ADDRESS); var_SetAddress(object, name, address);
             };
             variable("vmem-colour", reinterpret_cast<void*>(colour));
+            variable("stremio-video-metadata", reinterpret_cast<void*>(video_metadata));
+            variable("stremio-video-error", reinterpret_cast<void*>(video_error));
+            variable("stremio-video-error-opaque", this);
             variable("stremio-subtitle-callback", reinterpret_cast<void*>(subtitle));
             variable("stremio-subtitle-opaque", this);
             variable("stremio-http-opaque", &input);
@@ -788,13 +926,13 @@ struct Player::Vlc {
             libvlc_audio_set_callbacks(player, audio_play, audio_pause, audio_resume, audio_flush, audio_drain, this);
             libvlc_audio_set_volume_callback(player, audio_volume);
             libvlc_audio_set_format(player, "S16N", VlcAudioTimeline::rate, VlcAudioTimeline::channels);
-            SDL_AudioSpec wanted{}, obtained{};
-            wanted.freq = int(VlcAudioTimeline::rate); wanted.format = AUDIO_S16SYS; wanted.channels = 2;
-            wanted.samples = 1024; wanted.callback = audio_output; wanted.userdata = this;
-            device = SDL_OpenAudioDevice(nullptr, 0, &wanted, &obtained, 0);
-            if (!device) { fail(std::string("Audio output could not be opened: ") + SDL_GetError()); cleanup(); return; }
-            audio_period_us = int(int64_t(obtained.samples) * 1000000 / VlcAudioTimeline::rate);
-            SDL_PauseAudioDevice(device, 0);
+#ifdef PLATFORM_PS5
+            var_Create(object, "stremio-audio-passthrough", VLC_VAR_BOOL);
+            var_SetBool(object, "stremio-audio-passthrough", input.options.audio_passthrough);
+            variable("stremio-audio-mode", reinterpret_cast<void*>(audio_mode));
+            if (input.options.audio_passthrough) var_SetString(object, "aout", "stremiops5audio,amem");
+#endif
+            if (!open_pcm_device()) { fail(std::string("Audio output could not be opened: ") + SDL_GetError()); cleanup(); return; }
             auto* events = libvlc_media_player_event_manager(player);
             const libvlc_event_e event_types[] = {libvlc_MediaPlayerPlaying, libvlc_MediaPlayerPaused,
                 libvlc_MediaPlayerBuffering, libvlc_MediaPlayerTimeChanged, libvlc_MediaPlayerLengthChanged,
@@ -802,6 +940,33 @@ struct Player::Vlc {
             for (auto type : event_types) libvlc_event_attach(events, type, event, this);
             if (!stop_requested && start_media(input.options.start)) {
                 while (!stop_requested) {
+#ifdef PLATFORM_PS5
+                    if (native_audio_shutdown_failed) { fail(kNativeAudioShutdownError); break; }
+#endif
+                    if (const int code = decoder_error.load()) {
+                        if (!recover_decoder(code)) break;
+                        continue;
+                    }
+#ifdef PLATFORM_PS5
+                    if (passthrough_retry.exchange(false)) {
+                        const double resume = frame_presented ? presented.load() : media_start;
+                        parent.state_ = State::Opening;
+                        input.abort = true;
+                        libvlc_media_player_stop(player);
+                        libvlc_media_release(media); media = nullptr;
+                        if (native_audio_shutdown_failed) { fail(kNativeAudioShutdownError); break; }
+                        var_SetBool(object, "stremio-audio-passthrough", false);
+                        audio_mode_status = "pcm_after_output_error";
+                        clear_output();
+                        if (stop_requested) break;
+                        input.abort = false;
+                        if (!open_pcm_device()) {
+                            fail(std::string("Audio output could not be opened: ") + SDL_GetError());
+                            break;
+                        }
+                        if (!start_media(resume)) break;
+                    }
+#endif
                     if (hardware_failed.exchange(false) && !software_fallback) {
                         if (!recover_video_output("PS5 decoder rejected the stream")) break;
                     }
@@ -819,6 +984,8 @@ struct Player::Vlc {
                     if (end_reached) {
                         parent.state_ = State::Ended;
                         if (target >= 0) {
+                            dlog("player/vlc: seek_apply branch=ended_reopen current_s=%.9g target_s=%.9g",
+                                presented.load(), target);
                             input.abort = true;
                             libvlc_media_player_stop(player);
                             libvlc_media_release(media); media = nullptr;
@@ -828,6 +995,8 @@ struct Player::Vlc {
                             if (!start_media(target)) break;
                         }
                     } else if (target >= 0 && parent.progressive_download()) {
+                        dlog("player/vlc: seek_apply branch=growing_reopen current_s=%.9g target_s=%.9g",
+                            presented.load(), target);
                         // A demuxer blocked in a growing-file read cannot
                         // service an asynchronous seek. Cancel that reader
                         // and reopen the same held file at the proven point.
@@ -839,6 +1008,8 @@ struct Player::Vlc {
                         parent.state_ = State::Opening;
                         if (!start_media(target)) break;
                     } else if (target >= 0 && libvlc_media_player_is_seekable(player)) {
+                        dlog("player/vlc: seek_apply branch=direct current_s=%.9g target_s=%.9g",
+                            presented.load(), target);
                         seek_target = target;
                         seeking = true; seek_time_seen = false;
                         seek_progress = 0;
@@ -846,6 +1017,9 @@ struct Player::Vlc {
                         native_position_known = false;
                         clear_output();
                         libvlc_media_player_set_time(player, libvlc_time_t(target * 1000));
+                    } else if (target >= 0) {
+                        dlog("player/vlc: seek_apply branch=not_seekable current_s=%.9g target_s=%.9g",
+                            presented.load(), target);
                     }
                     if (seeking && native_position_known) {
                         const double position = native_position;
@@ -944,6 +1118,11 @@ void Player::set_paused(bool paused) {
 }
 
 bool Player::buffering(int* percent) const {
+    if (vlc_ && (vlc_->decoder_error || vlc_->recovering_decoder) &&
+        (state_ == State::Opening || state_ == State::Playing)) {
+        if (percent) *percent = 0;
+        return true;
+    }
     const bool complete = vlc_ && (vlc_->local || (opts_.growing_download && !progressive_download()));
     // VLC may redisplay its last picture while an input callback is waiting.
     // Those repeated displays are not evidence of new playback progress.
@@ -980,9 +1159,15 @@ double Player::seekable_until() const {
 
 void Player::seek(double time) {
     if (!vlc_ || !std::isfinite(time)) return;
+    const double requested = time;
     time = std::max(0.0, time);
     if (duration_ > 0) time = std::min(time, std::max(0.0, duration_.load() - 0.1));
-    if (progressive_download() && time > seekable_until()) return;
+    const bool accepted = !progressive_download() || time <= seekable_until();
+    // Fixed numeric fields are emitted only for requested seek actions, not
+    // playback ticks. No media identifiers or input locations enter the log.
+    dlog("player/vlc: seek_request current_s=%.9g requested_s=%.9g target_s=%.9g accepted=%d",
+        vlc_->presented.load(), requested, time, int(accepted));
+    if (!accepted) return;
     vlc_->requested_seek = time;
 }
 
@@ -1013,7 +1198,7 @@ std::string Player::embedded_subtitle(int stream, double time) {
 }
 
 bool Player::take_frame(VideoFrame& output) {
-    if (!vlc_ || state_ == State::Failed || state_ == State::Idle) return false;
+    if (!vlc_ || vlc_->decoder_error || state_ == State::Failed || state_ == State::Idle) return false;
     std::shared_ptr<Vlc::Session> session;
     { std::lock_guard lock(vlc_->frames_mutex); session = vlc_->current_session; }
     if (!session) return false;
@@ -1027,6 +1212,7 @@ bool Player::take_frame(VideoFrame& output) {
     output = slot.frame;
     vlc_->presented = output.pts;
     vlc_->frame_presented = true;
+    vlc_->recovering_decoder = false;
     const double known = vlc_->known_seek;
     if (output.pts > known) vlc_->known_seek = output.pts;
     ++vlc_->shown;
@@ -1059,8 +1245,13 @@ void Player::log_stats() {
             (unsigned long long)vlc_->display_calls.load(), int(vlc_->opened_video.load()),
             double(vlc_->rendered_audio_frames.load()) / VlcAudioTimeline::rate);
     vlc_->last_log = now; vlc_->last_shown = shown; vlc_->last_dropped = dropped;
+    dlog("player/vlc: audio_route=%s passthrough=%d", vlc_->audio_mode_status.load(), int(vlc_->passthrough_active.load()));
 }
 
 extern "C" int vlc_ps5_vdec_available() { return HwDecoder::available() ? 1 : 0; }
 extern "C" void vlc_ps5_vdec_failed() { hardware_failed = true; }
 extern "C" void vlc_ps5_vdec_active(int active) { hardware_decoders.fetch_add(active ? 1 : -1); }
+
+std::string Player::audio_output_status() const {
+    return vlc_ ? vlc_->audio_mode_status.load() : "pcm";
+}

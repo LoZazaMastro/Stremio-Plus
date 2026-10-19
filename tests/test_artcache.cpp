@@ -65,6 +65,18 @@ std::string special_image(const std::string& url) {
     }
     return data;
 }
+std::string detailed_poster_image() {
+    const int w = 780, h = 1170;
+    std::string data(18 + size_t(w) * h * 4, '\0');
+    data[2] = 2; data[12] = char(w & 255); data[13] = char(w >> 8);
+    data[14] = char(h & 255); data[15] = char(h >> 8); data[16] = 32; data[17] = 40;
+    for (int y = 0; y < h; ++y) for (int x = 0; x < w; ++x) {
+        auto* pixel = reinterpret_cast<unsigned char*>(&data[18 + (size_t(y) * w + x) * 4]);
+        pixel[0] = pixel[1] = pixel[2] = (x / 8) % 2 ? 255 : 0;
+        pixel[3] = 255;
+    }
+    return data;
+}
 struct Cache {
     ArtCache art;
     Cache(const std::string& dir, int workers = 1) { art.start(dir, workers); }
@@ -267,6 +279,55 @@ void launch_logo_and_sharp_hero(const std::string& dir) {
     until([&] { return completed == 3; }, "empty launch logo did not settle");
     expect(logo.empty(), "fully transparent logo safely leaves the title fallback available");
 }
+void full_sized_download_posters(const std::string& dir) {
+    Cache cache(dir);
+    const std::string original = "https://images.metahub.space/poster/small/quality-fixture/img";
+    const std::string large = "https://images.metahub.space/poster/large/quality-fixture/img";
+    std::string old_path, full_path;
+    cache.art.get_async(original, ArtKind::Poster, [&](const std::string& path) { old_path = path; });
+    until([&] { return !old_path.empty(); }, "legacy small poster fixture did not complete");
+    cache.art.get_async(original, ArtKind::DownloadPoster, [&](const std::string& path) { full_path = path; });
+    until([&] { return !full_path.empty(); }, "full-sized Download poster did not complete");
+    int width = 0, height = 0;
+    std::vector<unsigned char> pixels;
+    expect(full_path != old_path && load_image_rgba(old_path, pixels, width, height) && width == 164 && height == 249,
+           "the Download derivative does not overwrite or mistake a legacy catalog thumbnail for a full cover");
+    expect(load_image_rgba(full_path, pixels, width, height) && width == 720 && height == 1080 &&
+           pixels.size() == 720u * 1080u * 4u && pixels.front() == 0 && pixels[3] == 255,
+           "the Download cover stays bounded at 720x1080 and contains an uncropped sharp edge for GPU corner rendering");
+    unsigned transitions = 0;
+    for (int x = 1; x < width; ++x)
+        if (pixels[(size_t(540) * width + x) * 4] != pixels[(size_t(540) * width + x - 1) * 4]) ++transitions;
+    expect(transitions > 60, "the high-resolution source retains fine poster detail beyond a small stretched thumbnail");
+    {
+        std::lock_guard<std::mutex> lock(server_mutex);
+        expect(calls[original] == 1 && calls[large] == 1,
+               "Download requests the provider's larger image while catalog artwork retains its original URL");
+    }
+    const std::vector<std::pair<std::string, std::string>> variants{
+        {"https://images.metahub.space/poster/medium/other/img?lang=it", "https://images.metahub.space/poster/large/other/img?lang=it"},
+        {"https://image.tmdb.org/t/p/w185/cover.jpg", "https://image.tmdb.org/t/p/w780/cover.jpg"},
+        {"https://image.tmdb.org/t/p/original/bounded.jpg", "https://image.tmdb.org/t/p/w780/bounded.jpg"},
+        {"https://art.example/poster/small/custom?token=fixture", "https://art.example/poster/small/custom?token=fixture"},
+        {"https://images.metahub.space.art.example/poster/small/lookalike/img", "https://images.metahub.space.art.example/poster/small/lookalike/img"},
+    };
+    int done = 0;
+    for (const auto& [url, expected] : variants)
+        cache.art.get_async(url, ArtKind::DownloadPoster, [&](const std::string& path) { if (!path.empty()) ++done; });
+    until([&] { return done == int(variants.size()); }, "Download source variants did not complete");
+    {
+        std::lock_guard<std::mutex> lock(server_mutex);
+        for (const auto& [url, expected] : variants)
+            expect(calls[expected] == 1, "known image sizing preserves metadata parameters and leaves other providers unchanged");
+    }
+    cache.art.stop(); cache.art.start(dir, 1); full_path.clear();
+    cache.art.get_async(original, ArtKind::DownloadPoster, [&](const std::string& path) { full_path = path; });
+    until([&] { return !full_path.empty(); }, "full-sized Download cache did not reopen");
+    {
+        std::lock_guard<std::mutex> lock(server_mutex);
+        expect(calls[large] == 1, "the full-sized derivative reopens from disk without another artwork transfer");
+    }
+}
 } // namespace
 
 extern "C" int __real_stat(const char* path, struct stat* info);
@@ -286,7 +347,8 @@ HttpResponse http_get(const std::string& url, long, const std::atomic<bool>* can
     HttpResponse response;
     if (cancel && *cancel) { response.error = "cancelled fixture"; return response; }
     response.status = ends_with(url, "fails-once") && attempt == 1 ? 503 : 200;
-    response.body = ends_with(url, "bad-body-once") && attempt == 1 ? "<html>temporary error</html>" :
+    response.body = url == "https://images.metahub.space/poster/large/quality-fixture/img" ? detailed_poster_image() :
+        ends_with(url, "bad-body-once") && attempt == 1 ? "<html>temporary error</html>" :
         (ends_with(url, "padded-logo") || ends_with(url, "empty-logo") || ends_with(url, "sharp-hero")) ? special_image(url) : fixture_image();
     return response;
 }
@@ -304,6 +366,7 @@ int main(int argc, char** argv) {
         bounded_queue(dir + "/bounded");
         malformed_rgba(dir + "/malformed");
         launch_logo_and_sharp_hero(dir + "/launch-art");
+        full_sized_download_posters(dir + "/download-art");
         std::cout << "PASS " << checks << " artwork checks (actual cache/decoder/worker code; fake HTTP only).\n";
         return 0;
     } catch (const std::exception& error) {

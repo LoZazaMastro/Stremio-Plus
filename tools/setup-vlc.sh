@@ -72,7 +72,7 @@ bash "$VENDOR/configure-vlc.sh" > "$WORK/logs/$TARGET-vlc.log" 2>&1 || {
 }
 APP_MODULES="vlc_entry__stremiohttp vlc_entry__stremiosub"
 if [[ $TARGET == ps5 ]]; then
-    APP_MODULES+=" vlc_entry__ps5http vlc_entry__ps5vdec vlc_entry__stremiovp9"
+    APP_MODULES+=" vlc_entry__ps5http vlc_entry__ps5vdec vlc_entry__stremiovp9 vlc_entry__stremiops5audio"
     export NM="$PS5_PAYLOAD_SDK/bin/prospero-nm"
 fi
 export APP_MODULES

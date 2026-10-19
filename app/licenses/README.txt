@@ -16,6 +16,9 @@ Kodi port for PS5 (Team Kodi, VivaLaVent)  GPL-2.0-or-later                GPL-2
 Nuvio PS5 (Husam Osman): hardware decoder  GPL-3.0-or-later                ../LICENSE
 FFmpeg 8.1.2                               LGPL-2.1-or-later               FFmpeg.txt, vlc/FFmpeg-LGPL-2.1.txt
 VLC PS5 (ZiZc3), libVLC 3.0.24            GPL-3.0; GPL/LGPL portions      vlc/README.txt
+EVO Player PS5 (sainsaji, contributors)   GPL-3.0-or-later                evo-player/NOTICE.md, evo-player/LICENSE
+AMD FidelityFX FSR 1                      MIT                             evo-player/LICENSE-FSR1
+libplacebo-derived Dolby Vision math     LGPL-2.1-or-later               evo-player/NOTICE-libplacebo, evo-player/LICENSE-libplacebo
 VLC media and TLS dependencies            Component-specific              vlc/README.txt
 LLVM C++ runtimes and compiler-rt          Apache-2.0 WITH LLVM-exception  LLVM.txt
 SDL2                                       zlib                            SDL2.txt

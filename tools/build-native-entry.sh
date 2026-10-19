@@ -41,7 +41,7 @@ cmake --build "$B/cmake" --parallel "$BUILD_JOBS" 2>&1 | tee "$B/compile.log"
 CC="$SDK/bin/prospero-clang"
 "$SDK/bin/prospero-clang++" -std=c++20 -O2 -fno-exceptions -fno-rtti \
     -c "$BP/tooling/native/app_crt.cpp" -o "$B/app_crt.o"
-for source in shims console_curl ps5_modules heap posix_fixes opengl_shims vlc_memory; do
+for source in shims console_curl ps5_modules heap posix_fixes opengl_shims vlc_memory videoout_capture; do
     "$CC" -O2 -I"$SDK/target/user/homebrew/include" -c "$HERE/$source.c" -o "$B/$source.o"
 done
 "$CC" -shared -nostdlib -fPIC -Wl,-soname,libSceVideodec2.sprx \
@@ -78,8 +78,9 @@ BUILTINS="$(clang-18 --print-resource-dir)/lib/linux/libclang_rt.builtins-x86_64
 python3 "$ROOT/tools/native-startup.py" prepare-libc "$SDK/target/lib/libc.a" \
     "$B/libc-native-compat.a" --ar "$SDK/bin/prospero-ar" | tee "$B/native-libc.json"
 WRAPS=()
-for symbol in fcntl pthread_create pipe abort malloc free calloc realloc reallocf posix_memalign \
-    memalign aligned_alloc valloc malloc_usable_size sceSystemServiceHideSplashScreen; do
+for symbol in fcntl pthread_create pipe abort _Exit malloc free calloc realloc reallocf posix_memalign \
+    memalign aligned_alloc valloc malloc_usable_size sceSystemServiceHideSplashScreen \
+    sceVideoOutOpen sceVideoOutClose; do
     WRAPS+=("--wrap=$symbol")
 done
 "$SDK/bin/prospero-lld" --error-limit=0 -T "$HERE/ps5-app.ld" --eh-frame-hdr \
@@ -89,7 +90,7 @@ done
     --undefined=vlc_static_modules --defsym=__isthreaded=vlc_ps5_isthreaded \
     --allow-multiple-definition --defsym=__cxa_thread_atexit_impl=0 --defsym=__syscall=0 \
     "$B/app_crt.o" "$B/shims.o" "$B/console_curl.o" "$B/ps5_modules.o" \
-    "$B/heap.o" "$B/posix_fixes.o" "$B/opengl_shims.o" "$B/vlc_memory.o" \
+    "$B/heap.o" "$B/posix_fixes.o" "$B/opengl_shims.o" "$B/vlc_memory.o" "$B/videoout_capture.o" \
     --whole-archive "$B/cmake/libstremio.a" --no-whole-archive \
     --start-group "${VLC_INPUTS[@]}" "$GL/lib/libPS5OpenGL.a" "$HB/libdht.a" "$HB/libminiupnpc.a" \
     "$VLC_PREFIX/lib/libfribidi.a" "${DEPS[@]}" "$SDK/target/lib/libc++.a" \
@@ -165,6 +166,9 @@ if root.is_dir():
             if names:
                 (folder / 'index.txt').write_text('\n'.join(names) + '\n')
 PY
+# Keep the folder ZIP and filesystem image readable with identical app modes.
+find "$APP" -type d -exec chmod 0755 {} +
+find "$APP" -type f -exec chmod 0644 {} +
 chmod 0755 "$APP/eboot.bin" "$APP/sce_module/libc.prx"
 python3 "$ROOT/tools/build-receipt.py" "$ROOT" "$APP" "$B/pie.elf" "$B/source-tree.sha256"
 rm -rf -- "$OUT/$TITLE"

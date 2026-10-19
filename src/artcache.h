@@ -19,6 +19,7 @@
 //
 //   poster      182x277 dp, cropped to fill, rounded corners (grid cards)
 //   poster_l    278x422 dp, the same (board and search rows)
+//   download_p  720x1080 pixels, sharp; covers the Download gallery at 4K
 //   background  1280x720, cropped to fill (detail page, launch screen)
 //   logo        height 150, aspect kept (detail page, discover preview)
 //   thumb       640x360, cropped to fill (episode carousel)
@@ -28,7 +29,7 @@
 //   still       652x367 dp, cropped to fill, rounded corners (discover preview)
 //   logo_box    560x120 dp, fitted, left-aligned on transparency (discover preview)
 //   launch_logo up to 1536x864, alpha-cropped, original aspect (stream opening)
-enum class ArtKind { Poster, PosterLarge, Background, Backdrop, Still, Logo, LogoBox, Thumb, Qr, Icon, LaunchLogo };
+enum class ArtKind { Poster, PosterLarge, Background, Backdrop, Still, Logo, LogoBox, Thumb, Qr, Icon, LaunchLogo, DownloadPoster };
 enum class ArtPriority { Prefetch, Visible, Immediate };
 
 class ArtCache {

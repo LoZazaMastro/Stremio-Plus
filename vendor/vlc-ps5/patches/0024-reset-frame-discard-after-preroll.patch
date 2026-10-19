@@ -1,0 +1,18 @@
+--- a/modules/codec/avcodec/video.c
++++ b/modules/codec/avcodec/video.c
+@@ -1170,11 +1170,12 @@
+     else
+         b_need_output_picture = false;
+ 
+-    /* Change skip_frame config only if hurry_up is enabled */
++    /* Restore the configured discard policy for every block. Preroll may
++     * temporarily raise it to NONREF even when hurry-up is disabled. */
++    p_context->skip_frame = p_sys->i_skip_frame;
++
+     if( p_sys->b_hurry_up )
+     {
+-        p_context->skip_frame = p_sys->i_skip_frame;
+-
+         /* Check also if we should/can drop the block and move to next block
+             as trying to catchup the speed*/
+         if( p_dec->b_frame_drop_allowed &&

@@ -47,12 +47,16 @@ ps5)
     ;;
 esac
 
-# VLC-PS5's own changes to VLC (patches/), applied once.
+# VLC-PS5's own changes to VLC (patches/), applied once. Check the reverse
+# direction first: an insertion-only hunk can still match its original
+# context after it has already been applied and would otherwise be duplicated.
 for p in "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"/patches/*.patch; do
-    if patch -d "$vlc" -p1 -s -N --dry-run < "$p" >/dev/null 2>&1; then
+    if patch -d "$vlc" -p1 -s -R --dry-run < "$p" >/dev/null 2>&1; then
+        continue
+    elif patch -d "$vlc" -p1 -s -N --dry-run < "$p" >/dev/null 2>&1; then
         patch -d "$vlc" -p1 -s -N < "$p"
         echo "applied $(basename "$p")"
-    elif ! patch -d "$vlc" -p1 -s -R --dry-run < "$p" >/dev/null 2>&1; then
+    else
         echo "Patch does not match VLC 3.0.24: $p" >&2
         exit 2
     fi

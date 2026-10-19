@@ -1,6 +1,7 @@
 #include "download_manager.h"
 #include "download_transfer.h"
 #include "download_metadata.h"
+#include "download_artwork.h"
 
 #include <algorithm>
 #include <array>
@@ -448,6 +449,7 @@ Stream download_stream(const Stream& source) {
 bool valid_request(const DownloadRequest& r, std::string& error) {
 	if (r.live) { error = "Live streams cannot be downloaded for offline viewing."; return false; }
 	if (r.media_id.empty() || r.type.empty() || r.title.empty() || r.media_id.size() > 2048 || r.poster_url.size() > 16384 ||
+		r.thumbnail_url.size() > 16384 || r.thumbnail_path.size() > 16384 ||
 		r.poster_path.size() > 16384 || r.background_path.size() > 16384 || r.logo_path.size() > 16384 ||
 		r.type.size() > 64 || r.video_id.size() > 2048 || r.title.size() > 4096 || r.subtitle.size() > 8192 || r.episode_title.size() > 4096) {
 		error = "The video metadata is not valid for downloading."; return false;
@@ -484,6 +486,26 @@ void update_fraction(DownloadEntry& entry) {
 	entry.done = std::max<int64_t>(0, entry.done);
 	entry.progress = entry.state == DownloadState::Complete ? 1.0 :
 		(entry.total > 0 ? std::clamp(double(entry.done) / double(entry.total), 0.0, 1.0) : -1.0);
+}
+
+bool artwork_dimensions(const std::string& path, int& width, int& height) {
+	width = height = 0;
+	if (path.empty()) return false;
+	const int input = ::open(path.c_str(), O_RDONLY | O_NOFOLLOW);
+	if (input < 0) return false;
+	struct stat st{};
+	std::array<unsigned char, 12> header{};
+	bool valid = ::fstat(input, &st) == 0 && S_ISREG(st.st_mode) && st.st_size >= 12 &&
+		st.st_size <= kMaxArtwork && ::read(input, header.data(), header.size()) == 12;
+	::close(input);
+	uint32_t w = 0, h = 0;
+	if (valid) {
+		std::memcpy(&w, header.data() + 4, 4); std::memcpy(&h, header.data() + 8, 4);
+		valid = std::memcmp(header.data(), "RGBA", 4) == 0 && w > 0 && h > 0 &&
+			w <= 4096 && h <= 4096 && 12 + int64_t(w) * h * 4 == st.st_size;
+	}
+	if (valid) { width = int(w); height = int(h); }
+	return valid;
 }
 
 bool copy_artwork(const std::string& source, const std::string& destination) {
@@ -685,7 +707,7 @@ struct DownloadManager::Impl {
 	std::atomic<bool> relocating{false}, relocation_pending{false};
 	json relocation;
 	bool worker_deleting = false, artwork_updating = false;
-	struct ArtworkUpdate { std::string id, path, url; };
+	struct ArtworkUpdate { std::string id, path, url; bool thumbnail = false; };
 	std::mutex artwork_updates_mutex;
 	std::vector<ArtworkUpdate> artwork_updates;
 	std::atomic<bool> artwork_updates_pending{false}, accept_artwork{false};
@@ -900,7 +922,9 @@ struct DownloadManager::Impl {
    else if (path.rfind(job.directory + '/', 0) == 0) path = final_path + path.substr(job.directory.size());
   };
   rebase(job.entry.local_path); rebase(job.entry.poster_path); rebase(job.entry.background_path); rebase(job.entry.logo_path);
+  rebase(job.entry.thumbnail_path);
   rebase(job.request.poster_path); rebase(job.request.background_path); rebase(job.request.logo_path);
+  rebase(job.request.thumbnail_path);
   job.directory = directory; job.storage_root = target; job.folder_id = folder; job.manifest_source = "manifest.json";
   job.progress_ready = false; ++job.playback_generation;
  }
@@ -958,12 +982,14 @@ struct DownloadManager::Impl {
 		const auto& e = job.entry;
 		if (e.recovery_only) { errno = EINVAL; return false; }
 		json manifest{{"version", 1}, {"id", job.folder_id}, {"identity", job.identity}, {"created_ms", job.created_ms},
+			{"completed_ms", e.completed_ms}, {"release_year", e.release_year},
 			{"media_id", e.media_id}, {"type", e.type}, {"video_id", e.video_id},
 			{"title", e.title}, {"subtitle", e.subtitle}, {"episode_title", e.episode_title}, {"season", e.season}, {"episode", e.episode},
 			{"state", static_cast<int>(e.state)}, {"done", e.done}, {"total", e.total},
 			{"error", e.error}, {"media_name", job.media_name}, {"removing", job.removing},
 			{"artwork_pending", job.artwork_pending},
 			{"poster_url", job.request.poster_url},
+			{"thumbnail_url", job.request.thumbnail_url}, {"thumbnail_source", job.request.thumbnail_path},
 			{"poster_source", job.request.poster_path}, {"background_source", job.request.background_path},
 			{"logo_source", job.request.logo_path}, {"stream", stream_json(job.request.stream)}};
 		if (e.id != job.folder_id) manifest["public_id"] = e.id;
@@ -1033,7 +1059,11 @@ struct DownloadManager::Impl {
 			e.id = move ? text_value(*move, "id") : safe_id(text_value(value, "public_id")) ? text_value(value, "public_id") : id; e.media_id = r.media_id = text_value(value, "media_id", 2048);
 			e.type = r.type = text_value(value, "type", 64); e.video_id = r.video_id = text_value(value, "video_id", 2048);
 			e.title = r.title = text_value(value, "title", 4096); e.subtitle = r.subtitle = text_value(value, "subtitle", 8192);
+			const auto year = integer_value(value, "release_year", 0);
+			e.release_year = r.release_year = year >= 1000 && year <= 9999 ? int(year) :
+				e.type == "movie" ? download_release_year(e.subtitle) : 0;
 			e.poster_url = r.poster_url = text_value(value, "poster_url");
+			e.thumbnail_url = r.thumbnail_url = text_value(value, "thumbnail_url");
 			if (e.media_id.empty() || e.type.empty() || e.title.empty()) continue;
 			e.season = r.season = static_cast<int>(std::clamp<int64_t>(integer_value(value, "season"), -1, 99999));
 			e.episode = r.episode = static_cast<int>(std::clamp<int64_t>(integer_value(value, "episode"), -1, 999999));
@@ -1047,7 +1077,8 @@ struct DownloadManager::Impl {
 			if (value.contains("stream")) r.stream = parse_stream(value["stream"]);
 			job->identity = text_value(value, "identity", 32);
 			e.source_identity = job->identity;
-			job->created_ms = std::max<int64_t>(0, integer_value(value, "created_ms", 0));
+			job->created_ms = e.created_ms = std::max<int64_t>(0, integer_value(value, "created_ms", 0));
+			e.completed_ms = std::max<int64_t>(0, integer_value(value, "completed_ms", 0));
 			job->media_name = text_value(value, "media_name", 16);
 			// Only an atomically committed main manifest can retain a previous
 			// explicit deletion request. Backup/temp recovery never auto-deletes.
@@ -1056,13 +1087,18 @@ struct DownloadManager::Impl {
 			if (job->artwork_pending) {
 				r.poster_path = text_value(value, "poster_source"); r.background_path = text_value(value, "background_source");
 				r.logo_path = text_value(value, "logo_source");
+				r.thumbnail_path = text_value(value, "thumbnail_source");
 			}
-			if (regular_size(path + "/poster.rgba") >= 12) e.poster_path = path + "/poster.rgba";
-			else if (regular_size(r.poster_path) >= 12) e.poster_path = r.poster_path;
+			if (artwork_dimensions(path + "/poster-hd.rgba", e.poster_width, e.poster_height) &&
+				download_poster_full_size(e.poster_width, e.poster_height)) e.poster_path = path + "/poster-hd.rgba";
+			else if (artwork_dimensions(path + "/poster.rgba", e.poster_width, e.poster_height)) e.poster_path = path + "/poster.rgba";
+			else if (artwork_dimensions(r.poster_path, e.poster_width, e.poster_height)) e.poster_path = r.poster_path;
 			if (regular_size(path + "/background.rgba") >= 12) e.background_path = path + "/background.rgba";
 			else if (regular_size(r.background_path) >= 12) e.background_path = r.background_path;
 			if (regular_size(path + "/logo.rgba") >= 12) e.logo_path = path + "/logo.rgba";
 			else if (regular_size(r.logo_path) >= 12) e.logo_path = r.logo_path;
+			if (regular_size(path + "/thumbnail.rgba") >= 12) e.thumbnail_path = path + "/thumbnail.rgba";
+			else if (regular_size(r.thumbnail_path) >= 12) e.thumbnail_path = r.thumbnail_path;
 			const int64_t state = integer_value(value, "state");
 			if (state == static_cast<int>(DownloadState::Complete)) {
 				const bool name_ok = job->media_name.rfind("media.", 0) == 0 &&
@@ -1096,19 +1132,32 @@ struct DownloadManager::Impl {
 		uint64_t generation = 0;
 		bool pending = false;
 		{ std::lock_guard lock(mutex); request = job->request; generation = job->artwork_generation; pending = job->artwork_pending; }
-		const bool poster = pending && !request.poster_path.empty() && safe_directory(job->directory) &&
-			copy_artwork(request.poster_path, job->directory + "/poster.rgba");
+		int poster_width = 0, poster_height = 0;
+		const bool valid_poster = pending && artwork_dimensions(request.poster_path, poster_width, poster_height);
+		// A new path also invalidates the GPU texture naturally. Keep the old
+		// private file usable until the full-sized replacement is committed.
+		const auto poster_destination = job->directory + (download_poster_full_size(poster_width, poster_height)
+			? "/poster-hd.rgba" : "/poster.rgba");
+		const bool poster = valid_poster && safe_directory(job->directory) &&
+			copy_artwork(request.poster_path, poster_destination);
 		const bool background = pending && !request.background_path.empty() && safe_directory(job->directory) &&
 			copy_artwork(request.background_path, job->directory + "/background.rgba");
 		const bool logo = pending && !request.logo_path.empty() && safe_directory(job->directory) &&
 			copy_artwork(request.logo_path, job->directory + "/logo.rgba");
+		const bool thumbnail = pending && !request.thumbnail_path.empty() && safe_directory(job->directory) &&
+			copy_artwork(request.thumbnail_path, job->directory + "/thumbnail.rgba");
 		std::lock_guard lock(mutex);
 		job->artwork_busy = false;
 		if (!job->removing && generation == job->artwork_generation) {
-			if (poster) job->entry.poster_path = job->directory + "/poster.rgba";
+			if (poster) {
+				job->entry.poster_path = poster_destination;
+				job->entry.poster_width = poster_width; job->entry.poster_height = poster_height;
+			}
 			if (background) job->entry.background_path = job->directory + "/background.rgba";
 			if (logo) job->entry.logo_path = job->directory + "/logo.rgba";
+			if (thumbnail) job->entry.thumbnail_path = job->directory + "/thumbnail.rgba";
 			job->request.poster_path.clear(); job->request.background_path.clear(); job->request.logo_path.clear();
+			job->request.thumbnail_path.clear();
 			job->artwork_pending = false;
 			job->artwork_manifest_dirty = !save(*job);
 			if (job->artwork_manifest_dirty) block_storage("save artwork metadata", job->directory, errno);
@@ -1116,10 +1165,10 @@ struct DownloadManager::Impl {
 		}
 		dlog("download queue: artwork_ms=%.1f copied=%d media_active=%d",
 			std::chrono::duration<double, std::milli>(Clock::now() - started).count(),
-			int(poster) + int(background) + int(logo), !active_id.empty());
+			int(poster) + int(background) + int(logo) + int(thumbnail), !active_id.empty());
 		touch(); changed.notify_all();
 	}
-	bool queue_artwork(const std::string& id, const std::string& path, const std::string& url) {
+	bool queue_artwork(const std::string& id, const std::string& path, const std::string& url, bool thumbnail = false) {
 		if (relocating || relocation_pending || !accept_artwork.load() || !safe_id(id)) return false;
 		{
 			std::lock_guard lock(published_mutex);
@@ -1128,10 +1177,11 @@ struct DownloadManager::Impl {
 		{
 			std::lock_guard lock(artwork_updates_mutex);
 			if (!accept_artwork.load()) return false;
-			auto update = std::find_if(artwork_updates.begin(), artwork_updates.end(), [&](const auto& item) { return item.id == id; });
+			auto update = std::find_if(artwork_updates.begin(), artwork_updates.end(),
+				[&](const auto& item) { return item.id == id && item.thumbnail == thumbnail; });
 			if (update == artwork_updates.end()) {
-				if (artwork_updates.size() >= kMaxJobs) return false;
-				artwork_updates.push_back({id, path, url});
+				if (artwork_updates.size() >= 2 * kMaxJobs) return false;
+				artwork_updates.push_back({id, path, url, thumbnail});
 			} else {
 				if (!path.empty()) update->path = path;
 				if (!url.empty()) update->url = url;
@@ -1149,17 +1199,35 @@ struct DownloadManager::Impl {
 		for (const auto& update : pending) {
 			// All file validation and persistence happen on this worker. Callback
 			// callers can continue drawing even while a previous fsync is blocked.
-			const bool image_valid = !update.path.empty() && regular_size(update.path) >= 12;
+			int poster_width = 0, poster_height = 0;
+			const bool image_valid = update.thumbnail ? !update.path.empty() && regular_size(update.path) >= 12
+				: artwork_dimensions(update.path, poster_width, poster_height);
 			std::lock_guard lock(mutex);
 			const auto job = lookup(update.id);
 			if (!job || job->removing || job->entry.recovery_only) continue;
 			bool modified = false;
-			if (!update.url.empty() && job->request.poster_url != update.url) {
-				job->entry.poster_url = job->request.poster_url = update.url; modified = true;
+			auto& request_url = update.thumbnail ? job->request.thumbnail_url : job->request.poster_url;
+			auto& entry_url = update.thumbnail ? job->entry.thumbnail_url : job->entry.poster_url;
+			auto& request_path = update.thumbnail ? job->request.thumbnail_path : job->request.poster_path;
+			auto& entry_path = update.thumbnail ? job->entry.thumbnail_path : job->entry.poster_path;
+			if (!update.url.empty() && request_url != update.url) {
+				entry_url = request_url = update.url; modified = true;
 			}
-			const bool own_poster = job->entry.poster_path == job->directory + "/poster.rgba";
-			if (image_valid && !own_poster && !(job->request.poster_path == update.path && job->artwork_pending)) {
-				job->entry.poster_path = job->request.poster_path = update.path;
+			const bool owned_image = entry_path == job->directory + (update.thumbnail ? "/thumbnail.rgba" : "/poster.rgba") ||
+				(!update.thumbnail && entry_path == job->directory + "/poster-hd.rgba");
+			const bool poster_upgrade = !update.thumbnail && download_poster_full_size(poster_width, poster_height) &&
+				!download_poster_full_size(job->entry.poster_width, job->entry.poster_height);
+			const bool no_downgrade = update.thumbnail ||
+				(poster_width >= job->entry.poster_width && poster_height >= job->entry.poster_height);
+			if (image_valid && no_downgrade && (!owned_image || poster_upgrade) &&
+				!(request_path == update.path && job->artwork_pending)) {
+				request_path = update.path;
+				if (!owned_image) {
+					entry_path = update.path;
+					if (!update.thumbnail) {
+						job->entry.poster_width = poster_width; job->entry.poster_height = poster_height;
+					}
+				}
 				++job->artwork_generation; job->artwork_pending = true; modified = true;
 			}
 			// Cache paths are immediately usable by the UI. The source URL and
@@ -1325,6 +1393,8 @@ struct DownloadManager::Impl {
 						::rename(transfer.partial_path.c_str(), (selected->directory + '/' + filename).c_str()) == 0) {
 						selected->media_name = filename; e.local_path = selected->directory + '/' + filename;
 						e.done = e.total = size; e.state = DownloadState::Complete; e.error.clear();
+						e.completed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+							std::chrono::system_clock::now().time_since_epoch()).count();
 						e.remaining_seconds = 0;
 					} else { e.state = DownloadState::Failed; e.error = "The downloaded file is incomplete or cannot be saved."; }
 				} else if (result.status == DownloadTransferStatus::Cancelled || cancel.load()) {
@@ -1858,17 +1928,21 @@ std::string DownloadManager::enqueue_at_generation(const DownloadRequest& reques
 	job->request.media_id = request.media_id; job->request.type = request.type; job->request.video_id = request.video_id;
 	job->request.title = request.title; job->request.subtitle = request.subtitle;
 	job->request.episode_title = request.episode_title;
+	job->request.release_year = request.release_year >= 1000 && request.release_year <= 9999 ? request.release_year : 0;
 	job->request.poster_path = request.poster_path; job->request.background_path = request.background_path; job->request.logo_path = request.logo_path;
+	job->request.thumbnail_path = request.thumbnail_path; job->request.thumbnail_url = request.thumbnail_url;
 	job->request.poster_url = request.poster_url; job->request.season = request.season; job->request.episode = request.episode;
 	job->request.stream = download_stream(request.stream); job->identity = identity;
-	job->artwork_pending = !request.poster_path.empty() || !request.background_path.empty() || !request.logo_path.empty();
+	job->artwork_pending = !request.poster_path.empty() || !request.background_path.empty() || !request.logo_path.empty() || !request.thumbnail_path.empty();
 	auto& e = job->entry;
 	e.media_id = request.media_id; e.type = request.type; e.video_id = request.video_id;
 	e.title = request.title; e.subtitle = request.subtitle; e.season = request.season; e.episode = request.episode;
 	e.episode_title = request.episode_title; e.source_identity = identity;
+	e.release_year = job->request.release_year;
 	if (e.season >= 0 && e.episode >= 0 && !e.episode_title.empty())
 		e.subtitle = job->request.subtitle = download_episode_label(e.season, e.episode, e.episode_title);
 	e.poster_url = request.poster_url;
+	e.thumbnail_url = request.thumbnail_url;
 	const std::string root = p.root;
 	job->storage_root = root;
 	const auto sequence = ++p.sequence;
@@ -1876,11 +1950,12 @@ std::string DownloadManager::enqueue_at_generation(const DownloadRequest& reques
 	// The lifecycle gate serializes duplicate enqueues and excludes shutdown,
 	// while active progress and UI snapshots continue without a storage wait.
 	lock.unlock();
-	if (regular_size(request.poster_path) >= 12) e.poster_path = request.poster_path;
+	if (artwork_dimensions(request.poster_path, e.poster_width, e.poster_height)) e.poster_path = request.poster_path;
 	if (regular_size(request.background_path) >= 12) e.background_path = request.background_path;
 	if (regular_size(request.logo_path) >= 12) e.logo_path = request.logo_path;
+	if (regular_size(request.thumbnail_path) >= 12) e.thumbnail_path = request.thumbnail_path;
 	const auto stamp = std::chrono::system_clock::now().time_since_epoch().count();
-	job->created_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+	job->created_ms = e.created_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
 		std::chrono::system_clock::now().time_since_epoch()).count();
 	for (int attempt = 0; attempt < 8; ++attempt) {
 		e.id = 'd' + digest(identity + std::to_string(stamp) + ':' + std::to_string(sequence) + ':' + std::to_string(attempt));
@@ -1932,7 +2007,8 @@ bool DownloadManager::enqueue_async(DownloadRequest request, EnqueueCallback don
 	request.stream = download_stream(request.stream);
 	const size_t bytes = json_bytes(stream_json(request.stream)).size() + request.media_id.size() + request.type.size() +
 		request.video_id.size() + request.title.size() + request.subtitle.size() + request.episode_title.size() + request.poster_url.size() +
-		request.poster_path.size() + request.background_path.size() + request.logo_path.size() + 1024;
+		request.poster_path.size() + request.background_path.size() + request.logo_path.size() +
+		request.thumbnail_path.size() + request.thumbnail_url.size() + 1024;
 	std::lock_guard lock(p.enqueue_mutex);
 	if (p.relocating || p.relocation_pending || p.enqueue_closed || p.enqueue_work.size() >= kMaxJobs || bytes > kMaxPendingBytes - p.pending_bytes) return false;
 	p.enqueue_work.push_back({std::move(request), std::move(done), bytes, generation}); p.pending_bytes += bytes;
@@ -1993,6 +2069,16 @@ bool DownloadManager::update_poster(const std::string& id, const std::string& ca
 bool DownloadManager::update_poster_source(const std::string& id, const std::string& url) {
 	if (url.empty() || url.size() > 16384) return false;
 	return impl_->queue_artwork(id, {}, url);
+}
+
+bool DownloadManager::update_thumbnail(const std::string& id, const std::string& cached_path) {
+	if (cached_path.empty() || cached_path.size() > 16384) return false;
+	return impl_->queue_artwork(id, cached_path, {}, true);
+}
+
+bool DownloadManager::update_thumbnail_source(const std::string& id, const std::string& url) {
+	if (url.empty() || url.size() > 16384) return false;
+	return impl_->queue_artwork(id, {}, url, true);
 }
 
 std::shared_ptr<GrowingFilePlayback> DownloadManager::open_progressive(const std::string& id, std::string& error) {

@@ -42,8 +42,10 @@ header.write_text("#pragma once\n" + "".join(
     f"#define {macro} {json.dumps('__wrap_' + symbol)}\n" for macro, symbol in symbols.items()))
 obj, executable = output / "test_download_app.o", output / "test_download_app"
 sdl = shlex.split(subprocess.check_output(["pkg-config", "--cflags", "sdl2"], text=True))
+definitions = shlex.split(next(line.split("=", 1)[1] for line in
+    (build / "CMakeFiles/stremio.dir/flags.make").read_text().splitlines() if line.startswith("CXX_DEFINES =")))
 subprocess.run([link[0], "-std=c++20", "-O1", "-g", "-Wall", "-Wextra", "-Wpedantic", "-pthread",
-                "-I" + str(root / "src"), "-I" + str(root / "third_party"), *sdl,
+                *definitions, "-I" + str(root / "src"), "-I" + str(root / "third_party"), *sdl,
                 "-include", str(header), "-c", str(root / "tests/test_download_app.cpp"), "-o", str(obj)], check=True)
 link[link.index(main_object)] = str(obj)
 link[link.index("-o") + 1] = str(executable)

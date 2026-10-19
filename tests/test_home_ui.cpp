@@ -10,6 +10,7 @@
 #include "ui/feedback.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <string>
@@ -50,6 +51,7 @@ int main(int argc, char** argv) {
     };
     using D = hui::Direction;
     using A = hui::Action;
+    check(app.settings().download_sort == 2, "Downloads defaults to most recently downloaded first");
     auto setting = [&](const std::string& id) {
         const auto it = std::find_if(app.s_rows.begin(), app.s_rows.end(),
                                     [&](const UiSetting& row) { return row.id == id; });
@@ -69,6 +71,23 @@ int main(int argc, char** argv) {
     send(D::right);
     check(app.settings().sound_volume == volume + 5, "slider advances by one configured step");
     check(app.zone == "content", "slider consumes horizontal movement");
+
+    app.s_sel = setting("display_resolution");
+    send(D::down);
+    check(app.s_sel == setting("display_refresh"), "Video and Display follows visual section order after effect controls are removed");
+    send(D::none, A::confirm);
+    check(app.dd_visible && app.dd_options.size() == 3, "display refresh retains its three HDMI policy choices");
+    app.dd_sel = 2;
+    send(D::none, A::confirm);
+    check(app.settings().display_refresh == 2, "display refresh choice resolves the retained setting ID");
+    send(D::down);
+    check(app.s_sel == setting("audio_languages"), "form headers cannot take focus between display and audio controls");
+    send(D::down);
+    check(app.s_sel == setting("audio_passthrough"), "audio controls preserve their visual order after removed setting IDs");
+    send(D::right);
+    check(app.settings().audio_passthrough, "Audio passthrough toggle resolves its stable source ID");
+    send(D::left);
+    check(!app.settings().audio_passthrough, "Audio passthrough returns to its safe default without affecting another row");
 
     app.s_sel = setting("reduced_motion");
     app.s_rows[setting("reduced_motion")].enabled = false;
@@ -194,6 +213,117 @@ int main(int argc, char** argv) {
           "empty Downloads stays stable when navigating");
     send(D::none, A::page_prev);
     check(app.view == "library" && app.nav_sel == 2, "L1 leaves Downloads for Library");
+
+    std::fprintf(stderr, "UI checks: Downloads trigger sorting and selection identity\n");
+    check(load_preview_fixture(app, "downloads", argv[2]), "load Downloads before changing sort order");
+    const std::vector<std::string> sort_titles{"zulu", "Èlite", "alpha", "BETA", "Àlba", "Omega"};
+    const std::vector<int> sort_years{2010, 2015, 2020, 0, 2000, 2025};
+    const std::vector<int64_t> sort_dates{1000, 6000, 3000, 5000, 2000, 4000};
+    for (size_t i = 0; i < app.download_rows.size(); ++i) {
+        app.download_rows[i].title = sort_titles[i];
+        app.download_rows[i].release_year = sort_years[i];
+        app.download_rows[i].downloaded_ms = sort_dates[i];
+    }
+    const auto unsorted_rows = app.download_rows;
+    const std::string selected_download_id = app.download_rows[1].id;
+    const std::string selected_group_id = app.download_groups[1].id;
+    auto gallery_order = [&] {
+        std::vector<std::string> ids;
+        for (const auto& group : app.download_groups) ids.push_back(group.id);
+        return ids;
+    };
+    auto expected_order = [&](std::initializer_list<int> indexes) {
+        std::vector<std::string> ids;
+        for (int index : indexes) ids.push_back(unsorted_rows[size_t(index)].id);
+        return ids;
+    };
+    auto same_download_focus = [&] {
+        return app.download_group_sel >= 0 && app.download_group_sel < int(app.download_groups.size()) &&
+               app.download_sel >= 0 && app.download_sel < int(app.download_rows.size()) &&
+               app.download_groups[size_t(app.download_group_sel)].id == selected_group_id &&
+               app.download_rows[size_t(app.download_sel)].id == selected_download_id;
+    };
+    ui.snap(app);
+    send(D::none, A::jump_next);
+    check(app.settings().download_sort == 0 && gallery_order() == expected_order({4, 2, 3, 1, 5, 0}),
+          "R2 wraps download date to title A-Z and folds Italian accents and case");
+    check(same_download_focus() && app.download_group_sel == 3,
+          "title sorting keeps the same selected download when its poster moves to another index");
+    send(D::none, A::jump_next);
+    check(app.settings().download_sort == 1 && gallery_order() == expected_order({5, 2, 1, 0, 4, 3}),
+          "R2 selects release year descending with unknown years last");
+    check(same_download_focus() && app.download_group_sel == 2,
+          "year sorting preserves the selected title and its action target");
+    send(D::none, A::jump_next);
+    check(app.settings().download_sort == 2 && gallery_order() == expected_order({1, 3, 5, 2, 4, 0}),
+          "R2 selects download date descending independently of the queue order");
+    check(same_download_focus() && app.download_group_sel == 0 && app.nav_sel == 3 && app.view == "downloads",
+          "trigger sorting keeps the selected video and stays on Downloads");
+    send(D::none, A::jump_next);
+    send(D::none, A::jump_prev);
+    check(app.settings().download_sort == 2 && gallery_order() == expected_order({1, 3, 5, 2, 4, 0}) && same_download_focus(),
+          "L2 wraps title back to download date without paging the cover selection");
+    send(D::none, A::jump_prev);
+    check(app.settings().download_sort == 1 && gallery_order() == expected_order({5, 2, 1, 0, 4, 3}) && same_download_focus(),
+          "L2 moves back from download date to release year");
+    send(D::none, A::jump_prev);
+    check(app.settings().download_sort == 0 && gallery_order() == expected_order({4, 2, 3, 1, 5, 0}) && same_download_focus(),
+          "L2 moves back from release year to title");
+    check(std::equal(app.download_rows.begin(), app.download_rows.end(), unsorted_rows.begin(), unsorted_rows.end(),
+          [](const UiDownload& after, const UiDownload& before) {
+              return after.id == before.id && after.status == before.status && after.speed == before.speed &&
+                     after.progress == before.progress && after.active == before.active && after.paused == before.paused &&
+                     after.failed == before.failed && after.complete == before.complete;
+          }), "sorting changes the gallery while retaining row order, queue states and torrent details");
+    send(D::none, A::jump_prev);
+    check(load_preview_fixture(app, "downloads_empty", argv[2]), "load empty Downloads for trigger sorting");
+    send(D::none, A::jump_next);
+    check(app.settings().download_sort == 0 && app.download_groups.empty() && app.download_sel == 0 && app.view == "downloads",
+          "an empty Downloads page accepts one sort change without creating a selection");
+    send(D::none, A::jump_prev);
+
+    std::fprintf(stderr, "UI checks: grouped download coverflow and season inventory\n");
+    check(load_preview_fixture(app, "downloads_series", argv[2]), "load grouped series gallery fixture");
+    ui.snap(app);
+    check(app.download_groups.size() == 6 && app.download_rows.size() == 9 &&
+          app.download_groups[1].series && app.download_groups[1].rows.size() == 4,
+          "one series poster represents every queued and offline episode");
+    send(D::none, A::west);
+    check(!app.download_series_id.empty() && !app.dd_visible && app.download_season == 1 &&
+          app.download_episode_rows == std::vector<int>({6, 1}),
+          "Square on a series opens its sorted inventory before any episode can be deleted");
+    check(ui.wants_glass(), "episode inventory uses the floating glass panel");
+    const int panel_sort = app.settings().download_sort;
+    const int panel_selection = app.download_sel;
+    const auto panel_group = app.download_series_id;
+    send(D::none, A::jump_next);
+    send(D::none, A::jump_prev);
+    check(app.settings().download_sort == panel_sort && app.download_series_id == panel_group &&
+          app.download_sel == panel_selection && app.download_season == 1 &&
+          app.download_episode_rows == std::vector<int>({6, 1}),
+          "L2/R2 inside the series panel preserve its season and episode selection without sorting the gallery");
+    send(D::up);
+    check(app.download_sel == 6, "episode list selects the earlier episode independently of queue insertion order");
+    send(D::down);
+    check(app.download_sel == 1, "episode list returns to the active download");
+    send(D::none, A::page_next);
+    check(app.download_season == 3 && app.download_episode_rows == std::vector<int>({8}) &&
+          app.view == "downloads" && app.nav_sel == 3,
+          "R1 skips empty seasons and keeps the queued episode accessible without changing main tabs");
+    send(D::none, A::page_next);
+    check(app.download_season == 3, "season bar stops at the actual last available season");
+    send(D::none, A::page_prev);
+    send(D::none, A::page_prev);
+    check(app.download_season == 0 && app.download_episode_rows == std::vector<int>({7}),
+          "L1 reaches saved specials through the same season bar");
+    send(D::none, A::back);
+    check(app.download_series_id.empty() && app.download_group_sel == 1 && app.download_sel == 1,
+          "Circle collapses the series panel to its original poster and active download");
+    check(ui.wants_glass(), "the outgoing episode panel remains drawable during its return fade");
+    ui.snap(app);
+    check(!ui.wants_glass(), "the return animation releases the glass pass after the episode panel disappears");
+    send(D::none, A::page_prev);
+    check(app.view == "library", "L1 changes main pages again after the episode panel closes");
 
     std::fprintf(stderr, "UI checks: language checklist and caption appearance\n");
     check(load_preview_fixture(app, "settings", argv[2]), "load settings for typed language picker");

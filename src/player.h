@@ -26,6 +26,7 @@ struct AVCodecContext;
 struct AVPacket;
 struct SwsContext;
 struct SwrContext;
+struct VideoDoviParams;
 
 // The native backend uses libVLC with PS5 hardware decoding, callback video
 // output and clocked audio. The desktop reference backend uses FFmpeg.
@@ -44,6 +45,7 @@ public:
 		// A direct link (not the streaming server): a big file may be
 		// downloaded over several connections (netstream.h).
 		bool parallel = false;
+		bool audio_passthrough = false;
 		std::shared_ptr<GrowingFilePlayback> growing_download;
 		// A previously presented timestamp whose download identity, total size
 		// and durable prefix have been validated by the caller. Never estimated
@@ -66,6 +68,8 @@ public:
 		std::array<size_t, 3> pitches{};  // zero means tightly packed
 		int w = 0, h = 0, serial = 0;
 		double pts = 0, display_aspect = 1.0;
+		double presentation_time = 0;
+		std::shared_ptr<const VideoDoviParams> dovi;
 		Layout layout = Layout::Bgra;
 		bool wide = false, full_range = false, hlg = false;
 		int shift = 0;
@@ -111,6 +115,7 @@ public:
 
 	std::string stats();
 	std::string codec_summary() const;
+	std::string audio_output_status() const;
 	// Every 30 s while playing: frame rate shown, drops, buffer, decoder (to the log).
 	void log_stats();
 	bool too_heavy() const { return too_heavy_; }

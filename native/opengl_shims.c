@@ -29,6 +29,14 @@ __attribute__((noreturn)) void catchReturnFromMain(int status)
 }
 
 extern __attribute__((noreturn)) void __real_abort(void);
+extern __attribute__((noreturn)) void __real__Exit(int);
+
+__attribute__((noreturn, noinline)) void __wrap__Exit(int status)
+{
+    const uintptr_t caller = (uintptr_t)__builtin_extract_return_addr(__builtin_return_address(0));
+    if (status != 0) stremio_diagnostics_native_exit(status, caller);
+    __real__Exit(status);
+}
 
 __attribute__((noreturn, noinline)) void __wrap_abort(void)
 {

@@ -124,7 +124,7 @@ subprocess.run([
     f'-DSTREMIO_VERSION="{version}"', f'-DSTREMIO_TITLE_ID="{title_id}"',
     '-DSTREMIO_DIAGNOSTICS_ROTATE_BYTES=16384', '-I' + str(root / 'src'), '-I' + str(root / 'third_party'),
     str(root / 'tests/diagnostics_test.cpp'), str(root / 'src/diagnostics.cpp'), str(root / 'src/util.cpp'),
-    '-pthread', '-o', str(binary),
+    '-pthread', '-Wl,--wrap=fsync', '-o', str(binary),
 ], check=True)
 with tempfile.TemporaryDirectory(prefix='stremio-diagnostics-') as folder:
     result = subprocess.run([str(binary), folder], text=True, capture_output=True, timeout=45)

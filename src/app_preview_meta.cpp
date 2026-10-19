@@ -18,6 +18,9 @@ void fill_missing(Item& item, const Item& data) {
     if (item.release_info.empty()) item.release_info = data.release_info;
     if (item.runtime.empty()) item.runtime = data.runtime;
     if (item.imdb_rating.empty()) item.imdb_rating = data.imdb_rating;
+    if (item.genres.empty()) item.genres = data.genres;
+    if (item.cast.empty()) item.cast = data.cast;
+    if (item.directors.empty()) item.directors = data.directors;
 }
 
 std::string bounded_text(const json& object, const char* key, size_t limit, bool is_url = false) {
@@ -41,7 +44,34 @@ Item artwork_metadata(const json& meta) {
     if (item.release_info.empty()) item.release_info = bounded_text(meta, "year", 256);
     item.runtime = bounded_text(meta, "runtime", 64);
     item.imdb_rating = bounded_text(meta, "imdbRating", 32);
+    const auto list = [&](const char* key, size_t limit) {
+        std::vector<std::string> values;
+        const auto& input = jobj(meta, key);
+        if (input.is_string()) {
+            const auto value = bounded_text(meta, key, 256);
+            if (!value.empty()) values.push_back(value);
+        } else if (input.is_array()) {
+            for (const auto& value : input) {
+                if (values.size() == limit) break;
+                if (value.is_string()) {
+                    const auto& text = value.get_ref<const std::string&>();
+                    if (!text.empty() && text.size() <= 256) values.push_back(text);
+                }
+            }
+        }
+        return values;
+    };
+    item.genres = list("genres", 8);
+    item.cast = list("cast", 5);
+    item.directors = list("director", 4);
     return item;
+}
+
+bool preview_complete(const Item& item, bool discover) {
+    if (discover)
+        return !item.logo.empty() && !item.description.empty() && !item.runtime.empty() &&
+               !item.genres.empty() && !item.cast.empty() && !item.directors.empty();
+    return !item.logo.empty() && !item.background.empty();
 }
 }
 
@@ -74,14 +104,13 @@ void App::update_preview_metadata() {
         selected->type.size() > 256 || selected->metadata_addon_url.size() > 65536) return;
     auto cached = preview_metadata_.find(key);
     if (cached != preview_metadata_.end()) {
-        const bool artwork_changed = (selected->logo.empty() && !cached->second.item.logo.empty()) ||
-                                     (selected->background.empty() && !cached->second.item.background.empty());
+        const bool artwork_changed = !preview_complete(*selected, view == "discover");
         fill_missing(*selected, cached->second.item);
         cached->second.used_at = now;
         if (artwork_changed && view == "discover") discover_preview();
         if (now < cached->second.retry_at) return;
     }
-    if ((!selected->logo.empty() && !selected->background.empty()) || preview_metadata_loading_ ||
+    if (preview_complete(*selected, view == "discover") || preview_metadata_loading_ ||
         now - preview_metadata_selected_at_ < .24) return;
 
     struct Provider { std::string url, identity; };
@@ -97,13 +126,18 @@ void App::update_preview_metadata() {
     // The detail page still uses its complete metadata resolution path.
     if (providers.size() > 3) providers.resize(3);
     if (providers.empty()) return;
-    const Item original = *selected;
+    // A catalog entry may contain a large inline episode list. Preview
+    // enrichment only needs its presentation fields, never a copy of that JSON.
+    Item original;
+    fill_missing(original, *selected);
     const int generation = preview_metadata_generation_, account = account_generation_;
     auto cancel = std::make_shared<std::atomic<bool>>(false);
     preview_metadata_cancel_ = cancel;
     preview_metadata_loading_ = true;
-    g_tasks.run<Item>([providers, original, cancel] {
+    const bool discover = view == "discover";
+    g_tasks.run<Item>([providers, original = std::move(original), cancel, discover] {
         Item result;
+        Item combined = original;
         for (const auto& provider : providers) {
             if (cancel->load()) break;
             json document;
@@ -112,9 +146,8 @@ void App::update_preview_metadata() {
             const auto& meta = jobj(document, "meta");
             if (!meta.is_object() || meta.empty()) continue;
             fill_missing(result, artwork_metadata(meta));
-            const bool logo = !original.logo.empty() || !result.logo.empty();
-            const bool background = !original.background.empty() || !result.background.empty();
-            if (logo && background) break;
+            fill_missing(combined, result);
+            if (preview_complete(combined, discover)) break;
         }
         return result;
     }, [this, key, generation, account, cancel](Item& result) {

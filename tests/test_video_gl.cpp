@@ -1,6 +1,7 @@
 // Host GPU checks: real GLSL conversion, real textures and framebuffer readback.
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "video_gl.h"
+#include "video_dovi.h"
 #include "gfx/gl_program.hpp"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -128,8 +129,82 @@ int main() {
         check(corners == std::vector<unsigned char>({255,0,0,255,0,255,0,255,0,0,255,255,255,255,255,255}),
             "BGRA channels and source row order are preserved");
         bgra.pixels.resize(3);
+        const auto clean_texture = gpu.texture();
         check(!gpu.upload(bgra),"truncated frame is rejected before texture upload");
+        check(gpu.texture() == clean_texture,"a rejected picture retains the last clean image");
         gpu.clear(); check(gpu.texture() == 0,"closing playback clears the displayed frame");
+
+        auto read_presented = [&] {
+            glBindTexture(GL_TEXTURE_2D, gpu.texture());
+            GLint w = 0, h = 0;
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
+            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
+            std::vector<unsigned char> values(size_t(w) * h * 4);
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, values.data());
+            check(glGetError() == GL_NO_ERROR, "direct texture readback has no GL error");
+            return values;
+        };
+        // Playback retains one source-sized conversion surface. The UI scales
+        // this texture directly, without a reconstructed 4K intermediate.
+        auto first = solid(Layout::Planar420, false, 0, 81, 90, 240, 1920, 1080);
+        first.colors = YuvColors::Bt601;
+        first.presentation_time = 20; first.pts = 0; first.serial = 1;
+        check(gpu.upload(first), "1080p direct rendering accepts the first frame");
+        const auto direct_texture = gpu.texture();
+        near(read_presented(),254,0,0,2,"the first 1080p source reaches the output unchanged");
+        GLint min_filter = 0, mag_filter = 0;
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &min_filter);
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, &mag_filter);
+        check(width == 1920 && height == 1080, "1080p output keeps the source resolution");
+        check(min_filter == GL_LINEAR && mag_filter == GL_LINEAR,
+            "the displayed texture uses ordinary bilinear scaling");
+        check(gpu.fps() == 0, "source cadence starts without a previous frame");
+
+        auto second = solid(Layout::Planar420, false, 0, 41, 240, 110, 1920, 1080);
+        second.colors = YuvColors::Bt601;
+        second.presentation_time = first.presentation_time + 1.0 / 24;
+        second.pts = first.pts + 1.0 / 24; second.serial = first.serial;
+        check(gpu.upload(second), "direct rendering accepts a consecutive source frame");
+        check(gpu.texture() == direct_texture, "same-size frames reuse the conversion texture");
+        near(read_presented(),0,0,255,2,"the latest frame replaces the previous color without blending");
+        check(std::abs(gpu.fps() - 24) < 0.01, "per-picture presentation dates retain source cadence");
+        check(gpu.upload(second), "a repeated display callback remains a valid picture");
+        check(std::abs(gpu.fps() - 24) < 0.01, "repeated display callbacks do not reset source cadence");
+        near(read_presented(),0,0,255,2,"repeated presentation retains the latest clean picture");
+
+        first.serial++; first.pts = 90; first.presentation_time = second.presentation_time + 1.0 / 24;
+        check(gpu.upload(first), "a seek generation accepts its current frame");
+        check(gpu.fps() == 0, "a seek resets the diagnostic cadence");
+        near(read_presented(),254,0,0,2,"the first frame after seek has no image from the previous generation");
+        first.pts += 1.0 / 24; first.presentation_time += 1.0 / 24;
+        check(gpu.upload(first), "the next frame after seek is accepted");
+        check(std::abs(gpu.fps() - 24) < 0.01, "cadence recovers from the new seek generation");
+
+        auto hdr_frame = solid(Layout::Planar420, true, 0, 64, 512, 512, 64, 48);
+        hdr_frame.colors = YuvColors::Hdr10; hdr_frame.presentation_time = 30;
+        check(gpu.upload(hdr_frame), "direct rendering accepts an HDR source");
+        near(read_presented(),0,0,0,1,"direct HDR conversion remains black and uncorrupted");
+        auto large_sdr = solid(Layout::Planar420, false, 0, 16, 128, 128, 2048, 1080);
+        large_sdr.presentation_time = 40;
+        check(gpu.upload(large_sdr), "large SDR source is accepted");
+        near(read_presented(),0,0,0,1,"large SDR sources preserve direct rendering");
+
+        auto metadata = std::make_shared<VideoDoviParams>();
+        for (int c = 0; c < 3; ++c) { metadata->ycc[c][c] = 1; metadata->lms[c][c] = 1; }
+        auto dovi = solid(Layout::Planar420,true,0,0,0,0);
+        dovi.dovi = metadata; dovi.presentation_time = 50;
+        check(gpu.upload(dovi), "Dolby Vision metadata reaches the GPU UBO");
+        check(gpu.dolby_vision_active(), "renderer reports actual Dolby Vision reshaping");
+        near(read_presented(),0,0,0,1,"Profile 5 GPU black stays finite and black");
+        dovi = solid(Layout::Planar420,true,0,1023,1023,1023); dovi.dovi = metadata;
+        check(gpu.upload(dovi), "Dolby Vision maximum signal is accepted");
+        near(read_presented(),255,255,255,1,"Profile 5 GPU PQ maximum clamps to SDR white");
+        dovi.dovi.reset(); check(gpu.upload(dovi), "ordinary frame follows Dolby Vision");
+        check(!gpu.dolby_vision_active(), "stale Dolby Vision metadata is never reused");
+        gpu.clear(); check(gpu.texture() == 0,"close clears the direct output");
+        check(gpu.fps() == 0,"close resets diagnostic cadence");
     }
     eglMakeCurrent(display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
     eglDestroyContext(display,context); eglTerminate(display);

@@ -1528,3 +1528,5 @@ std::string Player::stats() {
 	         std::max(vq_.duration(), aq_.duration()), dropped_.load(), decoded_.load());
 	return buf;
 }
+
+std::string Player::audio_output_status() const { return "pcm"; }

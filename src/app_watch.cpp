@@ -118,6 +118,7 @@ void App::watch_start(const std::string& url, const std::vector<std::string>& he
 	o.headers = headers;
 	o.start = start;
 	o.audio_langs = pref_audio_langs();
+	o.audio_passthrough = settings_.audio_passthrough;
 	o.growing_download = w_growing_download_;
 	o.progressive_resume_limit = w_growing_download_ ? start : 0;
 	if (before_playback) before_playback();
@@ -554,6 +555,36 @@ void App::watch_seek(double target) {
 		target = std::min(target, std::isfinite(limit) ? std::max(0.0, limit) : 0.0);
 	}
 	player_.seek(target);
+}
+
+void App::on_media_command(MediaCommand command) {
+	if (input_visible_ || login_visible || dd_visible || directory_picker_visible || download_directory_notice) return;
+	if (!watching_) {
+		if (command == MediaCommand::Rewind || command == MediaCommand::Previous) on_button(Btn::L1);
+		else if (command == MediaCommand::FastForward || command == MediaCommand::Next) on_button(Btn::R1);
+		else if (command == MediaCommand::Play || command == MediaCommand::PlayPause) on_button(Btn::Cross);
+		return;
+	}
+	if (command == MediaCommand::Stop) { watch_stop(false); return; }
+	if (launch_visible) return;
+	watch_show_info();
+	switch (command) {
+	case MediaCommand::PlayPause: player_.set_paused(!player_.paused()); break;
+	case MediaCommand::Play: player_.set_paused(false); break;
+	case MediaCommand::Pause: player_.set_paused(true); break;
+	case MediaCommand::Rewind:
+	case MediaCommand::Previous: watch_seek(player_.position() - settings_.shoulder_seek_seconds); break;
+	case MediaCommand::FastForward:
+	case MediaCommand::Next: watch_seek(player_.position() + settings_.shoulder_seek_seconds); break;
+	case MediaCommand::Audio:
+	case MediaCommand::Subtitles:
+		watch_build_menu();
+		m_col = command == MediaCommand::Audio ? 0 : 1;
+		menu_visible = true;
+		break;
+	default: break;
+	}
+	dirty_all();
 }
 
 void App::watch_button(Btn b) {

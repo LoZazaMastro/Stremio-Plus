@@ -6,6 +6,34 @@
 
 #include <charconv>
 #include <cstdio>
+#include <string_view>
+
+inline int download_release_year(std::string_view value) {
+    // Catalog releaseInfo may be a year or a series range. Never infer a
+    // release year from a filename, episode label or provider description.
+    const auto first = value.find_first_not_of(" \t\r\n");
+    if (first == std::string_view::npos) return 0;
+    value = value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
+    if (value.size() < 4) return 0;
+    int year = 0;
+    const auto parsed = std::from_chars(value.data(), value.data() + 4, year);
+    if (parsed.ec != std::errc{} || parsed.ptr != value.data() + 4 || year < 1000 || year > 9999) return 0;
+    value.remove_prefix(4);
+    if (value.empty()) return year;
+    const auto separator = value.find_first_not_of(" \t");
+    if (separator == std::string_view::npos) return year;
+    value.remove_prefix(separator);
+    if (value.starts_with("–") || value.starts_with("—")) value.remove_prefix(3);
+    else if (value.starts_with("-")) value.remove_prefix(1);
+    else return 0;
+    const auto range_start = value.find_first_not_of(" \t");
+    if (range_start == std::string_view::npos) return year;
+    value.remove_prefix(range_start);
+    if (value.size() != 4) return 0;
+    int last_year = 0;
+    const auto end = std::from_chars(value.data(), value.data() + 4, last_year);
+    return end.ec == std::errc{} && end.ptr == value.data() + 4 && last_year >= year && last_year <= 9999 ? year : 0;
+}
 
 inline bool download_is_live(const Meta& meta, const std::string& type) {
     // hasScheduledVideos describes a catalog schedule, including unreleased
@@ -29,6 +57,7 @@ inline void download_episode_metadata(DownloadRequest& request, const Meta& meta
         request.season = video.season;
         request.episode = video.episode;
         request.episode_title = video.title;
+        request.thumbnail_url = video.thumbnail;
         request.subtitle = download_episode_label(request.season, request.episode, request.episode_title);
         return;
     }

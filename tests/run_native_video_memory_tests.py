@@ -58,7 +58,7 @@ def main():
         "kernelCalls": kernel,
         "source_sha256": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
                           for path in (SOURCE, HEADER, HARNESS, Path(__file__).resolve())},
-        "nativeAllocationOwnership": "Real host mmap/munmap pages plus an independent physical-extent ledger verify alignment, retained ownership, cleanup ordering, the 512 MiB/128-entry bound, retries and four-thread use. Every case ends with zero owned extents and mapped pages.",
+        "nativeAllocationOwnership": "Real host mmap/munmap pages plus independent extent and physical-page ledgers verify arbitrary power-of-two alignment, exact usable sizes, retained ownership, cleanup ordering, the 1536 MiB/2048-entry bound, 1536 simultaneous one-MiB allocations, a total 128 MiB reserve across fragmented ranges, retries and four-thread use. Every case ends with zero owned extents and mapped pages.",
         "heapIsolation": "Link wrappers forbid malloc, calloc, realloc, free, posix_memalign and aligned_alloc while any production mapping hook executes. Unknown heap pointers return to the caller unchanged.",
         "scenarios": scenarios,
         "limits": "Host tests simulate the console kernel API and physical-memory availability. They verify the production mapper, not physical PS5 playback, hardware decoder acceptance or sustained console performance. LSan is disabled; the independent ledger verifies native ownership.",

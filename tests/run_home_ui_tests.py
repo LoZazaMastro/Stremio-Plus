@@ -28,10 +28,14 @@ missing = [name for name in link if name.endswith(".o") and not (build / name).i
 if missing:
     sys.exit("Host build is incomplete; finish it before running UI checks.")
 test_object = build / "test_home_ui.cpp.o"
+sdl_flags = shlex.split(subprocess.check_output(["pkg-config", "--cflags", "sdl2"], text=True))
+definitions = shlex.split(next(line.split("=", 1)[1] for line in
+    (build / "CMakeFiles/stremio.dir/flags.make").read_text().splitlines() if line.startswith("CXX_DEFINES =")))
 run([
     link[0], "-std=c++20", "-O1", "-g", "-Wall", "-Wextra", "-Wpedantic", "-D_REENTRANT",
+    *definitions,
     "-I" + str(project / "src"), "-I" + str(project / "third_party"),
-    "-I" + str(project / "vendor/ps5-homebrew-ui/src"), "-I/usr/include/SDL2",
+    "-I" + str(project / "vendor/ps5-homebrew-ui/src"), *sdl_flags,
     "-c", str(project / "tests/test_home_ui.cpp"), "-o", str(test_object)
 ])
 link[link.index(main_object)] = str(test_object)

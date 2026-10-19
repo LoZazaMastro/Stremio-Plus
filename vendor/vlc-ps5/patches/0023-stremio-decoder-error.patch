@@ -1,0 +1,73 @@
+--- a/modules/codec/avcodec/video.c
++++ b/modules/codec/avcodec/video.c
+@@ -98,6 +98,17 @@
+     vlc_sem_t sem_mt;
+ };
+ 
++/* An individual decoder can fail without libVLC changing the media-player
++ * state. Report video failures to the embedding application; the callback
++ * must only record the error and defer stop/reopen until outside VLC locks. */
++static void stremio_ReportVideoError(decoder_t *dec, int error)
++{
++    void (*report)(void *, int) =
++        var_InheritAddress(dec, "stremio-video-error");
++    if (report != NULL)
++        report(var_InheritAddress(dec, "stremio-video-error-opaque"), error);
++}
++
+ static inline void wait_mt(decoder_sys_t *sys)
+ {
+     vlc_sem_wait(&sys->sem_mt);
+@@ -1215,6 +1226,7 @@
+             if(!pkt)
+             {
+                 *error = true;
++                stremio_ReportVideoError(p_dec, AVERROR(ENOMEM));
+                 break;
+             }
+             if( b_has_data )
+@@ -1251,6 +1263,7 @@
+                 if (ret == AVERROR(ENOMEM) || ret == AVERROR(EINVAL))
+                 {
+                     msg_Err(p_dec, "avcodec_send_packet critical error");
++                    stremio_ReportVideoError(p_dec, ret);
+                     *error = true;
+                 }
+                 av_packet_free( &pkt );
+@@ -1264,6 +1277,7 @@
+         if (unlikely(frame == NULL))
+         {
+             *error = true;
++            stremio_ReportVideoError(p_dec, AVERROR(ENOMEM));
+             break;
+         }
+ 
+@@ -1273,6 +1287,7 @@
+             if (ret == AVERROR(ENOMEM) || ret == AVERROR(EINVAL))
+             {
+                 msg_Err(p_dec, "avcodec_receive_frame critical error");
++                stremio_ReportVideoError(p_dec, ret);
+                 *error = true;
+             }
+             av_frame_free(&frame);
+@@ -1702,7 +1717,10 @@
+         if (!sys->b_direct_rendering)
+         {
+             post_mt(sys);
+-            return avcodec_default_get_buffer2(ctx, frame, flags);
++            int result = avcodec_default_get_buffer2(ctx, frame, flags);
++            if (result == AVERROR(ENOMEM))
++                stremio_ReportVideoError(dec, result);
++            return result;
+         }
+ 
+         /* Most unaccelerated decoders do not call get_format(), so we need to
+@@ -1728,6 +1746,8 @@
+     int ret = lavc_dr_GetFrame(ctx, frame, pic);
+     if (ret)
+         ret = avcodec_default_get_buffer2(ctx, frame, flags);
++    if (ret == AVERROR(ENOMEM))
++        stremio_ReportVideoError(dec, ret);
+     return ret;
+ }
+ 

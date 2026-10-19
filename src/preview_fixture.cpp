@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <map>
 
@@ -142,12 +143,14 @@ void set_addons(App& app, const Fixture& fixture) {
 }
 
 bool load_preview_fixture(App& app, const std::string& scenario, const std::string& fixture_path) {
-    static const std::array<const char*, 38> names{{"home", "detail", "streams", "discover", "library", "addons",
+    static const std::array<const char*, 44> names{{"home", "detail", "streams", "discover", "library", "addons",
                                                  "settings", "dropdown", "login", "keyboard", "player", "search",
                                                  "nav", "tracks", "subtitles", "launch", "dialog", "home_page2",
                                                  "home_last", "login_error", "login_expired", "account_signed_in", "logout", "subtitle_appearance", "audio_languages", "movie_streams", "episodes",
                                                  "date_options", "launch_direct", "episodes_last", "buffering",
-                                                 "downloads", "downloads_empty", "downloads_last", "download_folder", "download_notice", "next_episode", "download_folder_moving"}};
+                                                 "downloads", "downloads_empty", "downloads_last", "download_folder", "download_notice", "next_episode", "download_folder_moving",
+                                                 "downloads_series", "downloads_episodes", "downloads_specials",
+                                                 "downloads_sort_title", "downloads_sort_year", "downloads_sort_date"}};
     if (std::find(names.begin(), names.end(), scenario) == names.end()) return false;
     Fixture fixture;
     if (!load_json(fixture_path, fixture.data) || !fixture.data.is_object()) return false;
@@ -206,6 +209,11 @@ bool load_preview_fixture(App& app, const std::string& scenario, const std::stri
     app.launch_progress = -1;
     app.download_rows.clear();
     app.download_sel = 0;
+    app.download_groups.clear();
+    app.download_episode_rows.clear();
+    app.download_group_sel = 0;
+    app.download_season = -1;
+    app.download_series_id.clear();
     app.download_status.clear();
     app.search_status.clear();
     app.home_rows.clear();
@@ -259,18 +267,24 @@ bool load_preview_fixture(App& app, const std::string& scenario, const std::stri
         app.disc_cards = fixture.collection(jobj(fixture.data, "discover"));
         app.disc_status.clear();
         app.dp_name = hero.title; app.dp_desc = hero.description;
-        app.dp_still = hero.background; app.dp_logo = hero.logo;
+        app.dp_still.clear(); app.dp_logo = hero.logo;
         app.dp_year = hero.year; app.dp_runtime = hero.runtime;
         app.dp_imdb = hero.rating; app.dp_genres = "Fantascienza · Avventura · Dramma";
+        app.dp_directors = "Christopher Nolan";
+        app.dp_cast = "Matthew McConaughey · Anne Hathaway · Jessica Chastain";
     } else if (scenario == "library") {
         app.view = "library"; app.nav_sel = 2;
         app.lib_chips = {{"Tutti i tipi"}, {"Visti di recente"}};
         app.lib_cards = fixture.collection(jobj(fixture.data, "library"));
         app.lib_chip = 0; app.lib_sel = 0;
         app.lib_status = std::to_string(app.lib_cards.size()) + " titoli";
-    } else if (scenario == "downloads" || scenario == "downloads_empty" || scenario == "downloads_last") {
+    } else if (scenario == "downloads" || scenario == "downloads_empty" || scenario == "downloads_last" ||
+               scenario == "downloads_series" || scenario == "downloads_episodes" || scenario == "downloads_specials" ||
+               scenario == "downloads_sort_title" || scenario == "downloads_sort_year" || scenario == "downloads_sort_date") {
         app.view = "downloads"; app.nav_sel = 3;
         const bool italian = app.ui_language != "en";
+        const bool sort_gallery = scenario == "downloads_sort_title" || scenario == "downloads_sort_year" ||
+                                  scenario == "downloads_sort_date";
         if (scenario != "downloads_empty") {
             std::vector<UiCard> covers;
             for (const auto& [id, card] : fixture.cards) covers.push_back(card);
@@ -278,21 +292,25 @@ bool load_preview_fixture(App& app, const std::string& scenario, const std::stri
                 const auto& card = covers[static_cast<std::size_t>(i) % covers.size()];
                 UiDownload item;
                 item.id = "preview-download-" + std::to_string(i);
+                item.media_id = item.id;
+                item.type = "movie";
                 item.title = card.title;
-                item.subtitle = i == 1 ? (italian ? "Stagione 1 · Episodio 3 · Il ritorno" : "Season 1 · Episode 3 · The return")
-                                       : (italian ? "Film · 1080p" : "Movie · 1080p");
+                item.release_year = std::atoi(card.year.c_str());
+                constexpr std::array<int, 6> download_days{{2, 5, 3, 1, 4, 0}};
+                item.downloaded_ms = 1792000000000ll + int64_t(download_days[size_t(i)]) * 86400000;
+                item.subtitle = italian ? "Film · 1080p" : "Movie · 1080p";
                 item.image = card.image;
-                if (i == 0 || i == 5) {
+                if (sort_gallery || i == 0 || i == 5) {
                     item.complete = true;
                     item.progress = 1;
-                    item.status = italian ? "Disponibile offline" : "Available offline";
-                    item.size = i == 0 ? "4,10 GB" : "2,40 GB";
                 } else if (i == 1) {
                     item.active = true;
                     item.progress = .376f;
                     item.status = italian ? "Download in corso" : "Downloading";
                     item.size = "1,80 GB / 4,80 GB";
                     item.speed = "20,40 MB/s";
+                    item.remaining = italian ? "2 min 30 sec rimanenti" : "2 min 30 sec remaining";
+                    item.connections = "48 peers · 29 seeders";
                 } else if (i == 2) {
                     item.paused = true;
                     item.progress = .64f;
@@ -309,9 +327,64 @@ bool load_preview_fixture(App& app, const std::string& scenario, const std::stri
                     item.size = "120 MB / 4,00 GB";
                 }
                 app.download_rows.push_back(std::move(item));
+                UiDownloadGroup group;
+                group.id = app.download_rows.back().id;
+                group.title = card.title; group.image = card.image;
+                group.release_year = app.download_rows.back().release_year;
+                group.downloaded_ms = app.download_rows.back().downloaded_ms;
+                group.representative = i; group.rows = {i};
+                group.complete = app.download_rows.back().complete ? 1 : 0;
+                app.download_groups.push_back(std::move(group));
             }
             app.download_sel = scenario == "downloads_last" ? 5 : 1;
-            app.download_status = italian ? "2 disponibili offline · 1 in corso" : "2 available offline · 1 downloading";
+            app.download_group_sel = app.download_sel;
+            app.download_status = italian ? "2 in coda o in download" : "2 queued or downloading";
+            if (sort_gallery) {
+                app.download_status.clear();
+                const int mode = scenario == "downloads_sort_title" ? 0 : scenario == "downloads_sort_year" ? 1 : 2;
+                // Use the real controller path to reorder the public gallery.
+                // A full cycle also refreshes the order when the mode matches.
+                do { app.on_button(Btn::R2); } while (app.settings().download_sort != mode);
+            }
+            if (scenario == "downloads_series" || scenario == "downloads_episodes" || scenario == "downloads_specials") {
+                const auto& detail = jobj(fixture.data, "detail");
+                const auto& card = fixture.card(jstr(detail, "id"));
+                auto& active = app.download_rows[1];
+                active.media_id = jstr(detail, "id"); active.type = "series";
+                active.title = card.title; active.image = card.image;
+                active.season = 1; active.episode = 3;
+                active.episode_title = "Lifeboats";
+                active.thumbnail = card.background;
+                active.subtitle = "S01E03 · Lifeboats";
+                auto& group = app.download_groups[1];
+                group.id = "series:" + active.media_id;
+                group.title = card.title; group.image = card.image;
+                group.series = true; group.complete = 2;
+                group.seasons = {0, 1, 3};
+                const UiDownload prototype = active;
+                for (int i = 0; i < 3; ++i) {
+                    UiDownload episode = prototype;
+                    episode.id = "preview-episode-" + std::to_string(i);
+                    episode.season = i == 0 ? 1 : i == 1 ? 0 : 3;
+                    episode.episode = i == 2 ? 2 : 1;
+                    episode.episode_title = i == 0 ? "Celebration" : i == 1 ? "Behind the scenes" : "Mass in Time of War";
+                    episode.active = false;
+                    episode.complete = i < 2;
+                    episode.progress = i < 2 ? 1 : -1;
+                    episode.status = i < 2 ? "" : (italian ? "In coda" : "Queued");
+                    episode.speed.clear(); episode.remaining.clear(); episode.connections.clear();
+                    episode.size = i < 2 ? "" : (italian ? "In attesa della dimensione" : "Waiting for file size");
+                    group.rows.push_back(int(app.download_rows.size()));
+                    app.download_rows.push_back(std::move(episode));
+                }
+                app.download_status = italian ? "3 in coda o in download" : "3 queued or downloading";
+                if (scenario != "downloads_series") {
+                    app.download_series_id = group.id;
+                    app.download_season = scenario == "downloads_specials" ? 0 : 1;
+                    app.download_episode_rows = scenario == "downloads_specials" ? std::vector<int>{7} : std::vector<int>{6, 1};
+                    app.download_sel = app.download_episode_rows.front();
+                }
+            }
         }
     } else if (scenario == "download_folder" || scenario == "download_folder_moving") {
         app.view = "settings"; app.nav_sel = 4;

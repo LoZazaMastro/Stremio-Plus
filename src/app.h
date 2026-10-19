@@ -14,6 +14,7 @@
 #include "artcache.h"
 #include "download_manager.h"
 #include "player.h"
+#include "media_commands.h"
 #include "playback_progress.h"
 #include "stremio.h"
 #include "tasks.h"
@@ -67,10 +68,23 @@ struct UiStream {
 struct UiDownload {
 	std::string id, title, subtitle, image, status, size, speed;
 	std::string remaining, connections;
+	std::string media_id, type, episode_title, thumbnail;
+	int season = -1, episode = -1;
+	int release_year = 0;
+	int64_t downloaded_ms = 0;
 	float progress = -1;
 	bool complete = false, active = false, failed = false, paused = false;
 	bool playable_while_downloading = false;
 	bool recovery_only = false;
+};
+struct UiDownloadGroup {
+	std::string id, title, image;
+	std::vector<int> rows;
+	std::vector<int> seasons;
+	int representative = -1, complete = 0;
+	int release_year = 0;
+	int64_t downloaded_ms = 0;
+	bool series = false;
 };
 struct UiMenuItem {
 	std::string label;
@@ -87,6 +101,7 @@ struct Item {
 	std::string id, type, name, poster, background, logo;
 	std::string description, release_info, runtime, imdb_rating;
 	std::vector<std::string> genres;
+	std::vector<std::string> cast, directors;
 	json inline_meta;  // full catalog metadata/inline videos, when explicitly supplied
 	std::string metadata_addon, metadata_addon_url;
 	// Continue watching
@@ -118,6 +133,7 @@ struct Settings {
 	bool builtin_torrents = true;
 	int torrent_speed_profile = 2; // 0 Balanced, 1 Fast, 2 Ultra fast
 	std::string download_directory;
+	int download_sort = 2; // Title A-Z, newest release year, newest download.
 	std::string subtitle_langs = "ita, eng";
 	bool auto_subtitles = true;
 	std::string sub_size = "sub-m";
@@ -129,6 +145,8 @@ struct Settings {
 	bool reduced_motion = false, ui_sounds = true, high_contrast = false, show_stats = false;
 	int sound_volume = 35, subtitle_offset_ms = 0, seek_seconds = 10, shoulder_seek_seconds = 60;
 	int display_resolution = -1;  // Automatic (PS5); 0/1/2 are explicit 1080p/1440p/2160p.
+	int display_refresh = 0;  // Off, automatic, playback only.
+	bool audio_passthrough = false;
 	int date_components = 15;  // Weekday, day, month, year; zero hides the date.
 	std::string date_format = "short";
 	bool controller_ambient_light = true;
@@ -144,6 +162,7 @@ public:
 	void shutdown();
 
 	void on_button(Btn b);
+	void on_media_command(MediaCommand command);
 	void open_search();  // show search and its keyboard; query begins only on submit
 	void request_login_code();  // replace the current link; ignore while a request is pending
 	void on_text(const std::string& utf8);  // text from the keyboard dialog
@@ -152,6 +171,7 @@ public:
 	void set_setting_value(int row, float number);
 	const Settings& settings() const { return settings_; }
 	bool take_video_frame(Player::VideoFrame& frame) { return watching_ && player_.take_frame(frame); }
+	std::string audio_output_status() const { return player_.audio_output_status(); }
 	void video_frame_presented();  // Called only after a successful GPU upload.
 	void video_frame_rejected();
 	void cancel_input() { if (input_visible_) input_finish(false); }
@@ -190,6 +210,7 @@ public:
 	int disc_sel = 0;
 	std::string disc_status;
 	std::string dp_name, dp_logo, dp_still, dp_runtime, dp_year, dp_imdb, dp_genres, dp_desc;
+	std::string dp_cast, dp_directors;
 
 	std::vector<UiChip> lib_chips;
 	int lib_chip = 0;
@@ -199,6 +220,10 @@ public:
 	std::vector<UiDownload> download_rows;
 	int download_sel = 0;
 	std::string download_status;
+	std::vector<UiDownloadGroup> download_groups;
+	std::vector<int> download_episode_rows;
+	int download_group_sel = 0, download_season = -1;
+	std::string download_series_id;
 
 	std::vector<UiAddon> addon_rows;
 	int addon_sel = 0;

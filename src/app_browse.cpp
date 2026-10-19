@@ -228,12 +228,15 @@ void App::discover_preview() {
 	const Item& it = disc_items_[disc_sel];
 	dp_name = it.name;
 	dp_logo = art(it.logo, ArtKind::LogoBox);
-	dp_still = art(it.background, ArtKind::Still);
+	dp_still.clear();
 	dp_runtime = it.runtime;
 	dp_year = it.release_info;
 	dp_imdb = it.imdb_rating;
 	dp_genres = join(it.genres, " · ");
 	dp_desc = it.description;
+	dp_directors = join(it.directors, ", ");
+	std::vector<std::string> main_cast(it.cast.begin(), it.cast.begin() + std::min<size_t>(it.cast.size(), 5));
+	dp_cast = join(main_cast, ", ");
 }
 
 void App::discover_button(Btn b) {

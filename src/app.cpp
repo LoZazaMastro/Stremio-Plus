@@ -30,6 +30,20 @@ Item item_from_meta_json(const json& j) {
 	if (g.is_array())
 		for (auto& v : g)
 			if (v.is_string()) it.genres.push_back(v.get<std::string>());
+	const auto people = [&](const char* key, std::vector<std::string>& result) {
+		const auto& values = jobj(j, key);
+		if (!values.is_array()) return;
+		for (const auto& value : values) {
+			if (!value.is_string()) continue;
+			auto name = value.get<std::string>();
+			if (name.empty() || name.size() > 256) continue;
+			if (std::find(result.begin(), result.end(), name) == result.end()) result.push_back(std::move(name));
+			if (result.size() == 16) break;
+		}
+	};
+	people("cast", it.cast);
+	people("director", it.directors);
+	if (it.directors.empty()) people("directors", it.directors);
 	return it;
 }
 
@@ -131,6 +145,9 @@ void App::load_settings() {
 		settings_.subtitle_langs = jstr(j, "subtitle_languages", settings_.subtitle_langs);
 		settings_.auto_subtitles = jbool(j, "auto_subtitles", settings_.auto_subtitles);
 		settings_.download_directory = jstr(j, "download_directory");
+		const double download_sort = jnum(j, "download_sort", 2);
+		settings_.download_sort = std::isfinite(download_sort) && download_sort >= 0 && download_sort <= 2 &&
+			std::floor(download_sort) == download_sort ? int(download_sort) : 2;
 		settings_.sub_size = jstr(j, "subtitle_size", settings_.sub_size);
 		auto known = [&j](const char* key, const std::string& fallback, std::initializer_list<const char*> allowed) {
 			const auto value = jstr(j, key, fallback);
@@ -159,6 +176,13 @@ void App::load_settings() {
         // The old numeric field also stored the forced-1080p default. A new
         // explicit key migrates existing installations to following the PS5.
         settings_.display_resolution = display_output_preference(jstr(j, "display_output_mode", "ps5"));
+		const auto video_choice = [&](const char* key, int maximum) {
+			const double value = jnum(j, key, 0);
+			return std::isfinite(value) && value >= 0 && value <= maximum && std::floor(value) == value
+			    ? static_cast<int>(value) : 0;
+		};
+		settings_.display_refresh = video_choice("display_refresh", 2);
+		settings_.audio_passthrough = jbool(j, "audio_passthrough", false);
         // A language saved by an older build is retained as an explicit choice.
         const auto legacy_language = jstr(j, "ui_language");
         settings_.ui_language_mode = known("ui_language_mode",
@@ -232,6 +256,7 @@ void App::flush_settings(bool synchronous) {
     json j = {
         {"schema_version", 7}, {"server_url", settings_.server_url},
         {"download_directory", settings_.download_directory},
+        {"download_sort", settings_.download_sort},
         {"builtin_torrents", settings_.builtin_torrents},
         {"torrent_speed_profile", settings_.torrent_speed_profile},
         {"subtitle_languages", settings_.subtitle_langs}, {"auto_subtitles", settings_.auto_subtitles},
@@ -249,6 +274,8 @@ void App::flush_settings(bool synchronous) {
         {"controller_ambient_light", settings_.controller_ambient_light},
         {"subtitle_offset_ms", settings_.subtitle_offset_ms},
         {"display_output_mode", display_output_preference_name(settings_.display_resolution)},
+		{"display_refresh", settings_.display_refresh},
+		{"audio_passthrough", settings_.audio_passthrough},
         {"ui_language", settings_.ui_language}, {"ui_language_mode", settings_.ui_language_mode}
     };
     const auto path = data_dir_ + "/settings.json";
@@ -486,6 +513,7 @@ void App::set_view(const std::string& v) {
 	if (next_episode_visible && watching_) watch_stop(true);
 	else watch_cancel_next_episode();
 	g_art.clear_queue();
+	if (v != "downloads") download_series_id.clear();
 	view = v;
 	zone = "content";
 	if (v == "home") nav_sel = 0, refresh_home_cards();
@@ -574,6 +602,10 @@ void App::on_button(Btn b) {
 	if (view == "detail") {
 		return detail_button(b);
 	}
+	if (view == "downloads" && (!download_series_id.empty() || b == Btn::L2 || b == Btn::R2)) {
+		downloads_button(b);
+		return;
+	}
 	if (browse_shortcut(b)) return;
 
 	if (zone == "nav") nav_button(b);
@@ -618,10 +650,12 @@ void App::on_text(const std::string& utf8) {
 
 std::string App::art(const std::string& url, ArtKind kind, bool want) {
 	if (url.empty()) return "";
-	if (!want) return g_art.peek(url, kind);
-	return g_art.get(url, kind, [this](const std::string& path) {
+	if (!want) return g_art.peek_cached(url, kind);
+	const auto priority = kind == ArtKind::Logo || kind == ArtKind::LogoBox || kind == ArtKind::LaunchLogo ||
+	    kind == ArtKind::Backdrop || kind == ArtKind::Qr ? ArtPriority::Immediate : ArtPriority::Visible;
+	return g_art.get_async(url, kind, [this](const std::string& path) {
 		if (!path.empty()) images_dirty_ = true;
-	}, ArtPriority::Visible, this);
+	}, priority, this);
 }
 
 void App::refresh_images() {
@@ -683,7 +717,7 @@ bool App::visible_art_missing() const {
 	} else if (view == "discover") {
 		if (disc_sel >= 0 && disc_sel < int(disc_items_.size())) {
 			const auto& item = disc_items_[disc_sel];
-			if ((!item.logo.empty() && dp_logo.empty()) || (!item.background.empty() && dp_still.empty())) return true;
+			if (!item.logo.empty() && dp_logo.empty()) return true;
 		}
 		const int row = disc_sel / kDiscCols;
 		return posters_missing(disc_cards, disc_items_, (row - 1) * kDiscCols, (row + 3) * kDiscCols);
@@ -744,12 +778,12 @@ std::pair<std::string, std::string> App::ambient_artwork() const {
 	if (!item || item->id.empty()) return {};
 	std::string path;
 	for (const auto kind : {ArtKind::Poster, ArtKind::PosterLarge}) {
-		path = g_art.peek(item->poster, kind);
+		path = g_art.peek_cached(item->poster, kind);
 		if (!path.empty()) break;
 	}
 	if (path.empty())
 		for (const auto kind : {ArtKind::Background, ArtKind::Backdrop, ArtKind::Still}) {
-			path = g_art.peek(item->background, kind);
+			path = g_art.peek_cached(item->background, kind);
 			if (!path.empty()) break;
 		}
 	return {item->type + ":" + item->id, path};

@@ -25,6 +25,7 @@ std::vector<DownloadTransferRequest> transfers;
 Player::Options opened;
 std::string artwork;
 std::string delayed_poster_url;
+std::string full_poster_url, full_poster_path;
 std::vector<std::function<void(const std::string&)>> delayed_art_callbacks;
 void expect(bool condition, const char* message) {
     ++checks;
@@ -51,13 +52,16 @@ Video episode(const std::string& id, const std::string& title, int season, int n
     result.id = id; result.title = title; result.season = season; result.episode = number;
     return result;
 }
-void make_artwork(const std::string& path) {
+void make_artwork(const std::string& path, uint32_t width = 1, uint32_t height = 1) {
     std::ofstream file(path, std::ios::binary);
-    const uint32_t dimensions[] = {1, 1};
-    const unsigned char pixel[] = {20, 50, 120, 255};
+    const uint32_t dimensions[] = {width, height};
+    std::vector<unsigned char> pixels(size_t(width) * height * 4, 120);
+    for (size_t i = 0; i < pixels.size(); i += 4) {
+        pixels[i] = 20; pixels[i + 1] = 50; pixels[i + 3] = 255;
+    }
     file.write("RGBA", 4);
     file.write(reinterpret_cast<const char*>(dimensions), sizeof(dimensions));
-    file.write(reinterpret_cast<const char*>(pixel), sizeof(pixel));
+    file.write(reinterpret_cast<const char*>(pixels.data()), pixels.size());
     if (!file.good()) throw std::runtime_error("Could not write fixture artwork");
 }
 }
@@ -124,6 +128,7 @@ std::string wrapped_art_get_async(ArtCache* cache, const std::string& url, ArtKi
 }
 std::string wrapped_art_peek_cached(ArtCache*, const std::string&, ArtKind) asm(WRAP_ART_PEEK_CACHED);
 std::string wrapped_art_peek_cached(ArtCache* cache, const std::string& url, ArtKind kind) {
+    if (!full_poster_url.empty() && url == full_poster_url && kind == ArtKind::DownloadPoster) return full_poster_path;
     return wrapped_art_peek(cache, url, kind);
 }
 bool wrapped_fetch(const std::string&, json&, std::string&, long, const std::atomic<bool>*) asm(WRAP_FETCH_JSON);
@@ -160,10 +165,24 @@ struct AppProtocolTest {
     }
     static void focus(App& app, const std::string& id) {
         app.set_view("downloads");
+        app.download_series_id.clear();
+        app.download_episode_rows.clear();
         const auto found = std::find_if(app.download_rows.begin(), app.download_rows.end(),
                                         [&](const UiDownload& item) { return item.id == id; });
         expect(found != app.download_rows.end(), "requested download remains in the public list");
         app.download_sel = static_cast<int>(found - app.download_rows.begin());
+        const auto group = std::find_if(app.download_groups.begin(), app.download_groups.end(),
+            [&](const UiDownloadGroup& item) {
+                return std::find(item.rows.begin(), item.rows.end(), app.download_sel) != item.rows.end();
+            });
+        expect(group != app.download_groups.end(), "selected download belongs to a visible gallery poster");
+        app.download_group_sel = static_cast<int>(group - app.download_groups.begin());
+        if (group->series) {
+            app.on_button(Btn::Cross);
+            expect(!app.download_series_id.empty() &&
+                   std::find(app.download_episode_rows.begin(), app.download_episode_rows.end(), app.download_sel) != app.download_episode_rows.end(),
+                   "opening a series exposes the requested episode in its available season");
+        }
     }
     static std::string enqueue(App& app, const Stream& stream) {
         const auto previous = app.downloads_.snapshot();
@@ -266,11 +285,11 @@ struct AppProtocolTest {
         expect(app.download_rows.size() == 1 && app.download_rows[0].complete && app.download_rows[0].progress == 1,
                "completed file becomes a 100-percent offline item in the UI model");
         app.settings_.ui_language = "en"; app.downloads_refresh();
-        expect(app.download_rows[0].status == "Available offline" && app.download_status.find("available offline") != std::string::npos,
-               "English download status and section summary use the selected interface language");
+        expect(app.download_rows[0].status.empty() && app.download_rows[0].size.empty() && app.download_status.empty(),
+               "completed downloads have no status, transfer size or completion summary in English");
         app.settings_.ui_language = "it"; app.downloads_refresh();
-        expect(app.download_rows[0].status == "Disponibile offline" && app.download_status.find("disponibili offline") != std::string::npos,
-               "Italian download status and section summary are restored independently of media language");
+        expect(app.download_rows[0].status.empty() && app.download_rows[0].size.empty() && app.download_status.empty(),
+               "completed downloads remain free of transfer labels after switching to Italian");
         until([&] {
             const auto e = app.downloads_.find(first);
             return e && e->poster_path.find("/downloads/") != std::string::npos &&
@@ -338,8 +357,12 @@ struct AppProtocolTest {
         expect(app.view == "settings" && app.nav_sel == 4, "Settings follows Downloads");
         app.on_button(Btn::L1);
         expect(app.view == "downloads" && app.nav_sel == 3, "L1 returns from Settings to Downloads");
-        app.download_sel = int(app.download_rows.size()) - 1; app.on_button(Btn::Down);
-        expect(app.download_sel == int(app.download_rows.size()) - 1, "Download navigation stops at the actual last row");
+        app.download_group_sel = int(app.download_groups.size()) - 1;
+        app.download_sel = app.download_groups.back().representative;
+        const auto final_group = app.download_groups.back().id;
+        app.on_button(Btn::Down);
+        expect(app.download_groups[app.download_group_sel].id == final_group,
+               "Download coverflow stops at the actual final poster");
 
         std::filesystem::remove(artwork); // The ordinary artwork cache is gone.
         expect(std::filesystem::is_regular_file(complete->poster_path), "offline artwork survives original cache removal");
@@ -522,6 +545,203 @@ struct AppProtocolTest {
         expect(unexpected_http == 0 && unexpected_json == 0, "all App wiring checks completed without network traffic");
     }
 
+    static void gallery(const std::string& directory) {
+        std::filesystem::create_directories(directory);
+        App app;
+        prepare(app, directory);
+        app.settings_.download_sort = 0;
+        app.d_meta_.release_info = "2018–2023";
+        app.d_meta_.videos = {episode("show:s3:e7", "Third-season episode", 3, 7),
+                              episode("show:s1:e2", "Second episode", 1, 2),
+                              episode("show:special", "Special episode", 0, 1),
+                              episode("show:s1:e1", "First episode", 1, 1)};
+        std::vector<std::string> ids;
+        for (size_t index = 0; index < app.d_meta_.videos.size(); ++index) {
+            auto& video = app.d_meta_.videos[index];
+            video.thumbnail = "https://art.invalid/episode-" + std::to_string(index) + ".jpg";
+            app.d_video_id_ = video.id;
+            ids.push_back(enqueue(app, source("Gallery episode", "gallery-" + std::to_string(index) + ".mkv")));
+            expect(app.downloads_.find(ids.back())->thumbnail_url == video.thumbnail,
+                   "the selected episode contributes its own thumbnail source to the saved download");
+            expect(app.downloads_.find(ids.back())->release_year == 2018,
+                   "series downloads retain the catalog start year independently of episode labels");
+        }
+        app.d_item_.id = app.d_meta_.id = "gallery:movie";
+        app.d_item_.type = app.d_meta_.type = "movie";
+        app.d_item_.name = app.d_meta_.name = "One movie";
+        app.d_meta_.release_info.clear(); app.d_meta_.year = "2024";
+        app.d_meta_.videos.clear(); app.d_video_id_ = app.d_item_.id;
+        app.d_series = false;
+        const auto movie = enqueue(app, source("Gallery movie", "gallery-movie.mkv"));
+        expect(app.downloads_.find(movie)->release_year == 2024,
+               "an explicit metadata year is retained when releaseInfo is unavailable");
+        app.set_view("downloads");
+        expect(app.download_groups.size() == 2 && app.download_groups[0].series &&
+               app.download_groups[0].rows.size() == 4 && !app.download_groups[1].series,
+               "real inventory produces one series poster for all four episodes and one independent movie poster");
+        expect(app.download_groups[0].seasons == std::vector<int>({0, 1, 3}),
+               "gallery season list is derived only from saved entries, with specials before numbered seasons");
+        app.download_group_sel = 0;
+        app.download_sel = app.download_groups[0].representative;
+        app.on_button(Btn::Square);
+        expect(!app.download_series_id.empty() && !app.dd_visible && app.downloads_.snapshot().size() == 5,
+               "Square on a series enters the episode inventory without opening a whole-series deletion");
+        app.on_button(Btn::L1);
+        expect(app.download_season == 1 && app.download_episode_rows.size() == 2 &&
+               app.download_rows[app.download_episode_rows[0]].id == ids[3] &&
+               app.download_rows[app.download_episode_rows[1]].id == ids[1],
+               "available episodes are ordered by episode number instead of download insertion order");
+        app.on_button(Btn::L1);
+        expect(app.download_season == 0 && app.download_rows[app.download_sel].id == ids[2],
+               "shoulder navigation reaches the actual saved special and retains its identity");
+        app.on_button(Btn::Circle);
+        app.on_button(Btn::Right);
+        expect(app.download_group_sel == 1 && app.download_rows[app.download_sel].id == movie,
+               "returning from a series restores coverflow navigation to the adjacent movie");
+        app.shutdown();
+    }
+
+    static void sorting(const std::string& directory) {
+        std::filesystem::create_directories(directory);
+        App app; prepare(app, directory);
+        expect(app.settings_.download_sort == 2, "a new gallery defaults to most recently downloaded first");
+        const char* names[] = {"zeta", "È arrivato", "Alba", "alba", "Serie", "Serie"};
+        const int years[] = {0, 2020, 1999, 2020, 2010, 2010};
+        const int64_t completed[] = {0, 600, 400, 500, 300, 350};
+        std::vector<std::string> ids;
+        std::string error;
+        for (int index = 0; index < 6; ++index) {
+            DownloadRequest request;
+            request.type = index < 4 ? "movie" : "series";
+            request.media_id = index < 4 ? "sort:" + std::to_string(index) : "sort:series";
+            request.video_id = "video:" + std::to_string(index);
+            request.title = names[index]; request.release_year = years[index];
+            request.stream = source("Sorting", "sort-" + std::to_string(index) + ".mkv");
+            if (index >= 4) { request.season = 1; request.episode = index == 4 ? 2 : 1; }
+            ids.push_back(app.downloads_.enqueue(request, error));
+            expect(!ids.back().empty(), "sorting fixture admits one finite saved source");
+        }
+        app.downloads_.shutdown();
+        for (int index = 0; index < 6; ++index) {
+            const auto folder = directory + "/downloads/" + ids[static_cast<size_t>(index)];
+            json manifest;
+            expect(load_json(folder + "/manifest.json", manifest), "sorting fixture reads the real persisted manifest");
+            manifest["created_ms"] = (index + 1) * 10;
+            if (completed[index]) {
+                std::ofstream file(folder + "/media.mkv", std::ios::binary); file << std::string(512, 'V'); file.close();
+                manifest["completed_ms"] = completed[index]; manifest["state"] = int(DownloadState::Complete);
+                manifest["done"] = manifest["total"] = 512; manifest["media_name"] = "media.mkv";
+            }
+            expect(save_json(folder + "/manifest.json", manifest), "sorting fixture writes independent admission and completion dates");
+        }
+        expect(app.downloads_.init(directory, &error), "saved sorting inventory reloads through the production manager");
+        const auto queue_ids = [&] {
+            std::vector<std::string> result;
+            for (const auto& entry : app.downloads_.snapshot()) result.push_back(entry.id);
+            return result;
+        };
+        const auto admitted = queue_ids();
+        app.set_view("downloads");
+        expect(app.download_groups.size() == 5 && app.download_groups[0].id == ids[1] &&
+               app.download_groups[3].series && app.download_groups[3].downloaded_ms == 350,
+               "date order uses completion dates and the latest completed episode without splitting the series");
+        focus(app, ids[1]);
+        const auto selected = [&] { return app.download_groups[static_cast<size_t>(app.download_group_sel)].id; };
+        app.on_button(Btn::R2);
+        expect(app.settings_.download_sort == 0 && app.download_groups[0].id == std::min(ids[2], ids[3]) &&
+               app.download_groups[1].id == std::max(ids[2], ids[3]) && app.download_groups[2].id == ids[1] &&
+               app.download_groups.back().id == ids[0],
+               "R2 wraps to title order with stable case-insensitive ties and Italian accented E before Z");
+        expect(selected() == ids[1] && app.download_rows[app.download_sel].id == ids[1],
+               "changing the sort preserves the focused movie identity after its index changes");
+        app.on_button(Btn::R2);
+        expect(app.settings_.download_sort == 1 && app.download_groups[0].id == ids[3] &&
+               app.download_groups[1].id == ids[1] && app.download_groups[2].series &&
+               app.download_groups[3].id == ids[2] && app.download_groups.back().id == ids[0],
+               "year order is newest first with title ties and unavailable years last");
+        app.on_button(Btn::R2);
+        expect(app.settings_.download_sort == 2 && selected() == ids[1] && queue_ids() == admitted,
+               "cycling all criteria preserves selection and never changes the transfer queue");
+        app.on_button(Btn::L2); app.on_button(Btn::L2); app.on_button(Btn::L2);
+        expect(app.settings_.download_sort == 2 && selected() == ids[1],
+               "L2 cycles through the same criteria in reverse and wraps without moving focus");
+        focus(app, ids[4]);
+        const auto episode_selection = app.download_rows[app.download_sel].id;
+        const auto episode_order = app.download_episode_rows;
+        app.on_button(Btn::R2); app.on_button(Btn::L2); app.downloads_refresh();
+        expect(app.settings_.download_sort == 2 && app.download_rows[app.download_sel].id == episode_selection &&
+               app.download_episode_rows == episode_order && app.download_rows[episode_order[0]].id == ids[5],
+               "gallery sorting does not intercept episode-panel triggers or disturb episode-number order");
+        app.on_button(Btn::Circle); focus(app, ids[0]);
+        expect(app.downloads_.resume(ids[0]), "pending sorting fixture resumes its existing transfer");
+        app.downloads_.set_enabled(true);
+        until([&] { return app.downloads_.find(ids[0])->state == DownloadState::Complete; },
+              "the selected pending entry completes through the real queue boundary");
+        app.downloads_.set_enabled(false); app.downloads_refresh();
+        expect(selected() == ids[0] && app.download_group_sel == 0 && queue_ids() == admitted,
+               "completion moves the same focused movie to its new date position without changing queue admission order");
+        const auto completion_time = app.downloads_.find(ids[0])->completed_ms;
+        expect(app.downloads_.update_thumbnail(ids[0], artwork), "an artwork-only update is accepted");
+        until([&] { return !app.downloads_.find(ids[0])->thumbnail_path.empty(); }, "artwork-only update publishes its image");
+        app.downloads_refresh();
+        expect(selected() == ids[0] && app.downloads_.find(ids[0])->completed_ms == completion_time,
+               "artwork refresh preserves both selection and the original download date");
+        app.shutdown();
+    }
+
+    static void gallery_poster_quality(const std::string& directory) {
+        std::filesystem::create_directories(directory);
+        App app;
+        prepare(app, directory);
+        DownloadRequest movie;
+        movie.media_id = movie.video_id = "gallery:poster-quality";
+        movie.title = "Full cover"; movie.type = "movie";
+        movie.poster_url = "https://art.invalid/gallery-cover.jpg"; movie.poster_path = artwork;
+        movie.stream = source("Gallery cover", "gallery-quality.mkv");
+        std::string error;
+        const auto movie_id = app.downloads_.enqueue(movie, error);
+        expect(!movie_id.empty(), "poster quality fixture enters the real download queue");
+        auto held = movie;
+        held.media_id = held.video_id = "gallery:held-transfer"; held.title = "Held transfer";
+        held.stream = source("Gallery held", "hold.mkv"); held.poster_url.clear(); held.poster_path.clear();
+        const auto held_id = app.downloads_.enqueue(held, error);
+        expect(!held_id.empty(), "poster quality fixture has an independent long transfer");
+        app.downloads_.set_enabled(true);
+        until([&] { return app.downloads_.find(movie_id)->state == DownloadState::Complete &&
+                           app.downloads_.find(held_id)->state == DownloadState::Downloading; },
+              "legacy completed cover remains beside an active video writer");
+        const auto saved = *app.downloads_.find(movie_id);
+        expect(saved.poster_width == 1 && saved.poster_height == 1 &&
+               std::filesystem::path(saved.poster_path).filename() == "poster.rgba",
+               "poster quality fixture begins with an independently saved legacy cover");
+        full_poster_url = movie.poster_url; full_poster_path = directory + "/ready-full-cover.rgba";
+        make_artwork(full_poster_path, 720, 1080);
+        const auto image = [&] {
+            app.downloads_refresh();
+            const auto row = std::find_if(app.download_rows.begin(), app.download_rows.end(),
+                [&](const UiDownload& value) { return value.id == movie_id; });
+            return row == app.download_rows.end() ? std::string{} : row->image;
+        };
+        expect(image() == full_poster_path && app.downloads_.find(movie_id)->poster_path == saved.poster_path &&
+               app.downloads_.find(held_id)->state == DownloadState::Downloading,
+               "ready full-sized artwork appears immediately without replacing the private fallback or stopping the writer");
+        const auto ready = full_poster_path; full_poster_path.clear();
+        expect(image() == saved.poster_path && std::filesystem::is_regular_file(saved.poster_path),
+               "an absent full-sized cache immediately falls back to the existing private poster");
+        full_poster_path = ready;
+        expect(app.downloads_.update_poster(movie_id, ready), "the already-visible full cover is queued for deferred private storage");
+        app.downloads_.set_enabled(false);
+        until([&] { return app.downloads_.find(movie_id)->poster_width == 720 &&
+                           app.downloads_.find(movie_id)->poster_height == 1080; },
+              "private full cover commits when the media writer becomes idle");
+        const auto updated = *app.downloads_.find(movie_id);
+        expect(image() == updated.poster_path && updated.poster_path != ready &&
+               updated.created_ms == saved.created_ms && updated.completed_ms == saved.completed_ms,
+               "the gallery prefers its committed full cover and artwork migration leaves both download timestamps unchanged");
+        full_poster_url.clear(); full_poster_path.clear();
+        app.shutdown();
+    }
+
     static void save_observed(App& app, double position, double duration, int64_t prefix = 0, int64_t total = -1) {
         // The decoder boundary stays closed/zero. Supply the last actually
         // presented sample to exercise the production teardown recovery path.
@@ -671,6 +891,10 @@ int main(int argc, char** argv) {
         artwork = std::string(argv[1]) + "/source-art.rgba";
         make_artwork(artwork);
         AppProtocolTest::run(app, argv[1]);
+        make_artwork(artwork);
+        AppProtocolTest::gallery(std::string(argv[1]) + "/gallery");
+        AppProtocolTest::sorting(std::string(argv[1]) + "/sorting");
+        AppProtocolTest::gallery_poster_quality(std::string(argv[1]) + "/poster-quality");
         AppProtocolTest::bookmarks(std::string(argv[1]) + "/bookmarks");
         app.shutdown(); g_tasks.stop();
         std::cout << "PASS: " << checks << " real App download/controller/offline assertions; no HTTP or decoder started\n";

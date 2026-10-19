@@ -1,5 +1,6 @@
 #include "artcache.h"
 #include "art_decode_budget.h"
+#include "download_artwork.h"
 
 #include <algorithm>
 #include <cmath>
@@ -83,6 +84,7 @@ static const char* kind_suffix(ArtKind k) {
 	switch (k) {
 	case ArtKind::Poster: return "p2";  // "2": sized for kUiScale (older files were 182x277)
 	case ArtKind::PosterLarge: return "pl2";
+	case ArtKind::DownloadPoster: return "dp1"; // Never reuse the small catalog derivatives.
 	case ArtKind::Background: return "b";
 	case ArtKind::Backdrop: return "bd2"; // Sharp detail hero; never reuse the old blurred variant.
 	case ArtKind::Still: return "s";
@@ -408,10 +410,29 @@ static bool write_rgba(const std::string& path, const std::vector<unsigned char>
 	return true;
 }
 
+static std::string download_poster_source(const std::string& url) {
+	// Upgrade only known public poster-size routes. Addon artwork, overlays,
+	// query strings and provider credentials otherwise keep their original URL.
+	for (const char* scheme : {"https://", "http://"}) {
+		const std::string metahub = std::string(scheme) + "images.metahub.space/poster/";
+		for (const char* size : {"small/", "medium/"}) {
+			const auto prefix = metahub + size;
+			if (starts_with(url, prefix)) return metahub + "large/" + url.substr(prefix.size());
+		}
+		const std::string tmdb = std::string(scheme) + "image.tmdb.org/t/p/";
+		for (const char* size : {"w92/", "w154/", "w185/", "w342/", "w500/", "original/"}) {
+			const auto prefix = tmdb + size;
+			if (starts_with(url, prefix)) return tmdb + "w780/" + url.substr(prefix.size());
+		}
+	}
+	return url;
+}
+
 bool ArtCache::fetch(const Job& job) {
 	// get_async intentionally leaves discovery of existing files to this worker.
 	if (file_exists(job.path)) return true;
-	const auto compressed = source(job.url);
+	const auto source_url = job.kind == ArtKind::DownloadPoster ? download_poster_source(job.url) : job.url;
+	const auto compressed = source(source_url);
 	if (!compressed) return false;
 	int w, h;
 	const char* why = "";
@@ -428,7 +449,7 @@ bool ArtCache::fetch(const Job& job) {
 		// A CDN can temporarily return an HTML/error body with HTTP 200. Do
 		// not let the compressed reuse cache make that failure permanent.
 		std::lock_guard<std::mutex> lock(mutex_);
-		auto cached = sources_.find(job.url);
+		auto cached = sources_.find(source_url);
 		if (cached != sources_.end() && cached->second == compressed) {
 			source_bytes_ -= cached->second->bytes.size();
 			sources_.erase(cached);
@@ -450,6 +471,11 @@ bool ArtCache::fetch(const Job& job) {
 	case ArtKind::PosterLarge:  // .card .poster-img in board.rcss
 		dw = int(std::lround(278 * kUiScale)), dh = int(std::lround(422 * kUiScale));
 		radius = 14 * kUiScale;
+		break;
+	case ArtKind::DownloadPoster:
+		// The gallery rounds corners when drawing. Store the sharp full cover,
+		// independent of the legacy CSS scale and the current display mode.
+		dw = kDownloadPosterWidth; dh = kDownloadPosterHeight;
 		break;
 	case ArtKind::Background: dw = 1280, dh = 720; break;
 	case ArtKind::Backdrop: dw = 1920, dh = 1080; break;

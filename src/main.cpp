@@ -15,6 +15,8 @@
 #include "torrent/engine.h"
 #include "util.h"
 #include "video_gl.h"
+#include "display_refresh.h"
+#include "media_remote.h"
 #include "audio/cues.hpp"
 #include "audio/mixer.hpp"
 #include "core/input.hpp"
@@ -40,6 +42,7 @@ extern "C" void ps5_load_modules(void);
 #ifdef STREMIO_USE_LIBVLC
 extern "C" void vlc_ps5_vdec_prepare(void);
 extern "C" int vlc_ps5_vdec_queue_status(const char** stage, int* native_code);
+extern "C" bool stremio_ps5_audio_pcm_available(void);
 #endif
 #else
 #include "preview_fixture.h"
@@ -72,7 +75,7 @@ constexpr int kWidth = 1920, kHeight = 1080;
 void log_video_memory(const char* phase) {
     stremio_video_memory_stats memory{};
     stremio_video_memory_get_stats(&memory);
-    dlog("video memory: phase=%s direct_MiB=%.2f peak_MiB=%.2f mapped=%u retired=%u heap_fallbacks=%llu allocation_failures=%llu release_failures=%llu",
+    dlog("native large-block memory: phase=%s direct_MiB=%.2f peak_MiB=%.2f mapped=%u retired=%u heap_fallbacks=%llu allocation_failures=%llu release_failures=%llu",
          phase, double(memory.direct_bytes) / (1 << 20), double(memory.direct_peak_bytes) / (1 << 20),
          memory.active_mappings, memory.retired_mappings,
          (unsigned long long)memory.heap_fallbacks, (unsigned long long)memory.allocation_failures,
@@ -164,8 +167,10 @@ bool claim_single_instance() {
 // The GL context outlives every renderer, font, image and video texture.
 struct Surface {
     int width = kWidth, height = kHeight;
+    DisplayRefresh refresh;
 #ifdef PLATFORM_PS5
     hui::ps5::Display display;
+    ~Surface() { refresh.restore([] { glFinish(); }); }
     bool open(const Options&, int mode) {
         boot_step("querying PS5 output resolution");
         const auto selected = display_output_select(mode, hui::ps5::Display::supports_display_modes());
@@ -327,6 +332,10 @@ struct InterfaceAudio {
     }
     void open_device() {
         if (!enabled || device) return;
+#if defined(PLATFORM_PS5) && defined(STREMIO_USE_LIBVLC)
+        // A failed native HDMI shutdown also blocks the interface sound port.
+        if (!stremio_ps5_audio_pcm_available()) return;
+#endif
         SDL_AudioSpec desired{};
         desired.freq = hui::audio::kSampleRate;
         desired.format = AUDIO_S16SYS; desired.channels = 2; desired.samples = 512;
@@ -506,11 +515,17 @@ int run_interface(App& app, const Options& o) {
         App& app;
         ~PlaybackHook() { app.before_playback = {}; }
     } playback_hook{app};
-    app.before_playback = [&audio] { audio.suspend(); };
+    app.before_playback = [&audio, &textures] {
+        audio.suspend();
+        // Release the previous gallery before the decoder and video textures
+        // compete for native memory. Playback artwork remains available.
+        textures.set_playback(true);
+    };
     hui::InputTracker tracker;
 #ifdef PLATFORM_PS5
     hui::ps5::Pad pad;
     if (!pad.open()) dlog("Controller unavailable at startup");
+    MediaRemote remote;
     ControllerAmbientLight ambient;
 #else
     HostInput input_source;
@@ -606,6 +621,7 @@ int run_interface(App& app, const Options& o) {
     bool first_video_heap_snapshot = true;
 #endif
     int last_video_w = 0, last_video_h = 0;
+    bool last_video_accepted = false;
     while (!quit && !app.wants_exit()) {
         const auto now = hui::sys::monotonic_us();
         const float dt = std::clamp(float(now - previous)/1000000.0f, 0.0f, 0.05f);
@@ -615,6 +631,9 @@ int run_interface(App& app, const Options& o) {
         std::array<hui::PadSample, 64> samples;
         const auto count = pad.read(samples);
         input = tracker.update(std::span<const hui::PadSample>(samples.data(), count), std::uint64_t(now));
+        const auto remote_frame = remote.poll(std::uint64_t(now));
+        merge_remote_input(input, remote_frame.input);
+        for (std::size_t i = 0; i < remote_frame.count; ++i) app.on_media_command(remote_frame.commands[i]);
 #else
         const auto samples = input_source.poll(app, std::uint64_t(now));
         input = tracker.update(samples, std::uint64_t(now));
@@ -623,6 +642,16 @@ int run_interface(App& app, const Options& o) {
         hui::ui::Feedback feedback;
         ui.handle(app, input, feedback);
         app.update();
+        if (surface.refresh.update(app.settings().display_refresh, app.watching(), [] { glFinish(); })) {
+            runtime["display_refresh"] = {{"preference", app.settings().display_refresh},
+                {"available", surface.refresh.available()}, {"active", surface.refresh.active()},
+                {"refresh_code", surface.refresh.refresh_code()}, {"status", surface.refresh.status()}};
+            diagnostics_set_runtime(runtime);
+        }
+        if (!surface.refresh.safe()) {
+            diagnostics_note("display", "Output mode could not be restored safely");
+            break;
+        }
         audio.play(app, feedback);
 #ifdef PLATFORM_PS5
         const auto [title_key, artwork_path] = app.ambient_artwork();
@@ -636,7 +665,8 @@ int run_interface(App& app, const Options& o) {
         bool video_uploaded = false;
 #endif
         if (app.take_video_frame(frame)) {
-            if (video.upload(frame)) {
+            const bool accepted = video.upload(frame);
+            if (accepted) {
                 app.video_frame_presented();
 #ifdef PLATFORM_PS5
                 video_uploaded = true;
@@ -644,20 +674,35 @@ int run_interface(App& app, const Options& o) {
             }
             else {
                 diagnostics_note("video", "GPU frame rejected");
+#ifdef PLATFORM_PS5_NATIVE
+                log_video_memory("frame-rejected");
+#endif
                 app.video_frame_rejected();
             }
-            if (frame.w != last_video_w || frame.h != last_video_h) {
+            if (frame.w != last_video_w || frame.h != last_video_h ||
+                accepted != last_video_accepted || !accepted) {
                 last_video_w = frame.w; last_video_h = frame.h;
+                last_video_accepted = accepted;
                 runtime["width"] = frame.w; runtime["height"] = frame.h;
                 runtime["bit_depth"] = frame.wide ? 10 : 8;
                 runtime["pixel_format"] = frame.layout == Player::VideoFrame::Layout::Bgra ? "BGRA" :
                     frame.layout == Player::VideoFrame::Layout::Nv12 ? "NV12/P010" : "YUV420P";
                 runtime["color_range"] = frame.full_range ? "full" : "limited";
                 runtime["color_transfer"] = frame.hlg ? "HLG" : frame.colors == YuvColors::Hdr10 ? "PQ" : "SDR";
+                runtime["source_fps"] = video.fps();
+                runtime["dolby_vision_reshape"] = video.dolby_vision_active();
+                runtime["audio_output"] = app.audio_output_status();
+                runtime["video_frame_accepted"] = accepted;
                 diagnostics_set_runtime(runtime);
             }
         }
-        if (!app.watching()) video.clear();
+        if (!app.watching()) {
+            video.clear();
+            frame = {};
+            last_video_w = last_video_h = 0;
+            last_video_accepted = false;
+            textures.set_playback(false);
+        }
         textures.begin_frame(); ui.update(app, dt);
         compose(0, false);
         const bool swapped = surface.swap();
@@ -682,9 +727,14 @@ int run_interface(App& app, const Options& o) {
             const double fps = double(report_frames)*1000000.0/double(now-report_start);
             runtime["fps"] = fps; runtime["addon_count"] = app.addon_rows.size();
             runtime["output_width"] = surface.width; runtime["output_height"] = surface.height;
+            runtime["video_processing"] = {{"upscaler", "bilinear"}, {"smoothing", "off"},
+                {"dolby_vision_reshape", video.dolby_vision_active()}, {"source_fps", video.fps()},
+                {"audio_passthrough_requested", app.settings().audio_passthrough},
+                {"audio_output", app.audio_output_status()}};
             diagnostics_set_runtime(runtime);
             dlog("UI frame pacing: %.1f FPS over 30s, %zu draw calls, video=%d", fps, renderer.last_draw_calls(), int(app.watching()));
 #ifdef PLATFORM_PS5_NATIVE
+            if (app.watching()) stremio_heap_snapshot(STREMIO_HEAP_PLAYBACK_PERIODIC);
             log_video_memory(app.watching() ? "playing" : "idle");
 #endif
             report_frames = 0; report_start = now;

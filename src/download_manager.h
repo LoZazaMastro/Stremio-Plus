@@ -19,12 +19,13 @@ struct DownloadRequest {
 	// Cached local RGBA artwork only. Copies are deferred while media is being
 	// written and completed before this video's transfer starts. Completed
 	// offline videos therefore do not depend on the shared artwork cache.
-	std::string poster_path, background_path, logo_path;
+	std::string poster_path, background_path, logo_path, thumbnail_path;
 	// Retain the poster address so an uncached cover can be fetched after
 	// enqueue or restart. Account/provider credentials are never logged.
-	std::string poster_url;
+	std::string poster_url, thumbnail_url;
 	Stream stream;
 	int season = -1, episode = -1;
+	int release_year = 0; // Catalog metadata only; zero means unavailable.
 	bool live = false;
 };
 
@@ -33,10 +34,17 @@ struct DownloadEntry {
 	std::string episode_title;
 	// Stable digest of the selected source and episode, retained during moves.
 	std::string source_identity;
-	std::string poster_path, background_path, logo_path, local_path, error;
-	std::string poster_url;
+	std::string poster_path, background_path, logo_path, thumbnail_path, local_path, error;
+	std::string poster_url, thumbnail_url;
 	DownloadState state = DownloadState::Queued;
+	// Verified RGBA dimensions, published by the artwork worker. The gallery
+	// can refresh legacy small covers without opening files on a UI event.
+	int poster_width = 0, poster_height = 0;
 	int season = -1, episode = -1;
+	int release_year = 0;
+	// Epoch milliseconds from queue admission and successful media promotion.
+	// Legacy entries retain zero completion time and use created_ms in the UI.
+	int64_t created_ms = 0, completed_ms = 0;
 	int64_t done = 0, total = -1;
 	double progress = -1, bytes_per_second = 0;
 	// Live worker telemetry only; -1 means not yet known / not applicable.
@@ -113,6 +121,8 @@ public:
 	// a vanished or invalid cached image is rejected by the worker.
 	bool update_poster(const std::string& id, const std::string& cached_path);
 	bool update_poster_source(const std::string& id, const std::string& url);
+	bool update_thumbnail(const std::string& id, const std::string& cached_path);
+	bool update_thumbnail_source(const std::string& id, const std::string& url);
 	bool pause(const std::string& id);
 	bool resume(const std::string& id);
 	bool remove(const std::string& id, std::string& error);

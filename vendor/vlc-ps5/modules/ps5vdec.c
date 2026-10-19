@@ -417,17 +417,25 @@ static mtime_t pending_take(decoder_sys_t *sys)
     return t;
 }
 
-/* HEVC NAL units the decoder can't take: Dolby Vision's own (types 62 and
- * 63: its picture data and the enhancement layer of profile 7) and any other
- * layer than the base one. Left out, a Dolby Vision film plays as the HDR10
- * its base layer is (it refused profile 7 at the first enhancement unit). */
+/* Enhancement layers are not accepted by VideoDec2. RPU units remain long
+ * enough to select the metadata-aware software decoder below: Profile 5
+ * has no HDR10-compatible base layer and cannot simply discard its RPU. */
 static bool hevc_skip(const uint8_t *nal, size_t n)
 {
     if (n < 2)
         return true;
     unsigned type = (nal[0] >> 1) & 0x3f;
     unsigned layer = ((nal[0] & 1) << 5) | (nal[1] >> 3);
-    return type == 62 || type == 63 || layer != 0;
+    return type == 63 || layer != 0;
+}
+
+static bool hevc_has_rpu(const uint8_t *data, size_t size)
+{
+    for (size_t i = 0; i + 4 < size; ++i)
+        if (data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 1 &&
+            ((data[i + 3] >> 1) & 0x3f) == 62)
+            return true;
+    return false;
 }
 
 /* Length-prefixed NAL units -> Annex B, into dst (room for 4 + size per
@@ -832,6 +840,11 @@ static int Decode(decoder_t *dec, block_t *block)
     }
     mtime_t pts = block->i_pts != VLC_TS_INVALID ? block->i_pts : block->i_dts;
     block_Release(block);
+
+    if (sys->codec == VDEC_CODEC_HEVC && hevc_has_rpu(au, size)) {
+        give_up(dec, "Dolby Vision requires the frame-metadata decoder");
+        return VLCDEC_SUCCESS;
+    }
 
     /* After a seek or a stream error: nothing until a keyframe. VLC's MKV
      * reader marks them, its MP4 reader doesn't (console run 9: every jump

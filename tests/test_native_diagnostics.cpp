@@ -76,6 +76,7 @@ int main(int argc, char** argv) {
         std::fflush(stdout);
     }
     emergency_path = true;
+    if (std::strcmp(argv[2], "immediate_exit") == 0) std::_Exit(37);
     if (std::strcmp(argv[2], "abort") == 0) std::abort();
     if (std::strcmp(argv[2], "assert") == 0)
         stremio_native_assert("render_frame", "/private/build/source/video.c", 217, "frame != NULL && width > 0");

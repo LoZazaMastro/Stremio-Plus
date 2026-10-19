@@ -26,8 +26,14 @@ a separate Stremio streaming server to configure.
 **A dedicated torrent engine and offline downloads.** Stremio Plus has its
 own native torrent engine, designed for high-throughput transfers directly
 to the PS5. Download the selected movie or episode while you keep browsing,
-then play it offline from the Downloads tab. Each transfer shows its progress,
-speed, estimated time remaining, and connected peers and seeders. The queue
+then play it offline from a dedicated poster coverflow. Films appear as
+individual covers, while a series has one cover for all its saved episodes.
+Open a series to slide its poster to the left and browse episode thumbnails
+in a floating panel. L1 and R1 select only the seasons represented in your
+downloads. Completed films show their cover and title; saved episodes show
+their thumbnail, episode number and title under the series heading. Progress,
+speed, estimated time remaining, and connected peers and seeders appear only
+while a transfer is unfinished. The queue
 supports pause, resume, and deletion. Actual speed depends on the swarm,
 connection, and storage; download performance is under active development.
 Choose a download folder in Settings, including a mounted M.2 or external
@@ -53,10 +59,35 @@ If video output still fails, playback stops with an error instead of remaining
 on the preparation screen indefinitely.
 Slow input startup preserves the selected resume position. Changing or
 automatically selecting a subtitle track does not seek or reopen the video.
-Large decoded pictures use a bounded direct-memory pool so 4K software
-playback does not crowd torrent, audio and interface allocations out of
-the application heap. The pool preserves space for other native resources
-and releases each buffer when VLC releases its final picture reference.
+Allocations of at least 1 MiB, including FFmpeg's internal buffers, decoded
+pictures and video callback buffers, share a bounded, CPU-cacheable direct
+memory pool. A smaller general arena leaves more of the console's memory
+available on demand. Ownership tracking covers aligned allocations, resizing,
+and failed kernel releases; a native-memory reserve remains available for
+other resources. Critical video-decoder errors are reported to the app and
+trigger one reopen at the last presented position. A repeated error stops
+playback with an explicit message. Recovering from input buffering preserves HEVC reference
+pictures; damaged decoder output is rejected while the last valid picture
+remains visible. An explicit seek still resets the decoder as required.
+Video textures are checked individually during allocation and released
+when playback ends, including partial allocations from failed startup.
+The app reduces its artwork cache during playback and restores the browsing
+budget afterwards; saved poster images keep their original resolution.
+
+**EVO Player contributions.** Dolby Vision Profile 5 reshaping, HDMI audio
+transport, display refresh selection and native memory management incorporate
+work from [EVO Player PS5 by sainsaji and contributors](https://github.com/sainsaji/EVO-PLAYER-PS5),
+licensed under **GPL-3.0-or-later**. These components are adapted to Stremio
+Plus's OpenGL renderer and libVLC pipeline. Their original authors, source
+revision and local modifications are recorded in
+[vendor/evo-player/NOTICE.md](vendor/evo-player/NOTICE.md).
+
+**Discover without a background image.** The selected title's logo, year,
+rating, runtime, genres, director, principal cast and description accompany
+its catalog posters. Artwork lookups and decoding run away from the interface
+thread, with selected artwork prioritized over adjacent covers and prefetch.
+Downloaded series retain their cover and separate episode thumbnails for
+offline browsing.
 
 **Artwork that reaches your controller.** As you highlight a movie or series,
 the DualSense light bar picks up a dominant color from its poster and eases
@@ -74,6 +105,10 @@ the console. Install or configure add-ons in Stremio on your phone or computer,
 then sync them in Stremio Plus.
 
 ## Screenshots
+
+These PS5 captures show the 0.5.11 interface. Version 0.5.18 has a revised
+Downloads coverflow with sharper posters, gallery sorting and simpler
+completed entries, together with a revised Discover layout.
 
 | Stream selection | Library |
 | --- | --- |
@@ -135,16 +170,32 @@ either in Settings. Signing out returns to the sign-in screen.
 | Circle | Go back; hide visible playback controls before leaving the video |
 | Triangle | Open search while browsing |
 | L1 / R1 | Change top-level tabs, seasons, or stream providers, depending on the screen |
+| L2 / R2 in Downloads | Cycle gallery sorting between title, release year and download date |
 | Square on a cover | Add or remove it from your library |
 | Square in Continue Watching | Remove that item from Continue Watching |
 | Square on a stream | Download **only the selected stream** |
 | Up / Down during playback | Show playback controls |
 | Options during playback | Open audio and subtitle controls |
 
+The Sony PlayStation 5 Media Remote is read through its dedicated input port,
+independently of the DualSense. Direction, Select and Back navigate the app;
+Play/Pause, Rewind and Fast-forward control playback. Outside playback,
+Rewind and Fast-forward move between tabs or seasons. Additional transport,
+audio and subtitle commands are handled when reported by a compatible remote.
+The Media Remote must first be paired in the console's system settings.
+
 Playback skip intervals for the D-pad and L1 / R1 can be set independently.
 Completed downloads offer a choice between starting again and resuming from
 the saved position for that movie or episode. Each episode has its own saved
 position, so watching another episode does not replace its bookmark.
+
+In Downloads, L2/R2 cycles between title A-Z, release year newest first and
+download date newest first. The app remembers the selected order and keeps
+the same film or series selected. This changes the gallery order only;
+transfers keep their queue order and episodes retain their season ordering.
+The gallery uses dedicated 720x1080 covers and upgrades previously saved
+posters when a better source is available, retaining the old offline image
+until its replacement is ready.
 
 In Downloads, Options starts playback of an active download once its confirmed
 file prefix reaches 5%. Seeking stays within timestamps the player has already
@@ -158,6 +209,37 @@ thumbnail, title, and number. Its countdown defaults to 15 seconds. Choose
 **Watch now** to continue immediately or **Ignore** to dismiss it; Circle
 also dismisses it. If the countdown reaches zero, the next episode starts
 automatically. Autoplay and the countdown duration can be changed in Settings.
+
+## Video and display options
+
+Video frames are converted at their source resolution and displayed with
+ordinary bilinear scaling. The PS5's configured resolution is the default.
+These display and audio controls are available:
+
+| Setting | Behavior |
+| --- | --- |
+| **Video & Display → 120 Hz output** | Off, Auto or Playback only. The app checks output support and the resulting mode, restores the previous mode when required, and refuses changes that reduce the registered output resolution. |
+| **Audio → Audio passthrough** | Opt-in HDMI bitstream transport for receiver-advertised AC-3, E-AC-3 and DTS core formats at 48 kHz. Unsupported formats or unavailable HDMI transport use decoded PCM. Changes apply to the next video. |
+
+System refresh behavior and decoded audio are the defaults. The video
+renderer presents decoded source frames directly.
+The HDMI output keeps submitted audio buffers alive until they are released
+and drains pending audio before pause, seek and closure. If the native port
+cannot be closed or restored correctly, playback stops and audio remains
+disabled until the application is restarted.
+
+Dolby Vision Profile 5 metadata is carried with the decoded frame and used
+for RPU-based GPU reshaping before SDR tone mapping. This does not enable
+native Dolby Vision HDMI output. AV1 uses the bundled dav1d **software**
+decoder, including supported 4K 10-bit input; this build does not claim an
+AV1 hardware decoding path or guaranteed real-time playback for every file.
+The native decoder can still reject a stream or platform configuration, in
+which case the existing software fallback remains available.
+
+The currently supported high-refresh request is 119.88 Hz. It gives a 5:5
+cadence for 23.976 fps content; it is not an exact 120.000 Hz mode for 24.000
+fps content. Display, cable, receiver and console support determine whether
+the change is accepted.
 
 ## Downloads and recovery
 
@@ -297,6 +379,12 @@ storage error is reported.
 Playback logs also report direct picture-memory usage, fallback allocations
 and failed releases. These figures distinguish picture storage from the
 general-purpose heap recorded in the crash diagnostics.
+Video-output records distinguish decoded frames from frames accepted by
+the renderer and identify failed texture or framebuffer setup stages.
+Seek requests and applied positions are recorded without media locations.
+Diagnostic snapshots are synced before replacing the previous complete
+file. Nonzero native immediate exits retain a bounded exit-status and
+caller-address record when that path reaches the application hook.
 
 ## Credits and license
 
@@ -306,6 +394,16 @@ Its native playback engine incorporates [ZiZc3's VLC PS5 port](https://github.co
 and [VideoLAN's libVLC](https://www.videolan.org/vlc/libvlc.html). Their original
 copyright and license notices are retained; the PS5 adaptation, local changes,
 and source provenance are documented in [vendor/vlc-ps5/NOTICE.md](vendor/vlc-ps5/NOTICE.md).
+Stremio Plus is based in part on
+[EVO Player PS5 by sainsaji and contributors](https://github.com/sainsaji/EVO-PLAYER-PS5),
+which derives from [ProsperoPlayer by KINGDKAK and contributors](https://github.com/KINGDKAK/ProsperoPlayer).
+The incorporated work uses **GPL-3.0-or-later**. The original copyright
+notice, full license text, exact upstream revision and dated descriptions
+of Stremio Plus's modifications are retained in
+[vendor/evo-player/](vendor/evo-player/) and included in both application
+packages under `licenses/evo-player/`. The libplacebo authors are also
+credited for the Dolby Vision colour mathematics used by EVO Player;
+their applicable notices and license text are retained there.
 Special thanks to [BlackBearReloaded](https://github.com/blackbearreloaded)
 for the UI kit, OpenGL implementation, native app tooling, and ProsperoStore's
 work on PS5 file-worker performance; to
@@ -314,10 +412,25 @@ library ports; and to [Stremio](https://github.com/Stremio) and the other
 open-source projects that make this app possible.
 
 The project is licensed under the [GNU GPL v3](LICENSE). Dependency licenses
-and attribution are listed in [THIRD_PARTY.md](THIRD_PARTY.md). Binary deliveries
-are accompanied by the matching application source, retained VLC patches,
-dependency source archives, and build instructions. See [BUILDING.md](BUILDING.md)
-for the pinned versions and reproduction steps.
+and attribution are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
+
+### Corresponding source
+
+The matching application source for this release is available at
+[tag 0.5.18](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.18), including
+the modified playback components, retained VLC patches, dependency recipes,
+assets and build scripts. [BUILDING.md](BUILDING.md) identifies the pinned
+dependency sources and explains how to reproduce the native packages.
+The [dependency source index](docs/DEPENDENCY_SOURCES.md) lists exact
+upstream revisions and source locations for the linked libraries and SDK.
+The [release page](https://github.com/LoZazaMastro/Stremio-Plus/releases/tag/0.5.18)
+links these sources alongside the binary downloads. Source access is free
+and does not require downloading the application packages first.
+For a local copy, download
+[the application source bundle](https://github.com/LoZazaMastro/Stremio-Plus/releases/download/0.5.18/Stremio-Plus-0.5.18-source.zip)
+and [the dependency source bundle](https://github.com/LoZazaMastro/Stremio-Plus/releases/download/0.5.18/Stremio-Plus-0.5.18-dependency-source.zip).
+Extract both into the same parent directory to bring the application,
+dependency archives, build receipt and checksum records together.
 
 Stremio Plus is an independent homebrew project, unaffiliated with Stremio
 or Sony Interactive Entertainment. Their names, logos, and other trademarks
