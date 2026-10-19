@@ -17,8 +17,8 @@ namespace {
 enum Row {
     Account, Language, DateComponents, DateFormat, TorrentSpeed, DownloadDirectory, SubLangs, AutoSubs, SubSize,
     SubBackground, SubColor, SubEffect, SubFont, SubDelay,
-    AudioLangs, AudioOutput, Autoplay, NextEpisodeDelay, SeekStep, ShoulderSeekStep, Resolution, ReducedMotion, Contrast,
-    ControllerLight, Sounds, Volume, Statistics, Addons, Reload, Exit, Count
+    AudioLangs, AudioOutput, Autoplay, NextEpisodeDelay, SeekStep, ShoulderSeekStep, Resolution, HdrOutput, ReducedMotion, Contrast,
+    ControllerLight, Sounds, Volume, Statistics, DiagServer, Addons, Reload, Exit, Count
 };
 
 struct LanguageChoice { const char* code; const char* italian; const char* english; };
@@ -207,10 +207,14 @@ void App::settings_refresh() {
         t("Durata indipendente dal salto con la croce direzionale.", "Independent from the directional seek interval."));
     slider(ShoulderSeekStep, float(settings_.shoulder_seek_seconds), 5, 300, 5, " s");
     row(Resolution, "display_resolution", t("Risoluzione di uscita", "Output resolution"),
-        t("Automatico segue la risoluzione della PS5. Si applica al prossimo avvio; 1080p se non disponibile. Uscita SDR.",
-          "Automatic follows the PS5 resolution. Applies next launch; 1080p if unavailable. SDR output."));
+        t("Automatico segue la risoluzione della PS5. Si applica al prossimo avvio; 1080p se non disponibile.",
+          "Automatic follows the PS5 resolution. Applies next launch; 1080p if unavailable."));
     choice(Resolution, {t("Automatico (PS5)", "Automatic (PS5)"), "1920 × 1080", "2560 × 1440", "3840 × 2160"},
            std::clamp(settings_.display_resolution + 1, 0, 3));
+    row(HdrOutput, "hdr_output", t("Uscita HDR", "HDR output"),
+        t("Passa la console in HDR10 mentre un video HDR10, HLG o Dolby Vision è in riproduzione su uno schermo HDR. Dolby Vision usa il suo livello base HDR10. Richiede l'impostazione PS5 HDR: Attivo quando supportato.",
+          "Switches the console to HDR10 while an HDR10, HLG or Dolby Vision video plays on an HDR display. Dolby Vision plays from its HDR10 base layer. Needs the PS5 setting HDR: On When Supported."));
+    toggle(HdrOutput, settings_.hdr_output);
     row(ReducedMotion, "reduced_motion", t("Riduci animazioni", "Reduce motion"), t("Movimenti ridotti per focus e transizioni.", "Reduce movement in focus and transitions.")); toggle(ReducedMotion, settings_.reduced_motion);
     row(Contrast, "high_contrast", t("Contrasto elevato", "High contrast"), t("Testo e selezioni più leggibili.", "Increase text and focus contrast.")); toggle(Contrast, settings_.high_contrast);
     row(ControllerLight, "controller_ambient_light", t("Colore DualSense dal titolo", "DualSense title color"),
@@ -220,6 +224,10 @@ void App::settings_refresh() {
     row(Sounds, "ui_sounds", t("Suoni dell'interfaccia", "Interface sounds"), t("Conferme sonore durante la navigazione.", "Audio feedback for navigation and actions.")); toggle(Sounds, settings_.ui_sounds);
     row(Volume, "sound_volume", t("Volume dell'interfaccia", "Interface volume"), t("Regola i suoni dei menu.", "Adjust menu sound volume.")); slider(Volume, float(settings_.sound_volume), 0, 100, 5, "%");
     row(Statistics, "show_stats", t("Statistiche di riproduzione", "Playback statistics"), t("Decoder, frame, buffer e fotogrammi scartati.", "Decoder, frame rate, buffer and dropped frames.")); toggle(Statistics, settings_.show_stats);
+    row(DiagServer, "diagnostics_server", t("Server di diagnostica", "Diagnostics server"),
+        t("Pubblica il registro dell'app via HTTP sulla porta 9029, per i test da un computer sulla stessa rete. Nessuna autenticazione: solo in casa.",
+          "Serves the app log over HTTP on port 9029, for testing from a computer on the same network. No authentication: home networks only."));
+    toggle(DiagServer, settings_.diagnostics_server);
     row(Addons, "addons", t("Add-on", "Add-ons"),
         t("Gli add-on sincronizzati con il tuo account Stremio.", "Add-ons synchronized with your Stremio account."));
     row(Reload, "reload", t("Aggiorna add-on e cataloghi", "Refresh add-ons and catalogs"), "");
@@ -253,12 +261,14 @@ void App::set_setting_value(int row, float value) {
     case SeekStep: settings_.seek_seconds = std::clamp(n, 5, 60); break;
     case ShoulderSeekStep: settings_.shoulder_seek_seconds = std::clamp(n, 5, 300); break;
     case Resolution: settings_.display_resolution = std::clamp(n, 0, 3) - 1; break;
+    case HdrOutput: settings_.hdr_output = n != 0; break;
     case ReducedMotion: settings_.reduced_motion = n != 0; break;
     case Contrast: settings_.high_contrast = n != 0; break;
     case ControllerLight: settings_.controller_ambient_light = n != 0; break;
     case Sounds: settings_.ui_sounds = n != 0; break;
     case Volume: settings_.sound_volume = std::clamp(n, 0, 100); break;
     case Statistics: settings_.show_stats = n != 0; break;
+    case DiagServer: settings_.diagnostics_server = n != 0; break;
     default: return;
     }
     save_settings(); settings_refresh();

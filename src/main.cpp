@@ -15,6 +15,8 @@
 #include "torrent/engine.h"
 #include "util.h"
 #include "video_gl.h"
+#include "hdr_out.h"
+#include "diag_server.h"
 #include "audio/cues.hpp"
 #include "audio/mixer.hpp"
 #include "core/input.hpp"
@@ -90,6 +92,7 @@ void boot_step(const char* stage) {
 
 struct Options {
     std::string base, data, snapshot, scenario = "home", fixture;
+    std::string logs;  // the diagnostics log folder, for the diagnostics server
     int width = 1920, height = 1080;
     bool help = false;
 };
@@ -474,12 +477,13 @@ int run_interface(App& app, const Options& o) {
 #ifndef PLATFORM_PS5
     hui::gfx::set_glsl_prefix("#version 450 core\n");
 #endif
-    dlog("OpenGL %s / %s; output %dx%d SDR", gl_string(GL_VERSION).c_str(),
+    dlog("OpenGL %s / %s; output %dx%d, SDR until an HDR video plays", gl_string(GL_VERSION).c_str(),
         gl_string(GL_RENDERER).c_str(), surface.width, surface.height);
     hui::gfx::Renderer renderer;
     VideoGl video;
     boot_step("initializing UI and video renderers");
     if (!renderer.init() || !video.init()) { dlog("Renderer initialization failed"); return 1; }
+    hdr_out::init(surface.width, surface.height);
     hui::gfx::Font regular, semibold, mono, subtitles, subtitles_serif, subtitles_mono;
     hui::ui::Fonts fonts;
     boot_step("loading UI font textures");
@@ -517,7 +521,7 @@ int run_interface(App& app, const Options& o) {
 #endif
     json runtime = {{"gl_version", gl_string(GL_VERSION)}, {"gl_vendor", gl_string(GL_VENDOR)},
         {"gl_renderer", gl_string(GL_RENDERER)}, {"output_width", surface.width}, {"output_height", surface.height},
-        {"ui_width", kWidth}, {"ui_height", kHeight}, {"gpu_yuv", true}, {"hdr_mode", "SDR output; HDR sources tone mapped"},
+        {"ui_width", kWidth}, {"ui_height", kHeight}, {"gpu_yuv", true}, {"hdr_mode", hdr_out::status()},
         {"addon_count", app.addon_rows.size()}, {"server_configured", !app.settings().server_url.empty()}};
     diagnostics_set_runtime(runtime);
     Player::VideoFrame frame;
@@ -525,16 +529,20 @@ int run_interface(App& app, const Options& o) {
     float elapsed = 0;
     const auto compose = [&](GLuint target, bool fixture) {
         base_list.clear(); overlay_list.clear();
-        base_list.rounded_rect({0, 0, kWidth, kHeight}, 0, hui::gfx::Color::rgb(0));
+        // HDR scan-out: the video is composed by the final pass (hdr_out.cpp)
+        // underneath a transparent interface, not drawn as an SDR image.
+        const bool hdr_pass = target == 0 && hdr_out::scanout_hdr() && app.watching() && video.hdr_texture();
+        hui::gfx::Rect video_rect{};
+        if (!hdr_pass) base_list.rounded_rect({0, 0, kWidth, kHeight}, 0, hui::gfx::Color::rgb(0));
         if (app.watching()) {
             const auto texture = video.texture();
             if (texture) {
                 float width = kWidth, height = width / float(video.aspect());
                 if (height > kHeight) { height = kHeight; width = height * float(video.aspect()); }
+                video_rect = {(kWidth-width)/2, (kHeight-height)/2, width, height};
                 // Conversion renders source row 0 into FBO row 0. Keep this
                 // UV direction so source row 0 is the top of the TV picture.
-                base_list.image(texture, {(kWidth-width)/2, (kHeight-height)/2, width, height},
-                    hui::gfx::kFullUv, hui::gfx::Color::rgb(0xffffff));
+                if (!hdr_pass) base_list.image(texture, video_rect, hui::gfx::kFullUv, hui::gfx::Color::rgb(0xffffff));
             } else if (fixture && !app.launch_image.empty()) {
                 if (const auto art = textures.get(app.launch_image))
                     base_list.image(art, {0, 0, kWidth, kHeight}, hui::gfx::kFullUv, hui::gfx::Color::rgb(0xffffff));
@@ -546,6 +554,10 @@ int run_interface(App& app, const Options& o) {
         renderer.begin(); renderer.draw(base_list);
         if (ui.wants_glass()) renderer.glass();
         renderer.draw(overlay_list);
+        if (hdr_pass) {
+            if (hdr_out::present(renderer, surface.width, surface.height, video.texture(), video_rect)) return;
+            hdr_out::update(false);  // the pass failed: SDR again from the next frame
+        }
         glBindFramebuffer(GL_FRAMEBUFFER, target);
         glClearColor(0, 0, 0, 1); glClear(GL_COLOR_BUFFER_BIT);
         renderer.present(target, surface.width, surface.height);
@@ -606,6 +618,8 @@ int run_interface(App& app, const Options& o) {
     bool first_video_heap_snapshot = true;
 #endif
     int last_video_w = 0, last_video_h = 0;
+    unsigned hdr_status_seen = hdr_out::status_version();
+    std::int64_t status_published = 0;
     while (!quit && !app.wants_exit()) {
         const auto now = hui::sys::monotonic_us();
         const float dt = std::clamp(float(now - previous)/1000000.0f, 0.0f, 0.05f);
@@ -635,6 +649,10 @@ int run_interface(App& app, const Options& o) {
 #ifdef PLATFORM_PS5
         bool video_uploaded = false;
 #endif
+        // HDR scan-out while an HDR10 / HLG video plays on an HDR link; the
+        // converter then keeps the picture PQ coded instead of tone mapping it.
+        hdr_out::set_enabled(app.settings().hdr_output);
+        video.set_hdr_output(hdr_out::update(app.watching() && video.hdr_source()));
         if (app.take_video_frame(frame)) {
             if (video.upload(frame)) {
                 app.video_frame_presented();
@@ -658,6 +676,19 @@ int run_interface(App& app, const Options& o) {
             }
         }
         if (!app.watching()) video.clear();
+        if (hdr_out::status_version() != hdr_status_seen) {
+            hdr_status_seen = hdr_out::status_version();
+            runtime["hdr_mode"] = hdr_out::status();
+            diagnostics_set_runtime(runtime);
+        }
+        diag_server::configure(app.settings().diagnostics_server, o.logs);
+        if (diag_server::running() && now - status_published >= 1000000) {
+            status_published = now;
+            json status = runtime;
+            status["watching"] = app.watching(); status["stats"] = app.w_stats;
+            status["hdr"] = hdr_out::status(); status["hdr_scanout"] = hdr_out::scanout_hdr();
+            diag_server::set_status(status.dump());
+        }
         textures.begin_frame(); ui.update(app, dt);
         compose(0, false);
         const bool swapped = surface.swap();
@@ -690,6 +721,8 @@ int run_interface(App& app, const Options& o) {
             report_frames = 0; report_start = now;
         }
     }
+    hdr_out::update(false);  // the scan-out back to SDR before the process ends
+    diag_server::stop();
     dlog("Interface closed after %llu frames", static_cast<unsigned long long>(frames));
     return 0;
 }
@@ -730,6 +763,7 @@ int main(int argc, char** argv) {
 #else
     const std::string log_directory = o.data + "/logs";
 #endif
+    o.logs = log_directory;
     boot_step("starting asynchronous diagnostics");
 #ifdef PLATFORM_PS5
     // Do not let the generic recursive mkdir create a sandbox-local /data

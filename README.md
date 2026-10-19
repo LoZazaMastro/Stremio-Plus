@@ -55,7 +55,11 @@ the format for the track and returns to PCM afterwards. Formats the receiver
 does not list in its EDID, and tracks in FLAC, AAC or Opus, play as
 multichannel PCM. The route in use appears in the playback statistics.
 Compatibility depends on the stream's profile and container. The OpenGL
-presentation path outputs SDR, with HDR10 sources tone-mapped for display.
+presentation path draws SDR, and switches the console's scan-out to HDR10
+while an HDR10 or HLG video plays on a display whose link runs in HDR
+(Settings → HDR output; the PS5 setting HDR must be On When Supported). Dolby
+Vision profile 7 and 8 files play from their HDR10 base layer; profile 5 has
+no such layer and still shows wrong colours.
 Playback controls appear when the first video frame reaches the GPU. If audio
 starts without a video picture, the player retries the same source once using
 software decoding, preserving the selected download and starting position.

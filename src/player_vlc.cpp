@@ -42,6 +42,7 @@ constexpr size_t kPlaneAlignment = 64;
 constexpr uint64_t kAudioWithoutVideoLimit = VlcAudioTimeline::rate * 8;
 std::atomic<int> hardware_decoders{0};
 std::atomic<bool> hardware_failed{false};
+std::atomic<unsigned> dolby_vision_flags{0};  // from ps5vdec: 1 RPU units seen, 2 another layer seen
 
 bool regular_local_file(std::string path) {
     if (starts_with(path, "file://")) path.erase(0, 7);
@@ -636,6 +637,12 @@ struct Player::Vlc {
                 frame_rate = video.i_frame_rate_den ? double(video.i_frame_rate_num) / video.i_frame_rate_den : 0;
                 codecs.push_back(name + " " + std::to_string(video.i_width) + "x" + std::to_string(video.i_height) +
                     (hardware_decoders > 0 ? " (PS5 hardware)" : " (software)"));
+                if (const unsigned dv = dolby_vision_flags.load()) {
+                    bool pq = false;
+                    { std::lock_guard lock(frames_mutex); pq = next_format.colors == YuvColors::Hdr10; }
+                    codecs.push_back(dv & 2 ? "Dolby Vision profile 7: HDR10 base layer" : pq ?
+                        "Dolby Vision profile 8: HDR10 base layer" : "Dolby Vision profile 5: base layer only, colours not reshaped");
+                }
             }
         }
         if (tracks) libvlc_media_tracks_release(tracks, count);
@@ -952,6 +959,7 @@ void Player::open(const Options& options) {
     if (progressive_download()) opts_.start = std::min(opts_.start, opts_.progressive_resume_limit);
     duration_ = 0; paused_ = false; too_heavy_ = false; audio_stream_ = -1;
     hardware_failed = false;
+    dolby_vision_flags = 0;
     vlc_ = std::make_unique<Vlc>(*this);
     state_ = State::Opening;
     vlc_->worker = std::thread([this] { vlc_->run(); });
@@ -1097,4 +1105,5 @@ void Player::log_stats() {
 
 extern "C" int vlc_ps5_vdec_available() { return HwDecoder::available() ? 1 : 0; }
 extern "C" void vlc_ps5_vdec_failed() { hardware_failed = true; }
+extern "C" void vlc_ps5_vdec_dolby_vision(unsigned flags) { dolby_vision_flags = flags; }
 extern "C" void vlc_ps5_vdec_active(int active) { hardware_decoders.fetch_add(active ? 1 : -1); }

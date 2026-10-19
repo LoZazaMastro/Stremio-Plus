@@ -130,6 +130,8 @@ struct Settings {
 	bool reduced_motion = false, ui_sounds = true, high_contrast = false, show_stats = false;
 	int sound_volume = 35, subtitle_offset_ms = 0, seek_seconds = 10, shoulder_seek_seconds = 60;
 	int display_resolution = -1;  // Automatic (PS5); 0/1/2 are explicit 1080p/1440p/2160p.
+	bool hdr_output = true;           // HDR10 scan-out while an HDR video plays (PS5)
+	bool diagnostics_server = false;  // HTTP log server on port 9029, for testing from a computer
 	int date_components = 15;  // Weekday, day, month, year; zero hides the date.
 	std::string date_format = "short";
 	bool controller_ambient_light = true;

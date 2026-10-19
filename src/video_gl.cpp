@@ -21,11 +21,14 @@ void main() {
 
 // PQ/Hable constants and BT.2020->709 transform match the existing CPU
 // reference in yuv_convert.cpp. HLG follows its inverse OETF and SDR output.
+// With hdr_output set, an HDR10 picture stays PQ coded (the BT.2020 matrix on
+// PQ-coded components leaves PQ-coded RGB) and HLG is re-coded to PQ (ITU-R
+// BT.2100: scene light, the 1000 cd/m2 OOTF, then PQ), as Sp9nky's port does.
 constexpr const char* fragment = R"GLSL(
 in vec2 uv;
 out vec4 color;
 uniform sampler2D ytex, utex, vtex;
-uniform int layout_mode, color_mode, wide, sample_shift, full_range, hlg;
+uniform int layout_mode, color_mode, wide, sample_shift, full_range, hlg, hdr_output;
 
 vec3 pq(vec3 v) {
     vec3 p = pow(clamp(v, 0.0, 1.0), vec3(1.0 / 78.84375));
@@ -44,6 +47,16 @@ vec3 transfer709(vec3 v) {
     v = clamp(v, 0.0, 1.0);
     return mix(1.099 * pow(v, vec3(0.45)) - 0.099, 4.5 * v, lessThan(v, vec3(0.018)));
 }
+vec3 hlg_to_pq(vec3 e) {
+    e = clamp(e, 0.0, 1.0);
+    vec3 low = e * e / 3.0;
+    vec3 high = (exp((e - 0.55991073) / 0.17883277) + 0.28466892) / 12.0;
+    vec3 scene = mix(low, high, step(0.5, e));
+    float ys = dot(scene, vec3(0.2627, 0.6780, 0.0593));
+    vec3 display = scene * pow(max(ys, 1e-6), 0.2) * (1000.0 / 10000.0);
+    vec3 p = pow(max(display, vec3(0.0)), vec3(0.1593017578125));
+    return pow((0.8359375 + 18.8515625 * p) / (1.0 + 18.6875 * p), vec3(78.84375));
+}
 void main() {
     if (layout_mode == 0) { color = vec4(texture(ytex, uv).rgb, 1.0); return; }
     vec3 code;
@@ -61,6 +74,10 @@ void main() {
     else if (color_mode == 0) rgb = vec3(y + 1.402*c.y, y - 0.344136*c.x - 0.714136*c.y, y + 1.772*c.x);
     else rgb = vec3(y + 1.5748*c.y, y - 0.187324*c.x - 0.468124*c.y, y + 1.8556*c.x);
     if (color_mode == 2 || hlg != 0) {
+        if (hdr_output != 0) {
+            color = vec4(hlg != 0 ? hlg_to_pq(rgb) : clamp(rgb, 0.0, 1.0), 1.0);
+            return;
+        }
         vec3 light = hlg != 0 ? vec3(hlg_linear(rgb.r), hlg_linear(rgb.g), hlg_linear(rgb.b)) : pq(rgb);
         light *= 2.5;
         light = vec3(dot(light, vec3(1.6605, -0.5876, -0.0728)),
@@ -94,7 +111,7 @@ bool VideoGl::init() {
     glUseProgram(0);
     return true;
 }
-void VideoGl::clear() { valid_ = false; }
+void VideoGl::clear() { valid_ = false; source_hdr_ = false; }
 void VideoGl::release() {
     if (output_) glDeleteTextures(1, &output_);
     if (planes_[0] || planes_[1] || planes_[2]) glDeleteTextures(3, planes_);
@@ -103,14 +120,57 @@ void VideoGl::release() {
     if (program_) glDeleteProgram(program_);
     output_ = framebuffer_ = vao_ = program_ = 0;
     planes_[0] = planes_[1] = planes_[2] = 0;
-    width_ = height_ = 0; format_ = -1; valid_ = false;
+    width_ = height_ = 0; format_ = -1; valid_ = false; source_hdr_ = false;
+}
+
+void VideoGl::set_hdr_output(bool on) {
+    if (hdr_output_ == on) return;
+    hdr_output_ = on;
+    // The retained planes are converted again in the new mode, so the picture
+    // on screen matches the scan-out from this frame on.
+    if (valid_ && source_hdr_ && width_ > 0) {
+        GLint previous_fbo = 0;
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previous_fbo);
+        const bool ten_bit = format_ >= 0 && (format_ & 8) != 0;
+        if (ten_bit != on) {
+            glDeleteTextures(1, &output_); glGenTextures(1, &output_);
+            glBindTexture(GL_TEXTURE_2D, output_); texture_params();
+            glTexStorage2D(GL_TEXTURE_2D, 1, on ? GL_RGB10_A2 : GL_RGBA8, width_, height_);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output_, 0);
+            if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo)); valid_ = false; format_ = -1; return;
+            }
+            format_ = on ? (format_ | 8) : (format_ & ~8);
+            dlog("video: output texture now %s", on ? "10-bit PQ (HDR scan-out)" : "SDR");
+        }
+        valid_ = convert();
+        glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo)); glActiveTexture(GL_TEXTURE0);
+    }
+}
+
+// The conversion pass over the uploaded planes into the output texture; the
+// framebuffer binding is the caller's to restore.
+bool VideoGl::convert() {
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); glViewport(0, 0, width_, height_);
+    glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND); glDisable(GL_FRAMEBUFFER_SRGB);
+    glUseProgram(program_); glBindVertexArray(vao_);
+    auto uniform = [&](const char* name, int value) { glUniform1i(glGetUniformLocation(program_, name), value); };
+    uniform("layout_mode", layout_); uniform("wide", wide_); uniform("sample_shift", shift_);
+    uniform("full_range", full_range_); uniform("hlg", hlg_);
+    uniform("color_mode", color_mode_);
+    uniform("hdr_output", hdr_output_ && source_hdr_ ? 1 : 0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    return true;
 }
 
 bool VideoGl::upload(const Player::VideoFrame& f) {
     using Layout = Player::VideoFrame::Layout;
     if (!program_ || f.w <= 0 || f.h <= 0 || f.w > 8192 || f.h > 8192 || !f.data() || !f.size()) return false;
     const int layout = f.layout == Layout::Bgra ? 0 : f.layout == Layout::Nv12 ? 1 : 2;
-    const int format = layout + (f.wide ? 4 : 0);
+    const bool source_hdr = layout != 0 && (f.colors == YuvColors::Hdr10 || f.hlg);
+    const bool ten_bit = hdr_output_ && source_hdr;
+    const int format = layout + (f.wide ? 4 : 0) + (ten_bit ? 8 : 0);
     const int cw = (f.w + 1) / 2, ch = (f.h + 1) / 2;
     const int bytes = f.wide ? 2 : 1;
     const int count = layout == 0 ? 1 : layout == 1 ? 2 : 3;
@@ -135,14 +195,15 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
             glTexStorage2D(GL_TEXTURE_2D, 1, internal, i == 0 ? f.w : cw, i == 0 ? f.h : ch);
         }
         glBindTexture(GL_TEXTURE_2D, output_); texture_params();
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, f.w, f.h);
+        glTexStorage2D(GL_TEXTURE_2D, 1, ten_bit ? GL_RGB10_A2 : GL_RGBA8, f.w, f.h);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output_, 0);
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo)); valid_ = false; return false;
+            glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo)); valid_ = false; format_ = -1; return false;
         }
         width_ = f.w; height_ = f.h; format_ = format;
-        dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output SDR", f.w, f.h, layout, f.wide ? 10 : 8);
+        dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output %s", f.w, f.h, layout, f.wide ? 10 : 8,
+             ten_bit ? "10-bit PQ (HDR scan-out)" : "SDR");
     }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -155,16 +216,11 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
                        f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE, f.data() + f.offsets[i]);
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); glViewport(0, 0, f.w, f.h);
-    glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND); glDisable(GL_FRAMEBUFFER_SRGB);
-    glUseProgram(program_); glBindVertexArray(vao_);
-    auto uniform = [&](const char* name, int value) { glUniform1i(glGetUniformLocation(program_, name), value); };
-    uniform("layout_mode", layout); uniform("wide", f.wide); uniform("sample_shift", f.shift);
-    uniform("full_range", f.full_range); uniform("hlg", f.hlg);
-    uniform("color_mode", f.colors == YuvColors::Bt601 ? 0 : f.colors == YuvColors::Hdr10 ? 2 : 1);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    layout_ = layout; wide_ = f.wide; shift_ = f.shift; full_range_ = f.full_range; hlg_ = f.hlg;
+    color_mode_ = f.colors == YuvColors::Bt601 ? 0 : f.colors == YuvColors::Hdr10 ? 2 : 1;
+    source_hdr_ = source_hdr;
+    valid_ = convert();
     glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo)); glActiveTexture(GL_TEXTURE0);
-    valid_ = true;
     aspect_ = std::isfinite(f.display_aspect) && f.display_aspect > 0 ? f.display_aspect : double(f.w)/f.h;
-    return true;
+    return valid_;
 }

@@ -17,6 +17,23 @@
 - Stereo remains the default and the previous behaviour.
 - The playback statistics line names the audio route in use, and the log
   records the receiver's audio formats when a non-stereo output is chosen.
+- HDR output. While an HDR10 or HLG video plays on a display whose HDMI link
+  runs in HDR, the console's scan-out switches to 10-bit BT.2020 PQ and the
+  picture goes out as it is instead of being tone mapped to SDR; the
+  interface is composed on top at reference white. The scan-out returns to
+  SDR when the video ends. Settings → HDR output turns it off. The title now
+  declares HDR capability (param.json attribute 0x62000000), which the
+  console requires before it accepts the switch. The method is the one
+  Sp9nky's Stremio port, PS5MC and ProsperoLight use.
+- Dolby Vision. Profile 7 remuxes in MKV reach the hardware decoder as
+  Annex B, which bypassed the layer filter: the enhancement layer and RPU
+  units went to the decoder. They are now left out on that path too, so the
+  HDR10 base layer plays (profile 7 and 8). Profile 5, which has no HDR10
+  base layer, still shows wrong colours; the statistics line says which
+  profile was detected.
+- Diagnostics server. Settings → Diagnostics server publishes the app log
+  over plain HTTP on port 9029 (`/log`, `/log?follow=1`, `/events`,
+  `/status`) for testing from a computer on the same network. Off by default.
 
 Engine: the native player's libVLC audio output is now the `stremioaout`
 module in `src/player_vlc_aout.cpp`, with a `stremiopass` decoder that

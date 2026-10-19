@@ -169,6 +169,8 @@ void App::load_settings() {
         const double date_parts = jnum(j, "date_components", kAllDateComponents);
         settings_.date_components = std::isfinite(date_parts) ? int(std::clamp(date_parts, 0.0, double(kAllDateComponents))) : kAllDateComponents;
         settings_.controller_ambient_light = jbool(j, "controller_ambient_light", true);
+        settings_.hdr_output = jbool(j, "hdr_output", true);
+        settings_.diagnostics_server = jbool(j, "diagnostics_server", false);
 
 		const json& ex = jobj(j, "extra_addons");
 		if (ex.is_array())
@@ -249,6 +251,7 @@ void App::flush_settings(bool synchronous) {
         {"shoulder_seek_seconds", settings_.shoulder_seek_seconds},
         {"date_format", settings_.date_format}, {"date_components", settings_.date_components},
         {"controller_ambient_light", settings_.controller_ambient_light},
+        {"hdr_output", settings_.hdr_output}, {"diagnostics_server", settings_.diagnostics_server},
         {"subtitle_offset_ms", settings_.subtitle_offset_ms},
         {"display_output_mode", display_output_preference_name(settings_.display_resolution)},
         {"ui_language", settings_.ui_language}, {"ui_language_mode", settings_.ui_language_mode}

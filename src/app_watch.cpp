@@ -8,6 +8,7 @@
 #include <thread>
 
 #include "app.h"
+#include "hdr_out.h"
 #include "download_metadata.h"
 #include "http.h"
 #include "torrent/engine.h"
@@ -395,6 +396,7 @@ void App::watch_update() {
 			}
 			w_stats = player_.stats();
 			if (!w_stream_.name.empty()) w_stats = replace_all(w_stream_.name, "\n", " ") + " · " + w_stats;
+			if (hdr_out::wanted()) w_stats += std::string(" · HDR: ") + hdr_out::status();
 		}
 		dirty("w_progress");
 		dirty("w_time");

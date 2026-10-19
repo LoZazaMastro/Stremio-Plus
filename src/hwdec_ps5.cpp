@@ -443,13 +443,14 @@ unsigned hevc_ps_id(int type, const uint8_t* payload, int len) {
 }
 
 // Copies an HEVC access unit without what the decoder can't take: NAL types
-// 48-63 (Dolby Vision RPU / enhancement layer; the base layer plays) and a
+// 48-63 and any layer but the base one (Dolby Vision's RPU and the profile 7
+// enhancement layer; the HDR10 base layer plays) and a
 // parameter set that a later one in the same AU replaces (UHD Blu-ray remuxes
 // repeat theirs in-band; two different PPS 0 in one AU make the decoder
 // refuse the keyframe).
 int hevc_copy_base_layer(uint8_t* dst, const uint8_t* au, int size) {
 	const int kMaxNals = 512;
-	static thread_local int sc_at[kMaxNals], nal_at[kMaxNals], end_at[kMaxNals];
+	static thread_local int sc_at[kMaxNals], nal_at[kMaxNals], end_at[kMaxNals], layer_at[kMaxNals];
 	static thread_local uint32_t key[kMaxNals];
 	int count = 0, sc = -1, nal = -1;
 	for (int i = 0; i + 3 <= size; i++)
@@ -471,6 +472,7 @@ int hevc_copy_base_layer(uint8_t* dst, const uint8_t* au, int size) {
 				break;
 			}
 		int type = (au[nal] >> 1) & 0x3f;
+		layer_at[count] = nal + 1 < next_sc ? int(((au[nal] & 1u) << 5) | (au[nal + 1] >> 3)) : 0;
 		sc_at[count] = sc;
 		nal_at[count] = nal;
 		end_at[count] = next_sc;
@@ -492,7 +494,7 @@ int hevc_copy_base_layer(uint8_t* dst, const uint8_t* au, int size) {
 	int o = 0;
 	for (int k = 0; k < count; k++) {
 		int type = (au[nal_at[k]] >> 1) & 0x3f;
-		if (type >= 48) continue;
+		if (type >= 48 || layer_at[k] != 0) continue;  // Dolby Vision RPU and enhancement layer: the base layer plays
 		if (key[k]) {
 			bool replaced = false;
 			for (int m = k + 1; m < count && !replaced; m++) replaced = key[m] == key[k];

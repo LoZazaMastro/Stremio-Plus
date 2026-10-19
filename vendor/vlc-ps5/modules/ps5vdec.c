@@ -174,6 +174,7 @@ extern void vlc_ps5_split_plane16(uint8_t *dst_u, size_t u_pitch, uint8_t *dst_v
                                   unsigned rows) __attribute__((weak));
 extern void vlc_ps5_vdec_failed(void) __attribute__((weak));
 extern void vlc_ps5_vdec_active(int on) __attribute__((weak));
+extern void vlc_ps5_vdec_dolby_vision(unsigned flags) __attribute__((weak));
 
 #define PROT_CPU_RW 0x03
 #define PROT_GPU_RW 0x30
@@ -393,6 +394,7 @@ struct decoder_sys_t {
     bool format_set;
     uint32_t out_w, out_h, out_pitch_bytes;
     bool out_ten;
+    unsigned dv_seen, dv_reported;  /* Dolby Vision units met: 1 an RPU, 2 another layer */
 };
 
 static void pending_add(decoder_sys_t *sys, mtime_t t)
@@ -421,19 +423,54 @@ static mtime_t pending_take(decoder_sys_t *sys)
  * 63: its picture data and the enhancement layer of profile 7) and any other
  * layer than the base one. Left out, a Dolby Vision film plays as the HDR10
  * its base layer is (it refused profile 7 at the first enhancement unit). */
-static bool hevc_skip(const uint8_t *nal, size_t n)
+static bool hevc_skip(const uint8_t *nal, size_t n, unsigned *dv_seen)
 {
     if (n < 2)
         return true;
     unsigned type = (nal[0] >> 1) & 0x3f;
     unsigned layer = ((nal[0] & 1) << 5) | (nal[1] >> 3);
+    if (type == 62)
+        *dv_seen |= 1;
+    if (layer != 0)
+        *dv_seen |= 2;
     return type == 62 || type == 63 || layer != 0;
+}
+
+/* An Annex B HEVC access unit without those units (profile 7 remuxes in MKV
+ * arrive this way, enhancement layer included). Start codes are copied as
+ * they are, so the result is never longer than the input. */
+static size_t annexb_base_layer(uint8_t *dst, size_t room, const uint8_t *src, size_t size, unsigned *dv_seen)
+{
+    size_t out = 0, at = 0;
+    while (at + 3 <= size) {
+        size_t sc = at;
+        while (sc + 3 <= size && !(src[sc] == 0 && src[sc + 1] == 0 && src[sc + 2] == 1))
+            sc++;
+        if (sc + 3 > size)
+            break;
+        size_t nal = sc + 3, next = nal;
+        while (next + 3 <= size && !(src[next] == 0 && src[next + 1] == 0 && src[next + 2] == 1))
+            next++;
+        size_t end = next + 3 <= size ? next : size;
+        if (next + 3 <= size && end > nal && src[end - 1] == 0)
+            end--;   /* the leading zero of a 4-byte start code */
+        /* a 4-byte start code keeps its leading zero (a unit never ends in one) */
+        size_t start = sc > at && src[sc - 1] == 0 ? sc - 1 : sc;
+        if (!hevc_skip(src + nal, end - nal, dv_seen)) {
+            if (out + (end - start) > room)
+                break;
+            memcpy(dst + out, src + start, end - start);
+            out += end - start;
+        }
+        at = end;
+    }
+    return out;
 }
 
 /* Length-prefixed NAL units -> Annex B, into dst (room for 4 + size per
  * unit is enough: lengths of 1 to 4 bytes become 4-byte start codes). */
 static size_t to_annexb(uint8_t *dst, size_t room, const uint8_t *src, size_t size, uint8_t len_size,
-                        bool hevc)
+                        bool hevc, unsigned *dv_seen)
 {
     size_t out = 0;
     while (size >= len_size) {
@@ -444,7 +481,7 @@ static size_t to_annexb(uint8_t *dst, size_t room, const uint8_t *src, size_t si
         size -= len_size;
         if (n > size || out + 4 + n > room)
             break;
-        if (hevc && hevc_skip(src, n)) {
+        if (hevc && hevc_skip(src, n, dv_seen)) {
             src += n;
             size -= n;
             continue;
@@ -468,7 +505,9 @@ static void read_headers(decoder_t *dec, decoder_sys_t *sys)
         return;
     if (p[0] != 1) {   /* Annex B */
         sys->headers = malloc(n);
-        if (sys->headers) {
+        if (sys->headers && sys->codec == VDEC_CODEC_HEVC) {
+            sys->headers_size = annexb_base_layer(sys->headers, n, p, n, &sys->dv_seen);
+        } else if (sys->headers) {
             memcpy(sys->headers, p, n);
             sys->headers_size = n;
         }
@@ -820,7 +859,9 @@ static int Decode(decoder_t *dec, block_t *block)
     }
     if (sys->nal_length && !(block->i_buffer >= 4 && !memcmp(block->p_buffer, "\x00\x00\x00\x01", 4))) {
         size += to_annexb(au + size, slot->len - size, block->p_buffer, block->i_buffer, sys->nal_length,
-                          sys->codec == VDEC_CODEC_HEVC);
+                          sys->codec == VDEC_CODEC_HEVC, &sys->dv_seen);
+    } else if (sys->codec == VDEC_CODEC_HEVC && size + block->i_buffer <= slot->len) {
+        size += annexb_base_layer(au + size, slot->len - size, block->p_buffer, block->i_buffer, &sys->dv_seen);
     } else if (size + block->i_buffer <= slot->len) {
         memcpy(au + size, block->p_buffer, block->i_buffer);
         size += block->i_buffer;
@@ -832,6 +873,13 @@ static int Decode(decoder_t *dec, block_t *block)
     }
     mtime_t pts = block->i_pts != VLC_TS_INVALID ? block->i_pts : block->i_dts;
     block_Release(block);
+    if (sys->dv_seen != sys->dv_reported) {
+        sys->dv_reported = sys->dv_seen;
+        VLOG("Dolby Vision units left out: %s%s\n", (sys->dv_seen & 1) ? "RPU " : "",
+             (sys->dv_seen & 2) ? "enhancement layer" : "");
+        if (vlc_ps5_vdec_dolby_vision)
+            vlc_ps5_vdec_dolby_vision(sys->dv_seen);
+    }
 
     /* After a seek or a stream error: nothing until a keyframe. VLC's MKV
      * reader marks them, its MP4 reader doesn't (console run 9: every jump
