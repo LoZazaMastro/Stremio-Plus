@@ -36,11 +36,15 @@ public:
 		int stream = -1;
 		std::string label, lang;
 	};
+	// PS5 HDMI audio: stereo PCM (the previous behaviour), 5.1 / 7.1 PCM, or the
+	// original Dolby / DTS bitstream for the receiver to decode.
+	enum class AudioOutput { Stereo = 0, Surround = 1, Passthrough = 2 };
 	struct Options {
 		std::string url;
 		std::vector<std::string> headers;
 		double start = 0;
 		std::vector<std::string> audio_langs;  // preferred, ISO 639-2
+		AudioOutput audio_output = AudioOutput::Stereo;
 		// A direct link (not the streaming server): a big file may be
 		// downloaded over several connections (netstream.h).
 		bool parallel = false;

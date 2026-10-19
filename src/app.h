@@ -124,6 +124,7 @@ struct Settings {
 	std::string sub_color = "white", sub_effect = "shadow", sub_font = "sans";
 	int sub_background_opacity = 70;
 	std::string audio_langs = "ita, eng";
+	std::string audio_output = "stereo";  // stereo, surround, passthrough (PS5 HDMI)
 	bool autoplay_next = true;
 	int next_episode_delay_seconds = 15;
 	bool reduced_motion = false, ui_sounds = true, high_contrast = false, show_stats = false;

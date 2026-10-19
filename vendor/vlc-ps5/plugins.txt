@@ -122,6 +122,9 @@ remap
 float_mixer
 integer_mixer
 equalizer
+# IEC 61937 framing for the HDMI bitstream output (src/player_vlc_aout.cpp):
+# Dolby Digital, Dolby Digital Plus, DTS, DTS-HD and Dolby TrueHD (MAT)
+tospdif
 
 # outputs (the app draws and plays through libvlc callbacks)
 vmem

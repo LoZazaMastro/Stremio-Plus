@@ -17,7 +17,7 @@ namespace {
 enum Row {
     Account, Language, DateComponents, DateFormat, TorrentSpeed, DownloadDirectory, SubLangs, AutoSubs, SubSize,
     SubBackground, SubColor, SubEffect, SubFont, SubDelay,
-    AudioLangs, Autoplay, NextEpisodeDelay, SeekStep, ShoulderSeekStep, Resolution, ReducedMotion, Contrast,
+    AudioLangs, AudioOutput, Autoplay, NextEpisodeDelay, SeekStep, ShoulderSeekStep, Resolution, ReducedMotion, Contrast,
     ControllerLight, Sounds, Volume, Statistics, Addons, Reload, Exit, Count
 };
 
@@ -186,6 +186,11 @@ void App::settings_refresh() {
         t("Le lingue selezionate sono preferite nell'ordine di scelta. Senza selezioni viene usata la traccia predefinita.",
           "Selected languages are preferred in the order you choose them. No selection uses the default track."),
         language_summary(settings_.audio_langs, italian)).kind = "checklist";
+    row(AudioOutput, "audio_output", t("Uscita audio", "Audio output"),
+        t("Passthrough invia Dolby Digital, Dolby Digital Plus, DTS, DTS-HD e Dolby TrueHD (Atmos compreso) al ricevitore HDMI senza modifiche; gli altri formati escono come PCM 5.1 / 7.1. Surround decodifica tutto in PCM 5.1 / 7.1. Stereo è il comportamento precedente.",
+          "Passthrough sends Dolby Digital, Dolby Digital Plus, DTS, DTS-HD and Dolby TrueHD (Atmos included) to the HDMI receiver untouched; other formats play as 5.1 / 7.1 PCM. Surround decodes everything to 5.1 / 7.1 PCM. Stereo is the previous behaviour."));
+    choice(AudioOutput, {"Stereo", "Surround (PCM 5.1 / 7.1)", "Passthrough (bitstream)"},
+        settings_.audio_output == "passthrough" ? 2 : settings_.audio_output == "surround" ? 1 : 0);
     row(Autoplay, "autoplay_next", t("Prossimo episodio automatico", "Autoplay next episode"),
         t("Mostra il prossimo episodio al termine del video, con un conto alla rovescia.",
           "Show the next episode when a video ends, with a countdown.")); toggle(Autoplay, settings_.autoplay_next);
@@ -243,6 +248,7 @@ void App::set_setting_value(int row, float value) {
     case SubFont: { const char* values[] = {"sans", "serif", "mono"}; settings_.sub_font = values[std::clamp(n, 0, 2)]; break; }
     case SubDelay: settings_.subtitle_offset_ms = std::clamp(n, -10000, 10000); w_sub_delay_ = settings_.subtitle_offset_ms / 1000.0; break;
     case Autoplay: settings_.autoplay_next = n != 0; break;
+    case AudioOutput: { const char* values[] = {"stereo", "surround", "passthrough"}; settings_.audio_output = values[std::clamp(n, 0, 2)]; break; }
     case NextEpisodeDelay: settings_.next_episode_delay_seconds = next_episode_delays[std::clamp(n, 0, 5)]; break;
     case SeekStep: settings_.seek_seconds = std::clamp(n, 5, 60); break;
     case ShoulderSeekStep: settings_.shoulder_seek_seconds = std::clamp(n, 5, 300); break;

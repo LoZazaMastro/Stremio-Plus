@@ -50,6 +50,7 @@ if(STREMIO_USE_LIBVLC)
     list(REMOVE_ITEM STREMIO_SOURCES src/player.cpp)
     list(APPEND STREMIO_SOURCES src/player_vlc.cpp src/player_vlc_http.cpp src/player_vlc_subtitles.cpp
         src/player_vlc_copy.cpp
+        src/player_vlc_aout.cpp src/player_vlc_passthrough.cpp src/ps5_audio_sink.cpp
         "${STREMIO_VLC_STATIC}/static_modules.c")
     if(PS5)
         list(APPEND STREMIO_SOURCES vendor/vlc-ps5/modules/ps5vdec.c

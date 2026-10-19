@@ -142,6 +142,7 @@ void App::load_settings() {
 		settings_.sub_font = known("subtitle_font", "sans", {"sans", "serif", "mono"});
 		settings_.sub_background_opacity = std::clamp(int(jnum(j, "subtitle_background_opacity", 70)), 0, 100);
 		settings_.audio_langs = jstr(j, "audio_languages", settings_.audio_langs);
+		settings_.audio_output = known("audio_output", "stereo", {"stereo", "surround", "passthrough"});
 		settings_.autoplay_next = jbool(j, "autoplay_next", settings_.autoplay_next);
 		const double next_delay = jnum(j, "next_episode_delay_seconds", 15);
 		settings_.next_episode_delay_seconds = std::isfinite(next_delay) ?
@@ -236,6 +237,7 @@ void App::flush_settings(bool synchronous) {
         {"torrent_speed_profile", settings_.torrent_speed_profile},
         {"subtitle_languages", settings_.subtitle_langs}, {"auto_subtitles", settings_.auto_subtitles},
         {"subtitle_size", settings_.sub_size}, {"audio_languages", settings_.audio_langs},
+        {"audio_output", settings_.audio_output},
         {"subtitle_color", settings_.sub_color}, {"subtitle_effect", settings_.sub_effect},
         {"subtitle_font", settings_.sub_font}, {"subtitle_background_opacity", settings_.sub_background_opacity},
         {"autoplay_next", settings_.autoplay_next}, {"extra_addons", settings_.extra_addons},

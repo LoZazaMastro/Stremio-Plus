@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+- Audio passthrough. Settings → Audio output → Passthrough sends Dolby
+  Digital, Dolby Digital Plus (Atmos included), DTS, DTS-HD and Dolby TrueHD
+  (Atmos included) to the HDMI receiver as the original bitstream, so the
+  receiver decodes them. The console's HDMI output switches to the format
+  for the duration of the track and returns to PCM afterwards, following the
+  call sequence documented by sainsaji's PS5-Audio-Passthrough-Research.
+  VLC's own `tospdif` converter builds the IEC 61937 bursts (MAT for TrueHD).
+  Formats the receiver's EDID does not list are decoded instead.
+- Surround PCM. Settings → Audio output → Surround decodes every track and
+  sends 5.1 / 7.1 Linear PCM to the console's 8-channel port. Passthrough
+  uses the same route for formats it cannot bitstream (FLAC, AAC, Opus, or a
+  codec the receiver lacks). Stereo tracks keep the stereo path.
+- Stereo remains the default and the previous behaviour.
+- The playback statistics line names the audio route in use, and the log
+  records the receiver's audio formats when a non-stereo output is chosen.
+
+Engine: the native player's libVLC audio output is now the `stremioaout`
+module in `src/player_vlc_aout.cpp`, with a `stremiopass` decoder that
+hands compressed frames through; the VLC plugin list gains `tospdif`. Run
+`./build.sh deps` once so the static module table includes them.
+
 ## 0.5.11 - 2026-10-18
 
 This release includes the playback, download and torrent improvements

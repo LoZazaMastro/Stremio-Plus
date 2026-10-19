@@ -44,6 +44,16 @@ PS5 modules supply hardware decoding for supported H.264, HEVC, and 8-bit
 VP9 profile 0 streams. FFmpeg 8.1.2 and dav1d provide software decoding for
 other supported formats.
 The app follows the PS5's output resolution, with 1080p, 1440p, and 4K options.
+
+**Audio to your receiver.** Settings → Audio output chooses how sound leaves
+the console. *Stereo* decodes to two channels, as before. *Surround* decodes
+every track to 5.1 / 7.1 Linear PCM on the console's 8-channel port.
+*Passthrough* sends Dolby Digital, Dolby Digital Plus, DTS, DTS-HD and Dolby
+TrueHD, Atmos and DTS:X included, to the HDMI receiver as the original
+bitstream so the receiver decodes them; the console's HDMI output switches to
+the format for the track and returns to PCM afterwards. Formats the receiver
+does not list in its EDID, and tracks in FLAC, AAC or Opus, play as
+multichannel PCM. The route in use appears in the playback statistics.
 Compatibility depends on the stream's profile and container. The OpenGL
 presentation path outputs SDR, with HDR10 sources tone-mapped for display.
 Playback controls appear when the first video frame reaches the GPU. If audio

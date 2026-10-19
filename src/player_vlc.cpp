@@ -7,6 +7,8 @@
 #include "player.h"
 #include "player_vlc_audio.h"
 #include "player_vlc_bridge.h"
+#include "player_vlc_passthrough.h"
+#include "ps5_audio_sink.h"
 #include "growing_file_stream.h"
 #include "torrent/torrent_stream.h"
 #include "stremio.h"
@@ -227,6 +229,9 @@ struct Player::Vlc {
     bool audio_paused = false;
     int64_t audio_pause_stamp = 0;
     float audio_gain = 1;
+    ps5audio::Sink sink;  // what the HDMI receiver can decode (PS5)
+    mutable std::mutex route_mutex;
+    std::string audio_route;  // "Dolby TrueHD passthrough to ...", "5.1 PCM", or empty for stereo
 
     mutable std::mutex subtitle_mutex;
     std::map<int, std::vector<Cue>> subtitles;
@@ -529,6 +534,17 @@ struct Player::Vlc {
         std::lock_guard lock(self.audio_mutex);
         self.audio_gain = mute ? 0.0f : std::clamp(volume, 0.0f, 4.0f);
     }
+    // The output module reports the route it took for the current track.
+    static void audio_note(void* opaque, const char* text) {
+        auto& self = *static_cast<Vlc*>(opaque);
+        if (text && *text) dlog("player/vlc: audio: %s", text);
+        std::lock_guard lock(self.route_mutex);
+        self.audio_route = text ? text : "";
+    }
+    // Frames (at 48 kHz) the console ports actually sent; the SDL route counts its own.
+    static void audio_played(void* opaque, unsigned frames) {
+        static_cast<Vlc*>(opaque)->rendered_audio_frames.fetch_add(frames, std::memory_order_relaxed);
+    }
 
     static bool subtitle(void* opaque, int stream, subpicture_t* picture) {
         auto& self = *static_cast<Vlc*>(opaque);
@@ -626,6 +642,7 @@ struct Player::Vlc {
         const int active_audio = libvlc_audio_get_track(player);
         parent.audio_stream_ = active_audio;
         for (const auto& track : audio_list) if (track.stream == active_audio) { codecs.push_back(track.label); break; }
+        { std::lock_guard lock(route_mutex); if (!audio_route.empty()) codecs.push_back(audio_route); }
         const libvlc_time_t length = libvlc_media_player_get_length(player);
         if (length > 0) parent.duration_ = double(length) / 1000;
         libvlc_media_stats_t stats{};
@@ -754,7 +771,7 @@ struct Player::Vlc {
     void run() {
         const char* arguments[] = {
             "--ignore-config", "--no-video-title-show", "--no-sub-autodetect-file", "--stats",
-            "--aout=adummy",
+            "--aout=stremioaout",
 #ifdef PLATFORM_PS5_NATIVE
             // Frame threading adds two retained VLC pictures per worker.
             // Bound the software fallback within the native memory budget;
@@ -785,9 +802,25 @@ struct Player::Vlc {
             var_SetBool(object, "stremio-input-direct", input.options.growing_download != nullptr);
             libvlc_video_set_callbacks(player, video_lock, video_unlock, video_display, this);
             libvlc_video_set_format_callbacks(player, video_setup, video_cleanup);
-            libvlc_audio_set_callbacks(player, audio_play, audio_pause, audio_resume, audio_flush, audio_drain, this);
-            libvlc_audio_set_volume_callback(player, audio_volume);
-            libvlc_audio_set_format(player, "S16N", VlcAudioTimeline::rate, VlcAudioTimeline::channels);
+            // Audio goes through the Stremio output module (player_vlc_aout.cpp):
+            // stereo PCM to the SDL device below, or the console's 8-channel PCM
+            // and HDMI bitstream ports, as Settings -> Audio output asks.
+            if (input.options.audio_output != Player::AudioOutput::Stereo) {
+                sink = ps5audio::query_sink();
+                dlog("player/vlc: %s", sink.summary().c_str());
+            }
+            variable(stremio_audio::kVarOpaque, this);
+            variable(stremio_audio::kVarPlay, reinterpret_cast<void*>(&audio_play));
+            variable(stremio_audio::kVarPause, reinterpret_cast<void*>(&audio_pause));
+            variable(stremio_audio::kVarResume, reinterpret_cast<void*>(&audio_resume));
+            variable(stremio_audio::kVarFlush, reinterpret_cast<void*>(&audio_flush));
+            variable(stremio_audio::kVarDrain, reinterpret_cast<void*>(&audio_drain));
+            variable(stremio_audio::kVarVolume, reinterpret_cast<void*>(&audio_volume));
+            variable(stremio_audio::kVarNote, reinterpret_cast<void*>(&audio_note));
+            variable(stremio_audio::kVarPlayed, reinterpret_cast<void*>(&audio_played));
+            variable(stremio_audio::kVarSink, &sink);
+            var_Create(object, stremio_audio::kVarMode, VLC_VAR_INTEGER);
+            var_SetInteger(object, stremio_audio::kVarMode, int(input.options.audio_output));
             SDL_AudioSpec wanted{}, obtained{};
             wanted.freq = int(VlcAudioTimeline::rate); wanted.format = AUDIO_S16SYS; wanted.channels = 2;
             wanted.samples = 1024; wanted.callback = audio_output; wanted.userdata = this;
@@ -896,6 +929,7 @@ struct Player::Vlc {
         if (media) { libvlc_media_release(media); media = nullptr; }
         if (instance) { libvlc_log_unset(instance); libvlc_release(instance); instance = nullptr; }
         if (device) { SDL_CloseAudioDevice(device); device = 0; }
+        ps5audio::Port::restore_hdmi();  // only acts if a bitstream port was left open
     }
 
     void stop() {

@@ -118,6 +118,8 @@ void App::watch_start(const std::string& url, const std::vector<std::string>& he
 	o.headers = headers;
 	o.start = start;
 	o.audio_langs = pref_audio_langs();
+	o.audio_output = settings_.audio_output == "passthrough" ? Player::AudioOutput::Passthrough
+	    : settings_.audio_output == "surround" ? Player::AudioOutput::Surround : Player::AudioOutput::Stereo;
 	o.growing_download = w_growing_download_;
 	o.progressive_resume_limit = w_growing_download_ ? start : 0;
 	if (before_playback) before_playback();
