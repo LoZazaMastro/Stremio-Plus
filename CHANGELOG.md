@@ -31,6 +31,10 @@
   HDR10 base layer plays (profile 7 and 8). Profile 5, which has no HDR10
   base layer, still shows wrong colours; the statistics line says which
   profile was detected.
+- Build: `vendor/vlc-ps5/configure-vlc.sh` records each applied VLC patch in a
+  stamp file. Its forward dry-run check let patch 0018 apply a second time
+  when `build.sh deps` and `build.sh ps5` both ran the VLC setup, which
+  broke `src/input/decoder.c` with duplicate definitions.
 - Diagnostics server. Settings → Diagnostics server publishes the app log
   over plain HTTP on port 9029 (`/log`, `/log?follow=1`, `/events`,
   `/status`) for testing from a computer on the same network. Off by default.

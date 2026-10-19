@@ -47,12 +47,23 @@ ps5)
     ;;
 esac
 
-# VLC-PS5's own changes to VLC (patches/), applied once.
+# VLC-PS5's own changes to VLC (patches/), applied once. A stamp per patch
+# records the application: a forward dry-run is not proof that a patch is
+# new (0018 inserts a block whose context survives, so it applied twice when
+# `build.sh deps` and `build.sh ps5` each ran this script), while a reverse
+# dry-run that succeeds proves it is already in.
+stamps=$vlc/.vlc-ps5-patches
+mkdir -p "$stamps"
 for p in "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"/patches/*.patch; do
-    if patch -d "$vlc" -p1 -s -N --dry-run < "$p" >/dev/null 2>&1; then
+    name=$(basename "$p")
+    [[ -f $stamps/$name ]] && continue
+    if patch -d "$vlc" -p1 -s -R --dry-run < "$p" >/dev/null 2>&1; then
+        touch "$stamps/$name"   # applied by an earlier run, before the stamps existed
+    elif patch -d "$vlc" -p1 -s -N --dry-run < "$p" >/dev/null 2>&1; then
         patch -d "$vlc" -p1 -s -N < "$p"
-        echo "applied $(basename "$p")"
-    elif ! patch -d "$vlc" -p1 -s -R --dry-run < "$p" >/dev/null 2>&1; then
+        echo "applied $name"
+        touch "$stamps/$name"
+    else
         echo "Patch does not match VLC 3.0.24: $p" >&2
         exit 2
     fi
