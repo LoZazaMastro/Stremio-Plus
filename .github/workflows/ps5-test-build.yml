@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ps5-private-test-build
+  group: ps5-test-build
   cancel-in-progress: false
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 90
     env:
       SOURCE_COMMIT: 4fb91cc39ca4eed0e63a45f140c3296c8e21d2c3
-      BUILD_JOBS: '2'
+      BUILD_JOBS: '4'
       CMAKE_GENERATOR: Unix Makefiles
       CC: clang-18
       CXX: clang++-18
@@ -38,6 +38,16 @@ jobs:
           git -C source checkout --detach FETCH_HEAD
           test "$(git -C source rev-parse HEAD)" = "$SOURCE_COMMIT"
 
+      - name: Restore verified build intermediates
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            source/.deps
+            source/build
+          key: ps5-test-ubuntu24-clang18-v1-${{ env.SOURCE_COMMIT }}-${{ github.run_id }}
+          restore-keys: |
+            ps5-test-ubuntu24-clang18-v1-${{ env.SOURCE_COMMIT }}-
+
       - name: Install build prerequisites
         run: |
           set -euo pipefail
@@ -48,6 +58,36 @@ jobs:
             libsdl2-dev libfreetype-dev libcurl4-openssl-dev libssl-dev zlib1g-dev \
             libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libswresample-dev \
             libwebp-dev libfribidi-dev libegl-dev libgl-dev libgl1-mesa-dri ffmpeg
+
+      - name: Recover exact pinned dependencies from archival mirrors
+        working-directory: source
+        run: |
+          set -euo pipefail
+          mkdir -p .deps/downloads
+          archive=.deps/downloads/ps5-opengl-sdk-1.0.0.tar.gz
+          hash=f93643c04c843d56143b00951df1f8042ea7706ae9f19e4e9abf158e1ead77c5
+          if ! printf '%s  %s\n' "$hash" "$archive" | sha256sum --check --status 2>/dev/null; then
+            curl -fL --retry 3 --connect-timeout 20 --max-time 300 \
+              https://github.com/MyLuxy/overdrive-deps/releases/download/ps5-opengl-v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz \
+              -o "$archive.part"
+            printf '%s  %s\n' "$hash" "$archive.part" | sha256sum --check --strict
+            mv "$archive.part" "$archive"
+          fi
+          printf '%s  %s\n' "$hash" "$archive" | sha256sum --check --strict
+          bp=.deps/ps5-native-app-boilerplate
+          revision=f98de734b68b0b980d38ff03a330066afd6ae16d
+          if [[ ! -d "$bp/.git" ]]; then
+            mkdir -p "$bp"
+            git -C "$bp" init
+            git -C "$bp" remote add origin https://github.com/Phononenom/ps5-native-app-boilerplate.git
+            git -C "$bp" fetch --depth=1 origin "$revision"
+            git -C "$bp" checkout --detach FETCH_HEAD
+          fi
+          test "$(git -C "$bp" rev-parse HEAD)" = "$revision"
+          git -C "$bp" diff --quiet
+          printf 'OpenGL archive SHA-256: %s\nBoilerplate commit: %s\nNo dependency versions or verification gates were changed.\n' \
+            "$hash" "$revision" | tee ../logs/dependency-recovery.txt
+          df -h .
 
       - name: Identify this as a test build, not the published binary
         working-directory: source
@@ -90,11 +130,14 @@ jobs:
           bash build.sh desktop 2>&1 | tee ../logs/host-build.txt
           python3 tests/run_account_tests.py build/desktop 2>&1 | tee ../logs/account-integration.txt
 
-      - name: Compile and package the native PS5 application
+      - name: Compile and package the native PS5 application ZIP
         working-directory: source
         run: |
           set -euo pipefail
-          bash build.sh ps5 2>&1 | tee ../logs/ps5-build.txt
+          bash tools/setup-toolchain.sh 2>&1 | tee ../logs/native-toolchain.txt
+          bash tools/setup-vlc.sh 2>&1 | tee ../logs/native-vlc.txt
+          bash native/build.sh PPSA74126 'Stremio Plus' 2>&1 | tee ../logs/ps5-build.txt
+          python3 tools/build-receipt.py --verify "$PWD" "$PWD/dist/PPSA74126"
 
       - name: Verify the ZIP and record its identity
         working-directory: source
@@ -113,7 +156,7 @@ jobs:
               files = [i for i in z.infolist() if not i.is_dir()]
               actual = {i.filename for i in files}
               expected = {'PPSA74126/' + p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file()}
-              assert actual == expected, 'Archive does not match packaged application directory'
+              assert actual == expected and len(files) == len(expected), 'Archive file set mismatch'
               for info in files:
                   path = PurePosixPath(info.filename)
                   assert not path.is_absolute() and '..' not in path.parts
@@ -147,7 +190,7 @@ jobs:
           (output / 'PACKAGE-IDENTITY.json').write_text(json.dumps(record, indent=2) + '\n')
           print(json.dumps(record, indent=2))
           PY
-          cp ../logs/test-build-version.patch ../test-delivery/
+          cp ../logs/test-build-version.patch ../logs/dependency-recovery.txt ../test-delivery/
 
       - name: Upload the test package (not a GitHub Release)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -158,6 +201,12 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+      - name: Preserve dependency compiler logs
+        if: always()
+        run: |
+          mkdir -p logs/dependencies
+          if [[ -d source/.deps/vlc/logs ]]; then cp -a source/.deps/vlc/logs/. logs/dependencies/; fi
+
       - name: Preserve build and test logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -166,3 +215,12 @@ jobs:
           path: logs/
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Save verified build intermediates for retries
+        if: always()
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            source/.deps
+            source/build
+          key: ps5-test-ubuntu24-clang18-v1-${{ env.SOURCE_COMMIT }}-${{ github.run_id }}
