@@ -1,0 +1,168 @@
+name: PS5 test package (no release)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ps5-test-build.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ps5-private-test-build
+  cancel-in-progress: false
+
+jobs:
+  test-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      SOURCE_COMMIT: 4fb91cc39ca4eed0e63a45f140c3296c8e21d2c3
+      BUILD_JOBS: '2'
+      CMAKE_GENERATOR: Unix Makefiles
+      CC: clang-18
+      CXX: clang++-18
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Fetch the isolated source snapshot
+        run: |
+          set -euo pipefail
+          mkdir source logs
+          git -C source init
+          git -C source remote add origin https://github.com/LoZazaMastro/Stremio-Plus.git
+          git -C source fetch --depth=1 origin "$SOURCE_COMMIT"
+          git -C source checkout --detach FETCH_HEAD
+          test "$(git -C source rev-parse HEAD)" = "$SOURCE_COMMIT"
+
+      - name: Install build prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang-18 lld-18 llvm-18 libclang-rt-18-dev ccache \
+            cmake ninja-build meson pkg-config git curl wget zip unzip python3-venv \
+            autoconf automake libtool gettext autopoint bison flex patch xz-utils \
+            libsdl2-dev libfreetype-dev libcurl4-openssl-dev libssl-dev zlib1g-dev \
+            libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libswresample-dev \
+            libwebp-dev libfribidi-dev libegl-dev libgl-dev libgl1-mesa-dri ffmpeg
+
+      - name: Identify this as a test build, not the published binary
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          cmake = Path('CMakeLists.txt')
+          original = cmake.read_text()
+          old = 'project(stremio-ps5 VERSION 0.5.18 LANGUAGES C CXX)'
+          assert original.count(old) == 1, 'Unexpected source version; do not relabel unknown source'
+          cmake.write_text(original.replace(old, 'project(stremio-ps5 VERSION 0.5.19 LANGUAGES C CXX)'))
+          manifest = Path('app/sce_sys/param.json')
+          data = json.loads(manifest.read_text())
+          assert data['titleId'] == 'PPSA74126'
+          assert data['contentVersion'] == '00.068.000'
+          assert data['downloadDataSize'] == 0
+          data['contentVersion'] = '00.069.000'
+          data['creationDate'] = '2026-10-23'
+          manifest.write_text(json.dumps(data, indent=2) + '\n')
+          PY
+          git diff --check
+          git diff -- CMakeLists.txt app/sce_sys/param.json > ../logs/test-build-version.patch
+          mkdir -p .deps/vlc/dl
+          cp source-archives/nasm-2.16.03.tar.xz source-archives/freetype-2.13.3.tar.xz .deps/vlc/dl/
+
+      - name: Test credential-selection policy
+        working-directory: source
+        run: |
+          set -euo pipefail
+          clang++-18 -std=c++20 -Wall -Wextra -Wpedantic -fsanitize=address,undefined -g -Isrc \
+            tests/test_account_link_session.cpp -o ../account-link-test
+          ../account-link-test 2>&1 | tee ../logs/account-link-test.txt
+
+      - name: Build the host app and test account integration
+        working-directory: source
+        run: |
+          set -euo pipefail
+          bash build.sh desktop 2>&1 | tee ../logs/host-build.txt
+          python3 tests/run_account_tests.py build/desktop 2>&1 | tee ../logs/account-integration.txt
+
+      - name: Compile and package the native PS5 application
+        working-directory: source
+        run: |
+          set -euo pipefail
+          bash build.sh ps5 2>&1 | tee ../logs/ps5-build.txt
+
+      - name: Verify the ZIP and record its identity
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, stat, zipfile
+          from pathlib import Path, PurePosixPath
+          root = Path('dist/PPSA74126')
+          archive = Path('dist/PPSA74126.zip')
+          assert archive.is_file() and archive.stat().st_size > 0
+          def digest(data):
+              return hashlib.sha256(data).hexdigest()
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None, 'ZIP CRC failure'
+              files = [i for i in z.infolist() if not i.is_dir()]
+              actual = {i.filename for i in files}
+              expected = {'PPSA74126/' + p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file()}
+              assert actual == expected, 'Archive does not match packaged application directory'
+              for info in files:
+                  path = PurePosixPath(info.filename)
+                  assert not path.is_absolute() and '..' not in path.parts
+                  disk = Path('dist').joinpath(*path.parts)
+                  assert digest(z.read(info)) == digest(disk.read_bytes()), 'Archive content mismatch: ' + info.filename
+                  assert stat.S_IMODE(info.external_attr >> 16) == stat.S_IMODE(disk.stat().st_mode), 'Archive permissions mismatch: ' + info.filename
+              params = json.loads(z.read('PPSA74126/sce_sys/param.json'))
+              assert params['titleId'] == 'PPSA74126' and params['contentVersion'] == '00.069.000'
+              assert params['downloadDataSize'] == 0
+              assert z.getinfo('PPSA74126/eboot.bin').file_size > 0
+          output = Path('../test-delivery')
+          output.mkdir(exist_ok=True)
+          binary = archive.read_bytes()
+          (output / 'PPSA74126.zip').write_bytes(binary)
+          (output / 'SHA256SUMS.txt').write_text(digest(binary) + '  PPSA74126.zip\n')
+          (output / 'TEST-BUILD.txt').write_text(
+              'Stremio Plus 0.5.19 TEST BUILD\nTitle ID: PPSA74126\nContent version: 00.069.000\n'
+              'Source snapshot: ' + os.environ['SOURCE_COMMIT'] + '\n'
+              'Only version metadata is changed by this workflow. See test-build-version.patch.\n'
+              'Scope: device-code login session exchange and immediate credential persistence.\n'
+              'Initial Home loading, right-stick media volume and firmware 12.7 microstutter are NOT fixed by this snapshot.\n'
+              'No release, tag, catalog change or ProsperoStore submission is made.\n'
+              'Host tests and native packaging do not establish PS5 runtime stability.\n'
+              'Close the app before replacing its installation. Keep /data/Stremio and downloaded videos.\n'
+              'The corrected login flow requires a fresh sign-in. Test phone-browser logout, account refresh and app restart.\n'
+          )
+          record = {'source_commit': os.environ['SOURCE_COMMIT'], 'app_version': '0.5.19',
+                    'title_id': 'PPSA74126', 'content_version': '00.069.000',
+                    'archive_sha256': digest(binary), 'archive_bytes': len(binary),
+                    'archive_file_count': len(files), 'ps5_runtime_tested': False}
+          (output / 'PACKAGE-IDENTITY.json').write_text(json.dumps(record, indent=2) + '\n')
+          print(json.dumps(record, indent=2))
+          PY
+          cp ../logs/test-build-version.patch ../test-delivery/
+
+      - name: Upload the test package (not a GitHub Release)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Stremio-Plus-0.5.19-TEST-PPSA74126
+          path: test-delivery/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Preserve build and test logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Stremio-Plus-test-build-logs
+          path: logs/
+          if-no-files-found: ignore
+          retention-days: 14
