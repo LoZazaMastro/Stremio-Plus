@@ -99,7 +99,18 @@ int main(int argc, char** argv) {
                              {"display_refresh", {{"preference", 2}, {"available", true}, {"active", true}, {"refresh_code", 13}}},
                              {"video_processing", {{"upscaler", "fsr1"}, {"smoothing", "hdr_input"},
                                   {"source_fps", 23.976}, {"dolby_vision_reshape", true},
-                                  {"audio_output", "active_eac3"}, {"token", "nested-secret"}}}});
+                                  {"accepted_frame_fps", 22.3}, {"upload_path", "rectangle-planes"},
+                                  {"audio_output", "active_eac3"}, {"token", "nested-secret"}}},
+                             {"video_frame_accepted", true},
+                             {"presentation_timing", {{"scope", "CPU timing, not physical scanout"},
+                                  {"histogram_upper_ms", json::array({8.4, 17.5, 25.0, 34.0, 50.0, 100.0})},
+                                  {"plane_transfer", {{"samples", 750}, {"mean_ms", 2.5}, {"max_ms", 4.0},
+                                       {"histogram", json::array({750, 0, 0, 0, 0, 0, 0})}, {"token", "nested-secret"}}},
+                                  {"conversion_submit", {{"samples", 750}, {"mean_ms", .2}}},
+                                  {"loop", {{"histogram", json::array({"nested-secret"})}}},
+                                  {"allocation", {{"histogram", json::array({1, 2, 3, 4, 5, 6, 7, 8, 9})}}},
+                                  {"upload", {{"histogram", json::array({-1, 2})}}},
+                                  {"private_array", json::array({"nested-secret"})}}}});
     for (const auto& pair : cases) dlog("%s", pair.first);
     ffmpeg_event(8, "Fatal codec test https://addon.test/fatal-private-value/manifest.json");
     const auto fatal = contents(root + "/Stremio/log.txt");
@@ -121,6 +132,20 @@ int main(int argc, char** argv) {
     assert(runtime_json["runtime"]["video_processing"]["smoothing"] == "hdr_input");
     assert(runtime_json["runtime"]["video_processing"]["audio_output"] == "active_eac3");
     assert(runtime_json["runtime"]["video_processing"]["dolby_vision_reshape"] == true);
+    assert(runtime_json["runtime"]["video_processing"]["source_fps"] == 23.976);
+    assert(runtime_json["runtime"]["video_processing"]["accepted_frame_fps"] == 22.3);
+    assert(runtime_json["runtime"]["video_processing"]["upload_path"] == "rectangle-planes");
+    assert(runtime_json["runtime"]["video_frame_accepted"] == true);
+    const auto& timing = runtime_json["runtime"]["presentation_timing"];
+    assert(timing["histogram_upper_ms"].size() == 6);
+    assert(timing["plane_transfer"]["samples"] == 750);
+    assert(timing["plane_transfer"]["histogram"].size() == 7);
+    assert(timing["plane_transfer"]["mean_ms"] == 2.5);
+    assert(timing["conversion_submit"]["mean_ms"] == .2);
+    assert(!timing["loop"].contains("histogram"));
+    assert(!timing["allocation"].contains("histogram"));
+    assert(!timing["upload"].contains("histogram"));
+    assert(!timing.contains("private_array"));
 
     fail_checkpoint_sync = true;
     diagnostics_set_runtime({{"video", {{"width", 1920}, {"height", 1080}}}});

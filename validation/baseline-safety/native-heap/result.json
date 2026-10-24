@@ -1,0 +1,263 @@
+{
+  "result": "PASS",
+  "scope": "Production native heap wrappers, shared direct allocator and dlmalloc; real host-backed mappings verify 256 MiB arena fallback, all large allocation entry points, aligned FFmpeg-size buffers, realloc migration/failure, physical ownership, retained cleanup, concurrent use and diagnostic attribution",
+  "limits": [
+    "Existing dlmalloc size-wraparound rejection may leave errno unchanged for malloc(SIZE_MAX) and realloc(NULL, SIZE_MAX); the diagnostic recorder preserves that result. Actual arena exhaustion sets ENOMEM."
+  ],
+  "checks": [
+    "NATIVE_HEAP_TESTS_OK checks=921 failures=30 unlocked_probes=30"
+  ],
+  "events": [
+    {
+      "operation": 1,
+      "requested": 18446744073709551615,
+      "alignment": 0,
+      "caller": "0x40248e",
+      "function": "malloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:178"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x40248e",
+      "function": "malloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:178"
+    },
+    {
+      "operation": 2,
+      "requested": 18446744073709551615,
+      "alignment": 0,
+      "caller": "0x402512",
+      "function": "calloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:185 (discriminator 4)"
+    },
+    {
+      "operation": 2,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402512",
+      "function": "calloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:185 (discriminator 4)"
+    },
+    {
+      "operation": 3,
+      "requested": 18446744073709551615,
+      "alignment": 0,
+      "caller": "0x4025ed",
+      "function": "realloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:196"
+    },
+    {
+      "operation": 3,
+      "requested": 18446744073709551615,
+      "alignment": 0,
+      "caller": "0x4025ed",
+      "function": "realloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:196"
+    },
+    {
+      "operation": 4,
+      "requested": 18446744073709551615,
+      "alignment": 0,
+      "caller": "0x4025be",
+      "function": "realloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:196"
+    },
+    {
+      "operation": 4,
+      "requested": 18446744073709551615,
+      "alignment": 0,
+      "caller": "0x4025be",
+      "function": "realloc_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:196"
+    },
+    {
+      "operation": 5,
+      "requested": 18446744073709551552,
+      "alignment": 64,
+      "caller": "0x4027cf",
+      "function": "aligned_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:213 (discriminator 4)"
+    },
+    {
+      "operation": 6,
+      "requested": 18446744073709551552,
+      "alignment": 64,
+      "caller": "0x40275f",
+      "function": "aligned_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:216 (discriminator 1)"
+    },
+    {
+      "operation": 7,
+      "requested": 18446744073709551552,
+      "alignment": 64,
+      "caller": "0x40282a",
+      "function": "aligned_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:217 (discriminator 1)"
+    },
+    {
+      "operation": 8,
+      "requested": 18446744073709551615,
+      "alignment": 16384,
+      "caller": "0x402810",
+      "function": "aligned_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:217 (discriminator 2)"
+    },
+    {
+      "operation": 3,
+      "requested": 536870912,
+      "alignment": 0,
+      "caller": "0x401aa4",
+      "function": "test_generic_large_allocations",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:321 (discriminator 2)"
+    },
+    {
+      "operation": 4,
+      "requested": 536870912,
+      "alignment": 0,
+      "caller": "0x401f38",
+      "function": "test_generic_large_allocations",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:321 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    },
+    {
+      "operation": 1,
+      "requested": 2147483648,
+      "alignment": 0,
+      "caller": "0x402204",
+      "function": "concurrent_failure",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c:226 (discriminator 1)"
+    }
+  ],
+  "errors": [],
+  "binary_sha256": "1ebb4b7c994179e987690944c4535e8489a91ee7c71e8c38124677faaa659ded",
+  "source_sha256": {
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/native/heap.c": "c3c4e4f9023d48b11cf60885917af1a489383c3661cb3451f803fa6dce1e9b70",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/native/vlc_memory.c": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/native/dlmalloc.c": "be7be56b40b4b31417e74e77687f9b96127ea6cae534cf236aee40a4c739508d",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/diagnostics_native.h": "c7d57720a0781a42c119630b04036278e04c6ace99d177c750d1e535aa24600a",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/native_memory.h": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_native_heap.c": "086dad8d6f3f63bfd24491a1c7cc2b71addad0739c818634796d816ecfa0c509",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/run_native_heap_tests.py": "20566ba8a7c1314ea220619985db3e780614da85bc7503e4742fe5cdf3fa3a96"
+  }
+}

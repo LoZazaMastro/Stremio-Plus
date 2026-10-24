@@ -340,10 +340,15 @@ void App::build_home() {
 }
 
 void App::refresh_home_cards() {
-	if (!board_.empty()) board_[0].items = continue_watching();
-
 	// Keep the selection on the same catalog when rows appear above it.
-	int selected_board = (home_row < int(home_map_.size())) ? home_map_[home_row] : -1;
+	int selected_board = (home_row >= 0 && home_row < int(home_map_.size())) ? home_map_[home_row] : -1;
+	std::string selected_id, selected_video, selected_type;
+	if (selected_board >= 0 && selected_board < int(board_.size()) && home_col >= 0 &&
+	    home_col < int(board_[selected_board].items.size())) {
+		const auto& item = board_[selected_board].items[home_col];
+		selected_id = item.id; selected_video = item.video_id; selected_type = item.type;
+	}
+	if (!board_.empty()) board_[0].items = continue_watching();
 
 	home_map_.clear();
 	std::vector<UiRow> rows;
@@ -357,7 +362,7 @@ void App::refresh_home_cards() {
 		if (br.items.empty() && br.error.empty()) continue;
 		UiRow r;
 		r.title = br.title;
-		r.dom_id = "home-strip-" + std::to_string(i);
+		r.dom_id = "home-strip-" + std::to_string(home_gen_) + "-" + std::to_string(i);
 		r.continue_watching = br.continue_watching;
 		r.see_all = false;
 		if (!br.error.empty()) r.message = "Could not load this catalog: " + br.error;
@@ -377,6 +382,20 @@ void App::refresh_home_cards() {
 	if (selected_board >= 0) {
 		for (size_t r = 0; r < home_map_.size(); r++)
 			if (home_map_[r] == selected_board) home_row = int(r);
+	}
+	if (home_startup_.active()) {
+		// Input is hidden during staging. Choose the first usable shelf only
+		// once the configured-order model has settled, not the fastest reply.
+		home_row = home_col = 0;
+		for (size_t r = 0; r < home_map_.size(); ++r)
+			if (home_map_[r] >= 0 && !board_[home_map_[r]].items.empty()) { home_row = int(r); break; }
+	} else if (!selected_id.empty() && selected_board >= 0 && selected_board < int(board_.size())) {
+		const auto& items = board_[selected_board].items;
+		for (size_t c = 0; c < items.size(); ++c)
+			if (items[c].id == selected_id && items[c].type == selected_type && items[c].video_id == selected_video) {
+				home_col = int(c);
+				break;
+			}
 	}
 	if (home_row >= int(rows.size())) home_row = std::max(0, int(rows.size()) - 1);
 	if (home_row >= 0 && home_row < int(home_map_.size()) && home_map_[home_row] >= 0)
@@ -399,6 +418,84 @@ void App::refresh_home_cards() {
 	home_rows = std::move(rows);
 	refresh_home_preview();
 	dirty_all();
+}
+
+std::vector<std::string> App::home_startup_artwork() const {
+	std::vector<std::string> paths;
+	const auto add = [&](const std::string& path) {
+		if (!path.empty() && std::find(paths.begin(), paths.end(), path) == paths.end()) paths.push_back(path);
+	};
+	add("assets/icons/logo.png");
+	add(home_preview_background);
+	add(home_preview_logo);
+	int visible = 0;
+	for (const auto& row : home_rows) {
+		if (row.cards.empty()) continue;
+		for (size_t i = 0; i < std::min<size_t>(8, row.cards.size()); ++i) add(row.cards[i].image);
+		if (++visible == 2) break;
+	}
+	return paths;
+}
+
+void App::update_home_startup(bool textures_ready) {
+	update_home_startup_at(now_seconds(), textures_ready);
+}
+
+void App::update_home_startup_at(double now, bool textures_ready) {
+	if (!home_startup_.active()) return;
+	if (view != "home" || login_visible || watching_) { home_startup_.cancel(); return; }
+	HomeStartupGate::State state;
+	state.account_settled = !signed_in() || library_loaded_ || library_initial_settled_;
+	state.leading_catalogs_settled = !addons_loading_;
+	state.all_catalogs_settled = !addons_loading_;
+	for (size_t i = 1; i < board_.size(); ++i) {
+		if (!board_[i].loaded) {
+			state.all_catalogs_settled = false;
+			if (i <= 2) state.leading_catalogs_settled = false;
+		}
+	}
+	state.textures_ready = textures_ready;
+	state.artwork_ready = true;
+	std::uint64_t signature = 1469598103934665603ull;
+	const auto hash = [&](const std::string& value) {
+		for (unsigned char ch : value) { signature ^= ch; signature *= 1099511628211ull; }
+		signature ^= 0xff; signature *= 1099511628211ull;
+	};
+	int visible = 0;
+	for (size_t r = 0; r < home_rows.size(); ++r) {
+		const auto& row = home_rows[r];
+		if (row.cards.empty()) continue;
+		state.content = true;
+		hash(row.dom_id);
+		hash(std::to_string(row.cards.size()));
+		const int bi = r < home_map_.size() ? home_map_[r] : -1;
+		for (size_t c = 0; c < std::min<size_t>(8, row.cards.size()); ++c) {
+			hash(row.cards[c].title); hash(row.cards[c].image);
+			if (bi >= 0 && bi < int(board_.size()) && c < board_[bi].items.size() &&
+			    !board_[bi].items[c].poster.empty() && row.cards[c].image.empty()) state.artwork_ready = false;
+		}
+		if (++visible == 2) break;
+	}
+	if (home_row >= 0 && home_row < int(home_map_.size())) {
+		const int bi = home_map_[home_row];
+		if (bi >= 0 && bi < int(board_.size()) && !board_[bi].items.empty()) {
+			const auto& item = board_[bi].items[std::clamp(home_col, 0, int(board_[bi].items.size()) - 1)];
+			if ((!item.background.empty() && home_preview_background.empty()) ||
+			    (!item.logo.empty() && home_preview_logo.empty())) state.artwork_ready = false;
+		}
+	}
+	hash(home_preview_background); hash(home_preview_logo);
+	state.signature = signature;
+	const auto result = home_startup_.update(now, state);
+	if (result != HomeStartupGate::Result::Waiting) {
+		const char* reason = result == HomeStartupGate::Result::Ready ? "ready" :
+		    result == HomeStartupGate::Result::Partial ? "partial" :
+		    result == HomeStartupGate::Result::Empty ? "empty" : "deadline";
+		dlog("Home startup reveal: reason=%s elapsed=%.3fs rows=%zu leading_ready=%d account_ready=%d artwork_ready=%d textures_ready=%d",
+		    reason, home_startup_.elapsed(now), home_rows.size(), int(state.leading_catalogs_settled),
+		    int(state.account_settled), int(state.artwork_ready), int(state.textures_ready));
+		dirty_all();
+	}
 }
 
 void App::open_item(const Item& it) {

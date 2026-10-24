@@ -151,6 +151,7 @@ Player::~Player() { close(); }
 void Player::open(const Options& opts) {
 	close();
 	opts_ = opts;
+	set_volume(opts.volume_percent);
 	local_file_ = !opts.growing_download && regular_local_file(opts.url);
 	// Only the caller's validated download provenance may admit a saved time
 	// into an incomplete file; a byte percentage is never a time boundary.
@@ -1189,6 +1190,8 @@ void Player::audio_thread() {
 
 			std::lock_guard<std::mutex> lock(clock_m_);
 			if (aq_.serial() != serial) break;
+			playback_volume::scale_s16(reinterpret_cast<int16_t*>(out.data()), size_t(n) * 2,
+			                          playback_volume::gain(volume()));
 			SDL_QueueAudio(dev_, out.data(), Uint32(n * 4));
 			double end = (pts >= 0 ? pts : std::max(0.0, audio_end_pts_)) + double(n) / kOutRate;
 			if (pts < 0 && audio_end_pts_ >= 0) end = audio_end_pts_ + double(n) / kOutRate;
@@ -1514,7 +1517,7 @@ void Player::log_stats() {
 	double secs = now - log_at_;
 	int shown = shown_ - log_shown_, dropped = dropped_ - log_dropped_;
 	dlog("player: %s | shown %.1f fps (video %.3g fps), dropped %d in %.0f s, buffered %.1f s%s%s", codec_summary().c_str(),
-	     shown / secs, fps_, dropped, secs, std::max(vq_.duration(), aq_.duration()), paused_ ? ", paused" : "",
+	     shown / secs, fps_.load(), dropped, secs, std::max(vq_.duration(), aq_.duration()), paused_ ? ", paused" : "",
 	     buffering_ ? ", buffering" : "");
 	log_at_ = now;
 	log_shown_ = shown_;
@@ -1524,9 +1527,11 @@ void Player::log_stats() {
 std::string Player::stats() {
 	if (state_ != State::Playing) return "";
 	char buf[256];
-	snprintf(buf, sizeof(buf), "%s · %.3g fps · buffered %.1fs · dropped %d of %d", codec_summary().c_str(), fps_,
+	snprintf(buf, sizeof(buf), "%s · %.3g fps · buffered %.1fs · dropped %d of %d", codec_summary().c_str(), fps_.load(),
 	         std::max(vq_.duration(), aq_.duration()), dropped_.load(), decoded_.load());
 	return buf;
 }
 
+double Player::source_fps() const { return fps_.load(std::memory_order_relaxed); }
 std::string Player::audio_output_status() const { return "pcm"; }
+bool Player::audio_passthrough_active() const { return false; }

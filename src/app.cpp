@@ -170,6 +170,9 @@ void App::load_settings() {
         settings_.high_contrast = jbool(j, "high_contrast", false);
         settings_.show_stats = jbool(j, "show_stats", false);
         settings_.sound_volume = std::clamp(int(jnum(j, "sound_volume", 35)), 0, 100);
+        const auto& media_volume = jobj(j, "media_volume");
+        settings_.media_volume = playback_volume::saved_percent(media_volume.is_number()
+            ? media_volume.get<double>() : playback_volume::default_percent);
         settings_.seek_seconds = std::clamp(int(jnum(j, "seek_seconds", 10)), 5, 60);
         settings_.shoulder_seek_seconds = std::clamp(int(jnum(j, "shoulder_seek_seconds", 60)), 5, 300);
         settings_.subtitle_offset_ms = std::clamp(int(jnum(j, "subtitle_offset_ms", 0)), -10000, 10000);
@@ -269,6 +272,7 @@ void App::flush_settings(bool synchronous) {
         {"reduced_motion", settings_.reduced_motion}, {"ui_sounds", settings_.ui_sounds},
         {"high_contrast", settings_.high_contrast}, {"show_stats", settings_.show_stats},
         {"sound_volume", settings_.sound_volume}, {"seek_seconds", settings_.seek_seconds},
+        {"media_volume", settings_.media_volume},
         {"shoulder_seek_seconds", settings_.shoulder_seek_seconds},
         {"date_format", settings_.date_format}, {"date_components", settings_.date_components},
         {"controller_ambient_light", settings_.controller_ambient_light},
@@ -394,6 +398,10 @@ const Addon* App::find_addon(const std::string& url) const {
 
 void App::load_addons() {
 	if (offline_) return;
+	// Only the first model is staged. Later catalog callbacks update the
+	// existing shelves without re-opening the loading screen.
+	if (signed_in() && home_rows.empty() && !home_startup_.active())
+		home_startup_.begin(now_seconds());
 	struct Result {
 		std::vector<std::shared_ptr<Addon>> addons;
 		std::vector<std::string> errors;
@@ -490,6 +498,7 @@ void App::load_library() {
 		                  return;
 		              }
 		              if (!r.ok) {
+		                  library_initial_settled_ = true;
 			              show_toast("Could not load your library: " + r.error);
 			              return;
 		              }
@@ -500,6 +509,7 @@ void App::load_library() {
 				              if (!id.empty()) library_[id] = it;
 			              }
 		              library_loaded_ = true;
+		              library_initial_settled_ = true;
 		              dlog("library: %zu items", library_.size());
 		              refresh_library_membership();
 		              dirty_all();
@@ -568,6 +578,7 @@ bool App::browse_shortcut(Btn b) {
 }
 
 void App::on_button(Btn b) {
+	if (home_startup_visible()) return;
 	if (input_visible_) return;  // the system keyboard dialog has the controller
 	if (directory_picker_visible) { directory_picker_button(b); return; }
 	if (download_directory_notice) {

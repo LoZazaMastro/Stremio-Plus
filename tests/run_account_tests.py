@@ -27,6 +27,7 @@ names = [line.split()[0] for line in subprocess.check_output(
     ['nm', '-g', '--defined-only', '--format=posix', str(build / 'stremio')], text=True).splitlines()]
 demangled = subprocess.check_output(['c++filt'], input='\n'.join(names) + '\n', text=True).splitlines()
 boundaries = {'WRAP_LINK_CREATE': 'link_create', 'WRAP_LINK_READ': 'link_read',
+              'WRAP_API_CALL': 'api_call',
               'WRAP_GET_USER': 'api_get_user', 'WRAP_LOGOUT': 'api_logout',
               'WRAP_ADDON_COLLECTION': 'api_addon_collection', 'WRAP_LIBRARY_GET': 'api_library_get',
               'WRAP_ADDONS': 'App::load_addons', 'WRAP_LIBRARY': 'App::load_library', 'WRAP_ART': 'App::art'}
@@ -44,13 +45,15 @@ header = output / 'account_wrap_symbols.h'
 header.write_text('#pragma once\n' + ''.join(
     f'#define {macro} {json.dumps("__wrap_" + name)}\n' for macro, name in symbols.items()))
 obj, executable = output / 'test_account.o', output / 'test_account'
+session_obj = output / 'account_session_api.o'
 sdl = shlex.split(subprocess.check_output(['pkg-config', '--cflags', 'sdl2'], text=True))
-subprocess.run([link[0], '-std=c++20', '-O1', '-g', '-Wall', '-Wextra', '-Wpedantic', '-pthread',
-                '-I' + str(root / 'src'), '-I' + str(root / 'third_party'), *sdl,
-                '-include', str(header), '-c', str(root / 'tests/test_account.cpp'), '-o', str(obj)], check=True)
+for source, destination in [('test_account.cpp', obj), ('account_session_api.cpp', session_obj)]:
+    subprocess.run([link[0], '-std=c++20', '-O1', '-g', '-Wall', '-Wextra', '-Wpedantic', '-pthread',
+                    '-I' + str(root / 'src'), '-I' + str(root / 'third_party'), *sdl,
+                    '-include', str(header), '-c', str(root / 'tests' / source), '-o', str(destination)], check=True)
 link[link.index(main_object)] = str(obj)
 link[link.index('-o') + 1] = str(executable)
-link += ['-Wl,--wrap=' + name for name in symbols.values()] + ['-Wl,--wrap=curl_easy_perform']
+link += [str(session_obj)] + ['-Wl,--wrap=' + name for name in symbols.values()] + ['-Wl,--wrap=curl_easy_perform']
 subprocess.run(link, cwd=build, check=True)
 with tempfile.TemporaryDirectory(prefix='stremio-account-state-') as profile:
     environment = os.environ.copy()

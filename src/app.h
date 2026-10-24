@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "artcache.h"
+#include "home_startup.h"
 #include "download_manager.h"
 #include "player.h"
 #include "media_commands.h"
@@ -144,6 +145,7 @@ struct Settings {
 	int next_episode_delay_seconds = 15;
 	bool reduced_motion = false, ui_sounds = true, high_contrast = false, show_stats = false;
 	int sound_volume = 35, subtitle_offset_ms = 0, seek_seconds = 10, shoulder_seek_seconds = 60;
+	int media_volume = playback_volume::default_percent;
 	int display_resolution = -1;  // Automatic (PS5); 0/1/2 are explicit 1080p/1440p/2160p.
 	int display_refresh = 0;  // Off, automatic, playback only.
 	bool audio_passthrough = false;
@@ -163,6 +165,7 @@ public:
 
 	void on_button(Btn b);
 	void on_media_command(MediaCommand command);
+	void on_playback_stick(float x, float y, bool usable = true);
 	void open_search();  // show search and its keyboard; query begins only on submit
 	void request_login_code();  // replace the current link; ignore while a request is pending
 	void on_text(const std::string& utf8);  // text from the keyboard dialog
@@ -172,12 +175,17 @@ public:
 	const Settings& settings() const { return settings_; }
 	bool take_video_frame(Player::VideoFrame& frame) { return watching_ && player_.take_frame(frame); }
 	std::string audio_output_status() const { return player_.audio_output_status(); }
+	double source_video_fps() const { return watching_ ? player_.source_fps() : 0; }
+	bool audio_passthrough_active() const { return player_.audio_passthrough_active(); }
 	void video_frame_presented();  // Called only after a successful GPU upload.
 	void video_frame_rejected();
 	void cancel_input() { if (input_visible_) input_finish(false); }
 	void replace_input(const std::string& text) { input_value = text; }
 	void request_search(const std::string& text) { start_search(text); }
 	void refresh_home_preview();
+	bool home_startup_visible() const { return home_startup_.active() && view == "home" && !login_visible; }
+	std::vector<std::string> home_startup_artwork() const;
+	void update_home_startup(bool textures_ready);
 	bool wants_exit() const { return exit_; }
 	bool watching() const { return watching_; }
 	bool text_entry_active() const { return input_visible_; }
@@ -259,6 +267,7 @@ public:
 	bool watching_ = false;
 	std::string w_sub_rml, w_sub_size = "sub-m";
 	bool info_visible = true, w_buffering = false, w_paused = false, menu_visible = false;
+	bool w_volume_visible = false;
 	// Seconds of conservatively verified local media. -1 means unrestricted.
 	double w_seekable_until = -1;
 	std::string w_buffer_text, w_title, w_subtitle, w_progress = "0%", w_time, w_duration, w_tracks, w_stats;
@@ -359,6 +368,7 @@ private:
 	// app_board.cpp
 	void build_home();
 	void refresh_home_cards();
+	void update_home_startup_at(double now, bool textures_ready);
 	void board_button(Btn b);
 	void open_item(const Item& it);
 	void start_search(const std::string& q);
@@ -419,6 +429,9 @@ private:
 	void detail_close();
 	void detail_update_resume();
 	void play_stream(const Stream& st, bool transcode);
+	void start_stream_playback(const Stream& st, bool transcode, double start);
+	void choose_playback_start(const std::string& title, double resume,
+	                           std::function<void(double)> chosen, bool live = false);
 	bool play_saved_stream(const Stream& stream);
 	void saved_stream_tick();
 	std::string saved_stream_download_;
@@ -526,6 +539,7 @@ private:
 	// Library (account)
 	std::map<std::string, json> library_;  // libraryItem by _id
 	bool library_loaded_ = false;
+	bool library_initial_settled_ = false;
 	std::map<std::string, json> library_pending_changes_;
 	std::map<std::string, json> library_original_changes_;
 	bool library_write_inflight_ = false;
@@ -537,6 +551,7 @@ private:
 	// board_/search_ index of each UI row.
 	std::vector<BoardRow> board_;
 	std::vector<int> home_map_;
+	HomeStartupGate home_startup_;
 	int home_gen_ = 0;
 	std::shared_ptr<std::atomic<bool>> home_cancel_, search_cancel_;
 	std::vector<BoardRow> search_;
@@ -593,6 +608,7 @@ private:
 
 	// Dropdown
 	std::function<void(int)> dd_chosen_;
+	uint64_t dd_generation_ = 0;
 
 	// Login
 	std::string login_code_raw_, login_qr_url_;
@@ -605,6 +621,10 @@ private:
 
 	// Watch
 	Player player_;
+	void watch_volume_input(float x, float y, bool usable, double now);
+	void watch_volume_update(double now);
+	playback_volume::StickRepeat w_volume_stick_;
+	double w_volume_until_ = 0;
 	Item w_item_;
 	std::string w_video_id_;
 	Stream w_stream_;

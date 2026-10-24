@@ -33,10 +33,10 @@ void Carousel::set_items(std::vector<CardItem> items)
     retarget(true);
 }
 
-void Carousel::set_bounds(const Rect &bounds)
+void Carousel::set_bounds(const Rect &bounds, bool snap)
 {
     bounds_ = bounds;
-    retarget(true);
+    retarget(snap);
 }
 
 void Carousel::set_focus(int index, bool snap)

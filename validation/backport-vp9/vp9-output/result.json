@@ -1,0 +1,23 @@
+{
+  "result": "PASS",
+  "results": {
+    "result": "PASS",
+    "cases": 17,
+    "checks": 220,
+    "hardware_boundary": "mocked",
+    "real_ffmpeg_bitstream_filter": true,
+    "ps5_tested": false
+  },
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "scope": "Complete production native HwDecoder code and real FFmpeg VP9 bitstream filter; deterministic sceVideodec2 boundary",
+  "limits": "Does not exercise PS5 decode, native memory allocation, GPU buffer ownership or firmware timing.",
+  "source_sha256": {
+    "src/hwdec_ps5.cpp": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+    "src/hwdec_ps5.h": "c63920efca2862d91ad31edfe3399034f259dcf7453f78f537d27ebf099436c6",
+    "tests/test_vp9_output.cpp": "febeccc2102be1582e29caf8c7494d94c70c14c77cccb60f7d80bc10cb5b8545",
+    "tests/run_vp9_output_tests.py": "42d06d99e19f4db9803bf4a2860848fa1e8d2d790ea13fe4da3c0bb0f5d3cd34"
+  }
+}

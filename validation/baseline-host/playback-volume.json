@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "scope": "Production right-stick volume policy and decoded signed PCM gain",
+  "sanitizers": [
+    "AddressSanitizer",
+    "UndefinedBehaviorSanitizer"
+  ],
+  "results": {
+    "result": "PASS",
+    "checks": 29
+  },
+  "sha256": {
+    "src/playback_volume.h": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+    "src/player_vlc_audio.h": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+    "tests/test_playback_volume.cpp": "0e80c6c1b3e004a63e7076ee3e5c501e6b3628a2c3738e5ca9e4a23fa0957b42",
+    "tests/run_playback_volume_tests.py": "9c188cf7a2d6a637175ce9cc0a0ec60e0568fe6ebd12711298a8a62b0192455a"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "scope": "Isolated offline restore, no application rebuild, no writes to active production/build trees",
+  "tests": [
+    {
+      "name": "corrupt_input_rejected_before_mutation",
+      "exit": 1,
+      "elapsed_seconds": 0.529,
+      "stdout": "",
+      "stderr": "Restore failed: Checksum/size mismatch: /tmp/stremio-delivery-restore-5260j7g7/Stremio-Plus-0.5.19-dependencies/packaging-wheels/requirements-offline.txt\n",
+      "result": "PASS"
+    },
+    {
+      "name": "complete_offline_restore",
+      "exit": 0,
+      "elapsed_seconds": 5.688,
+      "stdout": "Verified 39 files before restoring cache.\n{\n  \"result\": \"PASS\",\n  \"source_root\": \"/tmp/stremio-delivery-restore-5260j7g7/restored-source\",\n  \"verified_input_files\": 39,\n  \"copied_cache_files\": 23,\n  \"restored_git_repositories\": 2,\n  \"boilerplate_commit\": \"f98de734b68b0b980d38ff03a330066afd6ae16d\",\n  \"mkpfs_commit\": \"6cb8313dfe0c988ac52617794553f343243d3a56\",\n  \"packaging_runner\": \"/tmp/stremio-delivery-restore-5260j7g7/restored-source/.deps/ps5-native-app-boilerplate/.deps/MkPFS/.mkpfs-run-linux\",\n  \"network_downloads\": 0,\n  \"new_commits\": 0,\n  \"new_branches\": 0,\n  \"scope\": \"Dependency input cache and packaging environment; no application/media compilation\"\n}\n",
+      "stderr": "",
+      "restore_report": {
+        "result": "PASS",
+        "source_root": "/tmp/stremio-delivery-restore-5260j7g7/restored-source",
+        "verified_input_files": 39,
+        "copied_cache_files": 23,
+        "restored_git_repositories": 2,
+        "boilerplate_commit": "f98de734b68b0b980d38ff03a330066afd6ae16d",
+        "mkpfs_commit": "6cb8313dfe0c988ac52617794553f343243d3a56",
+        "packaging_runner": "/tmp/stremio-delivery-restore-5260j7g7/restored-source/.deps/ps5-native-app-boilerplate/.deps/MkPFS/.mkpfs-run-linux",
+        "network_downloads": 0,
+        "new_commits": 0,
+        "new_branches": 0,
+        "scope": "Dependency input cache and packaging environment; no application/media compilation"
+      },
+      "result": "PASS"
+    },
+    {
+      "name": "idempotent_second_restore",
+      "exit": 0,
+      "elapsed_seconds": 2.69,
+      "stdout": "Verified 39 files before restoring cache.\n{\n  \"result\": \"PASS\",\n  \"source_root\": \"/tmp/stremio-delivery-restore-5260j7g7/restored-source\",\n  \"verified_input_files\": 39,\n  \"copied_cache_files\": 0,\n  \"restored_git_repositories\": 0,\n  \"boilerplate_commit\": \"f98de734b68b0b980d38ff03a330066afd6ae16d\",\n  \"mkpfs_commit\": \"6cb8313dfe0c988ac52617794553f343243d3a56\",\n  \"packaging_runner\": \"/tmp/stremio-delivery-restore-5260j7g7/restored-source/.deps/ps5-native-app-boilerplate/.deps/MkPFS/.mkpfs-run-linux\",\n  \"network_downloads\": 0,\n  \"new_commits\": 0,\n  \"new_branches\": 0,\n  \"scope\": \"Dependency input cache and packaging environment; no application/media compilation\"\n}\n",
+      "stderr": "",
+      "restore_report": {
+        "result": "PASS",
+        "source_root": "/tmp/stremio-delivery-restore-5260j7g7/restored-source",
+        "verified_input_files": 39,
+        "copied_cache_files": 0,
+        "restored_git_repositories": 0,
+        "boilerplate_commit": "f98de734b68b0b980d38ff03a330066afd6ae16d",
+        "mkpfs_commit": "6cb8313dfe0c988ac52617794553f343243d3a56",
+        "packaging_runner": "/tmp/stremio-delivery-restore-5260j7g7/restored-source/.deps/ps5-native-app-boilerplate/.deps/MkPFS/.mkpfs-run-linux",
+        "network_downloads": 0,
+        "new_commits": 0,
+        "new_branches": 0,
+        "scope": "Dependency input cache and packaging environment; no application/media compilation"
+      },
+      "result": "PASS"
+    },
+    {
+      "name": "existing_conflicting_cache_preserved",
+      "exit": 1,
+      "elapsed_seconds": 1.168,
+      "stdout": "",
+      "stderr": "Restore failed: Checksum/size mismatch: /tmp/stremio-delivery-restore-5260j7g7/restored-source/.deps/vlc/dl/utf8cpp-3.2.5.tar.gz\n",
+      "result": "PASS"
+    },
+    {
+      "name": "external_cache_symlink_rejected",
+      "exit": 1,
+      "elapsed_seconds": 0.528,
+      "stdout": "",
+      "stderr": "Restore failed: Restore requires real directories/files inside the source tree; found symlink: /tmp/stremio-delivery-restore-5260j7g7/source-with-external-cache-link/.deps/downloads\n",
+      "result": "PASS"
+    }
+  ],
+  "result": "PASS",
+  "helper_sha256": "7c04e79d3607c50a7bbcdcc63891702a4d822987d2adb90a779e90d3148f941b"
+}

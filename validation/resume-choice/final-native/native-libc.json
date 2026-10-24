@@ -1,0 +1,9 @@
+{
+  "sourceSha256": "17b22ab7baec2107ee4ce4189257abbd773a9bb9ce854203e08e0581e10b72b3",
+  "nativeArchiveSha256": "ad8c15cde25c1ace92beedebfbda6a483130f08aebf89c31f62d04b3768fbd95",
+  "removedPayloadObjects": [
+    "mman.o",
+    "syscalls.o"
+  ],
+  "remainingObjects": 69
+}

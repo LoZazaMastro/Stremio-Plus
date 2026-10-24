@@ -1,0 +1,12 @@
+{
+  "originalSetupExit": 1,
+  "makePhaseCompleted": true,
+  "gate": "Empty object member av1_obu.o in libpacketizer_av1_plugin.a",
+  "emptyObjects": [
+    "modules/packetizer/av1_obu.o",
+    "modules/access/dvb/libdvb_plugin_la-scan.o"
+  ],
+  "memoryEvents": "low 0\nhigh 0\nmax 18017\noom 0\noom_kill 0\noom_group_kill 0\n",
+  "causeEstablished": false,
+  "recovery": "Remove only the two empty objects and their corresponding generated .lo files; compile their module targets serially, then re-run the standard setup and full validation."
+}

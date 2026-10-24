@@ -101,6 +101,24 @@ private:
 };
 }  // namespace
 
+void App::choose_playback_start(const std::string& title, double resume,
+                                std::function<void(double)> chosen, bool live) {
+	const bool italian = settings_.ui_language == "it";
+	const bool can_resume = !live && std::isfinite(resume) && resume > 0;
+	const int account = account_generation_, playback = w_gen_;
+	std::vector<std::string> options{
+		live ? (italian ? "Avvia diretta" : "Start live stream")
+		     : (italian ? "Riproduci dall'inizio" : "Play from beginning"),
+		can_resume ? (italian ? "Riproduci da " : "Resume from ") + format_time(resume)
+		           : (italian ? "Annulla" : "Cancel")};
+	open_dropdown(title, options, can_resume ? 1 : 0,
+		[this, account, playback, resume, can_resume, chosen = std::move(chosen)](int choice) {
+			if (account != account_generation_ || playback != w_gen_ || choice < 0 || choice > 1) return;
+			if (choice == 1 && !can_resume) return;
+			if (chosen) chosen(choice == 1 ? resume : 0);
+		});
+}
+
 void App::watch_start(const std::string& url, const std::vector<std::string>& headers, double start,
                       const std::string& title, const std::string& subtitle, bool direct) {
 	watch_cancel_next_episode();
@@ -119,12 +137,16 @@ void App::watch_start(const std::string& url, const std::vector<std::string>& he
 	o.start = start;
 	o.audio_langs = pref_audio_langs();
 	o.audio_passthrough = settings_.audio_passthrough;
+	o.volume_percent = settings_.media_volume;
 	o.growing_download = w_growing_download_;
 	o.progressive_resume_limit = w_growing_download_ ? start : 0;
 	if (before_playback) before_playback();
 	player_.open(o);
 
 	watching_ = true;
+	w_volume_stick_.reset();
+	w_volume_visible = false;
+	w_volume_until_ = 0;
 	launch_visible = true;
 	launch_status = w_offline_ ? (settings_.ui_language == "it" ? "Apertura file..." : "Opening file...") : "Opening stream...";
 	launch_progress = -1;
@@ -272,6 +294,7 @@ void App::watch_update() {
 	if (!watching_ || w_ended_handled_) return;
 	double now = now_seconds();
 	Player::State st = player_.state();
+	watch_volume_update(now);
 	player_.log_stats();
 
 	if (st == Player::State::Failed) {
@@ -434,6 +457,9 @@ void App::watch_stop(bool ended) {
 	w_download_id_.clear(); w_download_poster_.clear();
 	w_download_background_.clear(); w_download_logo_.clear();
 	watching_ = false;
+	w_volume_stick_.reset();
+	w_volume_visible = false;
+	w_volume_until_ = 0;
 	w_frame_presented_ = false;
 	w_frame_failures_ = 0;
 	launch_visible = false;
@@ -555,6 +581,42 @@ void App::watch_seek(double target) {
 		target = std::min(target, std::isfinite(limit) ? std::max(0.0, limit) : 0.0);
 	}
 	player_.seek(target);
+}
+
+void App::on_playback_stick(float x, float y, bool usable) {
+	watch_volume_input(x, y, usable, now_seconds());
+}
+
+void App::watch_volume_input(float x, float y, bool usable, double now) {
+	const bool active = usable && watching_ && !launch_visible && !next_episode_visible &&
+		!input_visible_ && !login_visible && !dd_visible && !directory_picker_visible && !download_directory_notice;
+	if (!active) {
+		w_volume_stick_.reset();
+		if (w_volume_visible) { w_volume_visible = false; dirty("w_volume_visible"); }
+		return;
+	}
+	const int direction = w_volume_stick_.update(x, y, now);
+	if (!direction) return;
+	w_volume_visible = true;
+	w_volume_until_ = now + playback_volume::indicator_seconds;
+	// An encoded receiver owns loudness. Leave both its carriers and the saved
+	// PCM volume untouched; the overlay explains where to adjust it instead.
+	if (!player_.audio_passthrough_active()) {
+		const int percent = playback_volume::clamp_percent(settings_.media_volume + direction * playback_volume::step_percent);
+		if (percent != settings_.media_volume) {
+			settings_.media_volume = percent;
+			player_.set_volume(percent);
+			save_settings();
+		}
+	}
+	dirty("w_volume_visible");
+}
+
+void App::watch_volume_update(double now) {
+	if (w_volume_visible && now >= w_volume_until_) {
+		w_volume_visible = false;
+		dirty("w_volume_visible");
+	}
 }
 
 void App::on_media_command(MediaCommand command) {
@@ -1096,7 +1158,7 @@ void App::watch_next_episode() {
 	if (local) {
 		const auto entry = downloads_.find(download_id);
 		if (entry && entry->state == DownloadState::Complete && entry->video_id == id && !entry->recovery_only)
-			start_download_playback(download_id, false, 0);
+			play_download(download_id, false);
 		return;
 	}
 	if (!detail_select_episode(id)) return;

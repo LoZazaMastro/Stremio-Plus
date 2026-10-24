@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Render real 8/10-bit video planes on host OpenGL and compare color output."""
+import argparse
 import os
 import hashlib
 import json
@@ -9,6 +10,9 @@ import shlex
 import subprocess
 import tempfile
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--output', type=Path)
+args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 hui = root / 'vendor/ps5-homebrew-ui'
 flags = shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','sdl2','egl','gl'],text=True))
@@ -28,9 +32,9 @@ with tempfile.TemporaryDirectory(prefix='stremio-video-gl-') as directory:
     files = [root / name for name in ('src/video_gl.cpp', 'src/video_gl.h', 'src/video_evo_shaders.h',
                                      'src/video_dovi.h', 'tests/test_video_gl.cpp', 'tests/run_video_gl_tests.py')]
     report = {'result': 'PASS', 'checks': int(match[1]),
-              'scope': 'Real host OpenGL shader compilation, texture rendering and readback: YUV8/10, PQ/HLG, source-resolution 1080p/4K output, bilinear texture filtering, distinct consecutive frames without blending, cadence/seek reset, invalid-picture retention and Dolby Vision parameters',
+              'scope': 'Real host OpenGL shader compilation, texture rendering and readback: rectangle YUV/BGRA planes and 2D output; nonuniform padded/odd/even YUV8/10 and BGRA against an independent image-space reference; PQ/HLG; source-resolution 1080p/4K; bilinear texture filtering; distinct consecutive frames; cadence/seek reset; invalid-picture retention; Dolby Vision; finite CPU upload-substage timing',
               'limits': 'Host OpenGL validates rendering behavior; physical PS5 GPU performance and HDMI output require console testing.',
               'source_sha256': {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}}
-    target = root / 'build/tests/video-gl.json'
+    target = args.output or root / 'build/tests/video-gl.json'
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(report, indent=2) + '\n')

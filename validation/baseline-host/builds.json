@@ -1,0 +1,36 @@
+{
+  "project_version": "0.5.19",
+  "title_id": "PPSA74126",
+  "content_version": "00.069.000",
+  "builds": {
+    "desktop": {
+      "result": "PASS",
+      "bytes": 5847408,
+      "sha256": "0df7389f9a638f69a71c37077eb216f1e2efceffaaeca8d4eae04b1ffed90f50"
+    },
+    "host-vlc": {
+      "result": "PASS",
+      "bytes": 44766640,
+      "sha256": "9f9612eb646407155a3272a91d8f5b497187834fc877568a8f844ce532af1b43"
+    }
+  },
+  "tests": {
+    "home_startup_ffmpeg": {
+      "result": "PASS",
+      "checks": 32
+    },
+    "home_startup_vlc": {
+      "result": "PASS",
+      "checks": 32
+    },
+    "desktop_ui": {
+      "result": "PASS"
+    },
+    "account_desktop": {
+      "result": "PASS",
+      "checks": 102,
+      "real_http_requests": 0
+    }
+  },
+  "scope": "Linux host builds and deterministic local harnesses; not a PS5 execution or HDMI test"
+}

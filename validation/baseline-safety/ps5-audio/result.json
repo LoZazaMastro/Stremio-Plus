@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "checks": 2198,
+  "scenarios": 21,
+  "sanitizers": [
+    "AddressSanitizer",
+    "UndefinedBehaviorSanitizer"
+  ],
+  "scope": "Production native audio output with real host VLC objects and mocked Sony HDMI imports",
+  "limits": "Does not establish HDMI receiver compatibility or timing on a physical PS5.",
+  "sourceSha256": {
+    "src/player_vlc_passthrough.cpp": "6e4d76d4183aa9d386f890ab53a11713549f183f9a2c2473443c6c376fc924a7",
+    "src/player_iec61937.cpp": "1596601b438e3a4d06991ca2db563429e89ae4e98eb30f14083151cc4d2c691d",
+    "src/player_iec61937.h": "043a5e9877680d4ce8de31f0ad2da9ba0b68c3d01a7d36ae1e6246cbd82b8753",
+    "tests/test_ps5_audio.cpp": "3d8f2f160dd7f3ffb5650d52c93d48d2cade7f08fe249c6b3a6b243ceea40f80",
+    "tests/run_ps5_audio_tests.py": "8ebbfa7b28f9e4b011826da3ce273dd9e190a5a58c6ebfc0e5932ec57cc6c2ed"
+  }
+}

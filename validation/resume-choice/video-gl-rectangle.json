@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "checks": 319,
+  "scope": "Real host OpenGL shader compilation, texture rendering and readback: rectangle YUV/BGRA planes and 2D output; nonuniform padded/odd/even YUV8/10 and BGRA against an independent image-space reference; PQ/HLG; source-resolution 1080p/4K; bilinear texture filtering; distinct consecutive frames; cadence/seek reset; invalid-picture retention; Dolby Vision; finite CPU upload-substage timing",
+  "limits": "Host OpenGL validates rendering behavior; physical PS5 GPU performance and HDMI output require console testing.",
+  "source_sha256": {
+    "src/video_gl.cpp": "231fc93ea7423a175ab07fcf84d32da8f98ce347278d42a2af9c5e2163dc8f8f",
+    "src/video_gl.h": "022c3441f8fce271c9c7b15875f56f71052304e07e47d537cb06913b59ca5785",
+    "src/video_evo_shaders.h": "838e96266a199a9262c7bd8dbf3a59dee21629fca12b30ccd56f7b053ccb65d8",
+    "src/video_dovi.h": "d45c449abb78c98ed5f37905f5b51aaa1d78c139ef99cf2e9da3bbc3e6d1d700",
+    "tests/test_video_gl.cpp": "493660a59521031d17936e6bdd5cac2602b4a193ab19bd96b4b5f7ca06ba8c8a",
+    "tests/run_video_gl_tests.py": "458eb2ec2c2a52b0df9fa55ae593726c02f9e453cf60a2b47adaa718a921c2e7"
+  }
+}

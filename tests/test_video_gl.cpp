@@ -57,6 +57,95 @@ void near(const std::vector<unsigned char>& pixels, int r, int g, int b, int tol
     check(equal, message);
 }
 
+int pattern_y(int x, int y) { return 24 + (x*19 + y*27) % 192; }
+int pattern_u(int x, int y) { return 96 + (x*7 + y*5) % 64; }
+int pattern_v(int x, int y) { return 104 + (x*3 + y*9) % 48; }
+
+Frame patterned_yuv(Layout layout, bool wide, int shift, int w, int h) {
+    Frame f;
+    f.layout = layout; f.wide = wide; f.shift = shift; f.w = w; f.h = h;
+    f.colors = YuvColors::Bt709;
+    const size_t bytes = wide ? 2 : 1;
+    const int cw = (w+1)/2, ch = (h+1)/2;
+    f.pitches[0] = size_t(w+7)*bytes;
+    f.pitches[1] = size_t(cw+5)*bytes*(layout == Layout::Nv12 ? 2 : 1);
+    f.pitches[2] = size_t(cw+3)*bytes;
+    f.offsets[0] = 32;
+    f.offsets[1] = f.offsets[0] + f.pitches[0]*h + 16;
+    f.offsets[2] = f.offsets[1] + f.pitches[1]*ch + 16;
+    f.pixels.resize(f.offsets[2] + f.pitches[2]*ch, 0xdd);
+    auto put = [&](size_t at, int value) {
+        if (wide) {
+            const uint16_t sample = uint16_t((value*4) << shift);
+            std::memcpy(f.pixels.data()+at, &sample, sizeof(sample));
+        } else f.pixels[at] = uint8_t(value);
+    };
+    for (int y=0; y<h; ++y) for (int x=0; x<w; ++x)
+        put(f.offsets[0] + f.pitches[0]*y + bytes*x, pattern_y(x,y));
+    for (int y=0; y<ch; ++y) for (int x=0; x<cw; ++x) {
+        if (layout == Layout::Nv12) {
+            put(f.offsets[1] + f.pitches[1]*y + bytes*2*x, pattern_u(x,y));
+            put(f.offsets[1] + f.pitches[1]*y + bytes*(2*x+1), pattern_v(x,y));
+        } else {
+            put(f.offsets[1] + f.pitches[1]*y + bytes*x, pattern_u(x,y));
+            put(f.offsets[2] + f.pitches[2]*y + bytes*x, pattern_v(x,y));
+        }
+    }
+    return f;
+}
+
+// Independent image-space reference: bilinear chroma at pixel centres, followed
+// by the BT.709 limited-range matrix. Padding never participates in this model.
+double pattern_chroma(const Frame& f, int x, int y, bool v) {
+    const int cw=(f.w+1)/2, ch=(f.h+1)/2;
+    const double sx=(x+.5)*cw/f.w-.5, sy=(y+.5)*ch/f.h-.5;
+    const int ix=int(std::floor(sx)), iy=int(std::floor(sy));
+    const double dx=sx-ix, dy=sy-iy;
+    auto at = [&](int px, int py) {
+        px=std::clamp(px,0,cw-1); py=std::clamp(py,0,ch-1);
+        return v ? pattern_v(px,py) : pattern_u(px,py);
+    };
+    return (at(ix,iy)*(1-dx)+at(ix+1,iy)*dx)*(1-dy) +
+           (at(ix,iy+1)*(1-dx)+at(ix+1,iy+1)*dx)*dy;
+}
+void check_pattern(const std::vector<unsigned char>& pixels, const Frame& f) {
+    bool equal = true;
+    for (int y=0; y<f.h; ++y) for (int x=0; x<f.w; ++x) {
+        const double luma=(pattern_y(x,y)-16)/219.0;
+        const double u=(pattern_chroma(f,x,y,false)-128)/224.0;
+        const double v=(pattern_chroma(f,x,y,true)-128)/224.0;
+        const std::array<double,3> rgb{luma+1.5748*v, luma-.187324*u-.468124*v, luma+1.8556*u};
+        const size_t at=(size_t(y)*f.w+x)*4;
+        for (int c=0;c<3;++c) {
+            const int expected=int(std::lround(std::clamp(rgb[c],0.0,1.0)*255));
+            if (std::abs(int(pixels[at+c])-expected)>2) equal=false;
+        }
+        equal = equal && pixels[at+3]==255;
+    }
+    check(equal,"nonuniform odd/padded YUV matches independent bilinear colour reference at every pixel");
+}
+void check_plane_targets(const Frame& f) {
+    const int count=f.layout==Layout::Bgra?1:f.layout==Layout::Nv12?2:3;
+    for (int i=0;i<count;++i) {
+        glActiveTexture(GL_TEXTURE0+i);
+        GLint name=0,width=0,height=0,min_filter=0,wrap_s=0,wrap_t=0;
+        glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE,&name);
+        check(name!=0,"each uploaded source plane is bound as a rectangle texture");
+        if (!name) continue;
+        glGetTexLevelParameteriv(GL_TEXTURE_RECTANGLE,0,GL_TEXTURE_WIDTH,&width);
+        glGetTexLevelParameteriv(GL_TEXTURE_RECTANGLE,0,GL_TEXTURE_HEIGHT,&height);
+        glGetTexParameteriv(GL_TEXTURE_RECTANGLE,GL_TEXTURE_MIN_FILTER,&min_filter);
+        glGetTexParameteriv(GL_TEXTURE_RECTANGLE,GL_TEXTURE_WRAP_S,&wrap_s);
+        glGetTexParameteriv(GL_TEXTURE_RECTANGLE,GL_TEXTURE_WRAP_T,&wrap_t);
+        check(width==(i==0?f.w:(f.w+1)/2) && height==(i==0?f.h:(f.h+1)/2),
+              "rectangle planes retain their individual visible luma/chroma extents");
+        check(min_filter==GL_LINEAR && wrap_s==GL_CLAMP_TO_EDGE && wrap_t==GL_CLAMP_TO_EDGE,
+              "rectangle sampling is bilinear and clamps both edges");
+    }
+    glActiveTexture(GL_TEXTURE0);
+    check(glGetError()==GL_NO_ERROR,"mixed rectangle inputs and 2D output have no GL error");
+}
+
 int main() {
     auto get_display = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(eglGetProcAddress("eglGetPlatformDisplayEXT"));
     EGLDisplay display = get_display ? get_display(EGL_PLATFORM_SURFACELESS_MESA, EGL_DEFAULT_DISPLAY, nullptr) : EGL_NO_DISPLAY;
@@ -116,6 +205,18 @@ int main() {
         near(read(gpu,hlg),255,255,255,1,"HLG reference white maps to SDR white");
         auto odd = solid(Layout::Planar420,false,0,126,128,128,9,7);
         near(read(gpu,odd),128,128,128,1,"odd chroma dimensions are retained");
+        for (const auto layout : {Layout::Planar420,Layout::Nv12}) {
+            for (const bool wide : {false,true}) {
+                for (int shift : {0,6}) {
+                    if (!wide && shift) continue;
+                    for (const auto dimensions : {std::array<int,2>{9,7},{10,8}}) {
+                        auto f=patterned_yuv(layout,wide,shift,dimensions[0],dimensions[1]);
+                        check_pattern(read(gpu,f),f);
+                        check_plane_targets(f);
+                    }
+                }
+            }
+        }
         auto large = solid(Layout::Nv12,true,0,504,512,512,3840,2160);
         auto pixels = read(gpu,large);
         GLint width = 0,height = 0;
@@ -128,11 +229,39 @@ int main() {
         const auto corners = read(gpu,bgra);
         check(corners == std::vector<unsigned char>({255,0,0,255,0,255,0,255,0,0,255,255,255,255,255,255}),
             "BGRA channels and source row order are preserved");
+        check_plane_targets(bgra);
+        Frame padded_bgra; padded_bgra.w=7; padded_bgra.h=5;
+        padded_bgra.offsets[0]=12; padded_bgra.pitches[0]=44;
+        padded_bgra.pixels.resize(12+44*5,0xdd);
+        std::vector<uint8_t> bgra_reference;
+        for (int y=0;y<5;++y) for (int x=0;x<7;++x) {
+            const uint8_t r=uint8_t(x*31),g=uint8_t(y*47),b=uint8_t((x+y)*17);
+            const size_t at=12+44*y+4*x;
+            const uint8_t values[]{b,g,r,255};
+            std::memcpy(padded_bgra.pixels.data()+at,values,4);
+            bgra_reference.insert(bgra_reference.end(),{r,g,b,255});
+        }
+        check(read(gpu,padded_bgra)==bgra_reference,"odd padded BGRA retains every row, channel and texel");
+        check_plane_targets(padded_bgra);
         bgra.pixels.resize(3);
         const auto clean_texture = gpu.texture();
         check(!gpu.upload(bgra),"truncated frame is rejected before texture upload");
         check(gpu.texture() == clean_texture,"a rejected picture retains the last clean image");
         gpu.clear(); check(gpu.texture() == 0,"closing playback clears the displayed frame");
+        check(gpu.upload(odd),"timing sample accepts a newly allocated picture");
+        auto timing=gpu.last_upload_timing();
+        check(timing.reconfigured && std::isfinite(timing.allocation_ms) && timing.allocation_ms>=0 &&
+              std::isfinite(timing.plane_ms) && timing.plane_ms>=0 &&
+              std::isfinite(timing.draw_ms) && timing.draw_ms>=0,
+              "CPU upload substages expose finite nonnegative times without a GPU timing query");
+        check(gpu.upload(odd),"timing sample accepts a reused picture");
+        check(!gpu.last_upload_timing().reconfigured && gpu.last_upload_timing().allocation_ms==0,
+              "reused storage reports no allocation stage");
+        check(!gpu.upload(bgra),"timing sample rejects a truncated picture");
+        timing=gpu.last_upload_timing();
+        check(!timing.reconfigured && timing.allocation_ms==0 && timing.plane_ms==0 && timing.draw_ms==0,
+              "rejected descriptors never reuse the previous frame's timing");
+        gpu.clear();
 
         auto read_presented = [&] {
             glBindTexture(GL_TEXTURE_2D, gpu.texture());

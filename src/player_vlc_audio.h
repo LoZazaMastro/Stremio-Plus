@@ -8,6 +8,8 @@
 #include <deque>
 #include <vector>
 
+#include "playback_volume.h"
+
 // The caller serializes push, render, shift and clear. Samples use a bounded
 // ring, so small TrueHD blocks do not allocate a PCM buffer for each callback.
 class VlcAudioTimeline {
@@ -59,9 +61,8 @@ public:
             const size_t count = std::min({block.frames, frames - filled, capacity - start});
             const int16_t* source = pcm_.data() + start * channels;
             int16_t* target = out + filled * channels;
-            if (gain == 1.0f) std::memcpy(target, source, count * channels * sizeof(int16_t));
-            else for (size_t i = 0; i < count * channels; ++i)
-                target[i] = int16_t(std::clamp(source[i] * gain, -32768.0f, 32767.0f));
+            std::memcpy(target, source, count * channels * sizeof(int16_t));
+            playback_volume::scale_s16(target, count * channels, gain);
             filled += count;
             played += count;
             consume(count);

@@ -419,12 +419,18 @@ struct AppProtocolTest {
         app.watch_stop(false);
         app.progress_[complete->media_id] = {complete->type, complete->title, "", "another-episode", 38, 1000, 0};
         focus(app, first); app.on_button(Btn::Cross);
+        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla" && player_opens == 2,
+               "another episode's bookmark still requires confirmation and never offers Resume");
+        app.on_button(Btn::Cross);
         expect(player_opens == 3 && !app.dd_visible && opened.start == 0,
-               "progress belonging to another episode neither prompts nor seeks this download");
+               "progress belonging to another episode never seeks this download");
         app.watch_stop(false);
         app.progress_[complete->media_id] = {complete->type, complete->title, "", complete->video_id,
                                            std::numeric_limits<double>::quiet_NaN(), 1000, 0};
         focus(app, first); app.on_button(Btn::Cross);
+        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla" && player_opens == 3,
+               "invalid progress offers only beginning and Cancel without opening a decoder");
+        app.on_button(Btn::Cross);
         expect(player_opens == 4 && !app.dd_visible && opened.start == 0,
                "invalid stored progress cannot enter a resume label or decoder seek");
         app.watch_stop(false);
@@ -442,6 +448,9 @@ struct AppProtocolTest {
         focus(app, progressive);
         const int opens_before = player_opens;
         app.on_button(Btn::Options);
+        expect(app.dd_visible && !app.watching() && player_opens == opens_before,
+               "the premature progressive request waits for its playback choice");
+        app.on_button(Btn::Cross);
         expect(player_opens == opens_before && !app.watching() && app.view == "downloads",
                "Options at 4.99 percent cannot play or open Search");
         progressive_stage = 1;
@@ -454,6 +463,9 @@ struct AppProtocolTest {
                app.download_rows[app.download_sel].connections.empty(),
                "active download rows carry the ETA without invented torrent counters for HTTP");
         app.on_button(Btn::Options);
+        expect(app.dd_visible && app.dd_sel == 0 && player_opens == opens_before,
+               "a newly playable partial file asks before opening its growing-file input");
+        app.on_button(Btn::Cross);
         expect(player_opens == opens_before + 1 && app.watching() && app.w_offline_ && app.w_growing_download_,
                "Options routes through the real App to the growing-file Player input");
         expect(opened.growing_download == app.w_growing_download_ && opened.headers.empty() && !opened.parallel &&
@@ -770,14 +782,18 @@ struct AppProtocolTest {
                "scheduled episode rows display the series, season, episode and episode title");
         const auto first_entry = *app.downloads_.find(first);
         app.d_video_id_ = first_entry.video_id;
-        expect(app.play_saved_stream(source("Episode one", "bookmarked-one.mkv")) && app.watching() &&
-               !app.dd_visible && opened.url == first_entry.local_path,
+        expect(app.play_saved_stream(source("Episode one", "bookmarked-one.mkv")) && app.dd_visible && !app.watching(),
+               "a complete saved source also asks before playback");
+        app.on_button(Btn::Cross);
+        expect(app.watching() && !app.dd_visible && opened.url == first_entry.local_path,
                "selecting the same online source reuses its complete local file without a new transfer");
         save_observed(app, 123.5, 1800);
         const auto first_key = video_progress_key(first_entry.type, first_entry.media_id, first_entry.video_id);
         expect(app.video_progress_.at(first_key).time == 123.5 && app.progress_.at(first_entry.media_id).time == 123.5,
                "closing a zeroed decoder saves the last presented time before teardown");
         focus(app, second); app.on_button(Btn::Options);
+        expect(app.dd_visible && app.dd_sel == 0 && !app.watching(), "a new episode asks before opening its local file");
+        app.on_button(Btn::Cross);
         expect(app.watching() && !app.dd_visible && opened.start == 0, "the next episode does not inherit the previous episode's timestamp");
         save_observed(app, 87, 1600);
         expect(app.video_progress_.at(first_key).time == 123.5,
@@ -819,7 +835,10 @@ struct AppProtocolTest {
                "Circle cancels only the pending playback, preserving its running download");
         app.offline_ = true; progressive_stage = 1;
         until([&] { return app.downloads_.find(partial)->playable_while_downloading; }, "partial bookmark reaches a verified prefix");
-        expect(app.play_saved_stream(partial_stream) && app.watching() && opened.start == 0 && !app.w_torrent_slot_,
+        expect(app.play_saved_stream(partial_stream) && app.dd_visible && !app.watching() && !app.w_torrent_slot_,
+               "a ready same-source partial download asks without another torrent reservation");
+        app.on_button(Btn::Cross);
+        expect(app.watching() && opened.start == 0 && !app.w_torrent_slot_,
                "a ready same-source download opens progressive playback without another torrent reservation");
         save_observed(app, 45, 1000, 500, 10000);
         const auto partial_entry = *app.downloads_.find(partial);
@@ -837,6 +856,9 @@ struct AppProtocolTest {
 
         app.video_progress_[partial_key].download_prefix = 501;
         focus(app, partial); app.on_button(Btn::Options);
+        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla" && !app.watching(),
+               "an unverified saved prefix cannot offer an unavailable Resume position");
+        app.on_button(Btn::Cross);
         expect(app.watching() && !app.dd_visible && opened.start == 0 && opened.progressive_resume_limit == 0,
                "a recovered prefix below the saved bound starts safely without seeking unavailable data");
         save_observed(app, 10, 1000, 500, 10000);
@@ -845,12 +867,17 @@ struct AppProtocolTest {
         app.video_progress_[partial_key].download_prefix = 500;
         focus(app, partial); app.on_button(Btn::Options);
         expect(app.dd_visible, "the same bookmark becomes available when its prefix is verified again");
-        const auto delayed_choice = app.dd_chosen_;
-        app.on_button(Btn::Circle);
+        const int opens_before_rollback = player_opens;
         app.video_progress_[partial_key].download_prefix = 501;
-        delayed_choice(1);
+        app.on_button(Btn::Cross);
+        expect(!app.watching() && player_opens == opens_before_rollback && !app.toast.empty(),
+               "a rollback after offering Resume refuses playback instead of silently starting at zero");
+        app.play_download(partial, true);
+        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla",
+               "after prefix rollback the user can explicitly choose a safe beginning");
+        app.on_button(Btn::Cross);
         expect(app.watching() && opened.start == 0 && opened.progressive_resume_limit == 0,
-               "a rollback between showing Resume and confirming it is rechecked before opening the player");
+               "a fresh explicit beginning remains available after a rejected Resume");
         app.watch_stop(false);
         progressive_stage = 2;
         until([&] { return app.downloads_.find(partial)->state == DownloadState::Complete; }, "partial bookmark download completes");

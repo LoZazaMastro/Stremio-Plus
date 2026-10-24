@@ -22,7 +22,10 @@ typedef pthread_mutex_t vlc_mutex_t;
 #define VLC_ENOMEM (-12)
 #define VLC_SUCCESS 0
 typedef struct decoder_sys_t decoder_sys_t;
-typedef struct { unsigned i_width, i_height, i_chroma; } video_format_t;
+typedef struct {
+    unsigned i_width, i_height, i_chroma;
+    unsigned i_visible_width, i_visible_height, i_frame_rate, i_frame_rate_base;
+} video_format_t;
 typedef struct {
     unsigned i_codec;
     int i_profile, i_level, i_cat, i_extra;
@@ -103,6 +106,9 @@ static unsigned allocation_count;
 static int queue_fault, layout_fault;
 static bool flexible_failure, flexible_null, create_failure, create_null, query_failure;
 static bool depth_failure, level_failure;
+static bool avc_level52_query_failure, avc_level51_query_failure;
+static unsigned expected_width, expected_height;
+static VdecConfig attempted_configs[4];
 static int allocation_failure_at, mapping_failure_at;
 static unsigned direct_ordinal, map_ordinal;
 static unsigned queue_queries, queue_creates, decoder_queries, decoder_creates, decoder_deletes;
@@ -246,11 +252,18 @@ int sceVideodec2QueryDecoderMemoryInfo(const VdecConfig *config, VdecMemory *mem
     CHECK(live_allocations() == queue_owned && !decoder_live);
     CHECK(config->compute_queue == compute_queue && compute_queue);
     CHECK(config->this_size == sizeof(*config) && memory->this_size == sizeof(*memory));
-    CHECK(config->max_frame_width == 3840 && config->max_frame_height == 2176);
+    CHECK(config->max_frame_width == (int32_t)expected_width &&
+          config->max_frame_height == (int32_t)expected_height);
     in_decoder_attempt = true;
     direct_ordinal = map_ordinal = 0;
+    CHECK(decoder_queries < sizeof(attempted_configs) / sizeof(*attempted_configs));
+    attempted_configs[decoder_queries] = *config;
     ++decoder_queries;
     if (query_failure) return -1004;
+    if (config->codec_type == VDEC_CODEC_AVC &&
+        ((avc_level52_query_failure && config->max_level == 52) ||
+         (avc_level51_query_failure && config->max_level == 51)))
+        return (int)UINT32_C(0x811d0200);
     memory->cpu_memory_size = 32769;
     memory->gpu_memory_size = 49153;
     memory->cpu_gpu_memory_size = 65537;
@@ -299,6 +312,16 @@ static decoder_t new_decoder(void)
         .video = { .i_width = 3840, .i_height = 2176 } } };
 }
 
+static decoder_t avc_decoder(unsigned width, unsigned height, int profile, int level)
+{
+    expected_width = width ? (width + 15) & ~15u : 3840;
+    expected_height = height ? (height + 15) & ~15u : 2176;
+    return (decoder_t){ .fmt_in = { .i_codec = VLC_CODEC_H264, .i_profile = profile, .i_level = level,
+        .video = { .i_width = width, .i_height = height,
+            .i_visible_width = width, .i_visible_height = height,
+            .i_frame_rate = 25, .i_frame_rate_base = 1 } } };
+}
+
 static void begin_case(const char *name, bool prepare)
 {
     current_case = name;
@@ -309,6 +332,10 @@ static void begin_case(const char *name, bool prepare)
     queue_fault = layout_fault = allocation_failure_at = mapping_failure_at = 0;
     flexible_failure = flexible_null = create_failure = create_null = query_failure = false;
     depth_failure = level_failure = false;
+    avc_level52_query_failure = avc_level51_query_failure = false;
+    expected_width = 3840;
+    expected_height = 2176;
+    memset(attempted_configs, 0, sizeof(attempted_configs));
     in_decoder_attempt = false;
     queue_queries = queue_creates = decoder_queries = decoder_creates = decoder_deletes = 0;
     flexible_maps = direct_allocations = direct_releases = flexible_releases = unmaps = 0;
@@ -429,6 +456,76 @@ int main(void)
         finish_case();
     }
 
+    for (unsigned profile = 0; profile < 3; ++profile) {
+        const int profiles[] = { 66, 77, 100 };
+        char name[100];
+        snprintf(name, sizeof(name), "1080p AVC profile %d retries supported level after query refusal", profiles[profile]);
+        begin_case(name, true);
+        avc_level52_query_failure = true;
+        dec = avc_decoder(1920, 1080, profiles[profile], 41);
+        opens_and_closes(&dec);
+        CHECK(decoder_queries == 3 && decoder_creates == 1);
+        CHECK(attempted_configs[0].max_level == 52 && attempted_configs[0].decode_pipeline_depth == 4);
+        CHECK(attempted_configs[1].max_level == 52 && attempted_configs[1].decode_pipeline_depth == 1);
+        CHECK(attempted_configs[2].max_level == 51 && attempted_configs[2].decode_pipeline_depth == 1);
+        CHECK(attempted_configs[2].profile == 100 && attempted_configs[2].max_dpb_frame_count == -1);
+        CHECK(strstr(messages, "input codec=H264 size=1920x1080 visible=1920x1080") != NULL);
+        CHECK(strstr(messages, "input-level=41 rc=0x811d0200") != NULL);
+        CHECK(strstr(messages, "decoder-level=51 pipeline=1") != NULL);
+        finish_case();
+    }
+
+    begin_case("AVC level 5.1 and padded 1088 height remain eligible", true);
+    avc_level52_query_failure = true;
+    dec = avc_decoder(1920, 1088, 100, 51);
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 3 && attempted_configs[2].max_level == 51);
+    finish_case();
+
+    begin_case("AVC successful first configuration needs no retry", true);
+    dec = avc_decoder(1920, 1080, 100, 41);
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 1 && attempted_configs[0].max_level == 52);
+    finish_case();
+
+    begin_case("AVC rejected level 5.1 exhausts bounded retries without allocation", true);
+    avc_level52_query_failure = avc_level51_query_failure = true;
+    dec = avc_decoder(1920, 1080, 100, 41);
+    rejects(&dec, "stage=configurations-exhausted");
+    CHECK(decoder_queries == 3 && decoder_creates == 0 && flexible_maps == 0);
+    CHECK(direct_allocations == 1); /* The previously prepared compute queue only. */
+    finish_case();
+
+    for (unsigned invalid = 0; invalid < 8; ++invalid) {
+        const char *names[] = { "level 5.2", "unknown level", "zero level", "unknown profile",
+            "width above 1080p bound", "height above 1088 bound", "unknown width", "unknown height" };
+        char name[100];
+        snprintf(name, sizeof(name), "AVC %s never lowers the decoder level", names[invalid]);
+        begin_case(name, true);
+        avc_level52_query_failure = true;
+        dec = avc_decoder(invalid == 4 ? 2048 : invalid == 6 ? 0 : 1920,
+                          invalid == 5 ? 1090 : invalid == 7 ? 0 : 1080,
+                          invalid == 3 ? -1 : 100,
+                          invalid == 0 ? 52 : invalid == 1 ? -1 : invalid == 2 ? 0 : 41);
+        rejects(&dec, "stage=configurations-exhausted");
+        CHECK(decoder_queries == 2 && decoder_creates == 0);
+        CHECK(attempted_configs[1].max_level == 52);
+        CHECK(strstr(messages, "level=52 -> 51") == NULL);
+        finish_case();
+    }
+
+    for (unsigned failure = 0; failure < 2; ++failure) {
+        begin_case(failure ? "AVC decoder create failure does not lower level" :
+                   "AVC allocation failure does not lower level", true);
+        if (failure) create_failure = true;
+        else allocation_failure_at = 1;
+        dec = avc_decoder(1920, 1080, 100, 41);
+        rejects(&dec, failure ? "stage=decoder-create" : "component=gpu");
+        CHECK(decoder_queries == 2 && decoder_creates == (failure ? 2u : 0u));
+        CHECK(strstr(messages, "level=52 -> 51") == NULL);
+        finish_case();
+    }
+
     for (int layout = 1; layout <= 8; ++layout) {
         char name[80];
         snprintf(name, sizeof(name), "decoder memory layout %d", layout);
@@ -456,7 +553,9 @@ int main(void)
         VdecConfig config = { .this_size = sizeof(config), .compute_queue = compute_queue,
             .max_frame_width = 3840, .max_frame_height = 2176 };
         VdecMemory memory;
-        CHECK(bring_up(&dec, sys, &config, &memory) == EINVAL);
+        bool query_rejected = true;
+        CHECK(bring_up(&dec, sys, &config, &memory, &query_rejected) == EINVAL);
+        CHECK(!query_rejected);
         CHECK(!decoder_creates && !flexible_maps && direct_allocations == 1);
         CHECK(strstr(messages, "stage=memory-layout"));
         free_sys(sys);

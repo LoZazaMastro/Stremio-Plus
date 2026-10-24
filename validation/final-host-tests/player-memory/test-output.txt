@@ -1,0 +1,42 @@
+2026-10-23T12:00:07.068Z [session] Stremio Plus session started; previous shutdown clean or first launch.
+PLAYER_MEMORY_BUDGET capacity=2415919104 arena=805306368 app_pressure=536870912 app_heap_used=537382320 graphics=402653184 layout=split
+2026-10-23T12:00:07.069Z [app] curl libcurl/8.5.0 OpenSSL/3.0.13 zlib/1.3.1 brotli/1.1.0 zstd/1.5.5 libidn2/2.3.7 libpsl/0.21.2 (+libidn2/2.3.7) libssh/0.10.6/openssl/zlib nghttp2/1.59.0 librtmp/2.3 OpenLDAP/2.6.7, CA bundle [path:redacted] (found)
+2026-10-23T12:00:07.259Z [app] player/vlc: opening local file at 0.000s
+2026-10-23T12:00:07.259Z [app] vlc/libvlc: cannot insert stream filter record
+2026-10-23T12:00:07.260Z [app] vlc/libvlc: option quiet does not exist
+2026-10-23T12:00:07.262Z [app] vlc/libvlc: LoadFace: Error creating face for [path:redacted] - 0 - 2 - 2
+2026-10-23T12:00:07.262Z [app] vlc/libvlc: Error loading default face
+2026-10-23T12:00:07.263Z [app] player/vlc: video setup requested I0AL 3840x2176
+2026-10-23T12:00:07.263Z [app] player/vlc: I0AL coded 3840x2176, visible 3840x2160, 4 aligned slots of 24480 KiB, GPU color conversion
+2026-10-23T12:00:07.263Z [app] vlc/libvlc: LoadFace: Error creating face for [path:redacted] - 0 - 2 - 2
+2026-10-23T12:00:07.263Z [app] vlc/libvlc: Error loading default face
+2026-10-23T12:00:07.541Z [app] player/vlc: first video picture ready, 3840x2160, media 0.191s
+PLAYER_MEMORY_SESSION cycle=0 frames=72 position=3.150 state=2 heap_used=537391280 heap_free=267915088 dynamic_peak=1072988160 dynamic_live=25067520 failures=0
+2026-10-23T12:00:10.661Z [app] player/vlc: opening local file at 1.000s
+2026-10-23T12:00:10.661Z [app] vlc/libvlc: cannot insert stream filter record
+2026-10-23T12:00:10.662Z [app] vlc/libvlc: invalid stop-time ignored
+2026-10-23T12:00:10.662Z [app] vlc/libvlc: option quiet does not exist
+2026-10-23T12:00:10.663Z [app] vlc/libvlc: LoadFace: Error creating face for [path:redacted] - 0 - 2 - 2
+2026-10-23T12:00:10.663Z [app] vlc/libvlc: Error loading default face
+2026-10-23T12:00:10.663Z [app] player/vlc: video setup requested I0AL 3840x2176
+2026-10-23T12:00:10.663Z [app] player/vlc: I0AL coded 3840x2176, visible 3840x2160, 4 aligned slots of 24480 KiB, GPU color conversion
+2026-10-23T12:00:10.665Z [app] vlc/libvlc: LoadFace: Error creating face for [path:redacted] - 0 - 2 - 2
+2026-10-23T12:00:10.665Z [app] vlc/libvlc: Error loading default face
+2026-10-23T12:00:11.019Z [app] player/vlc: first video picture ready, 3840x2160, media 1.150s
+PLAYER_MEMORY_SESSION cycle=1 frames=72 position=3.983 state=2 heap_used=537391664 heap_free=267914704 dynamic_peak=1073397760 dynamic_live=25067520 failures=0
+2026-10-23T12:00:13.834Z [app] vlc/libvlc: find KaxCues FIXME
+2026-10-23T12:00:13.834Z [app] vlc/libvlc: EOF
+2026-10-23T12:00:13.834Z [app] vlc/libvlc: cannot get block EOF?
+2026-10-23T12:00:14.084Z [app] player/vlc: opening local file at 0.000s
+2026-10-23T12:00:14.084Z [app] vlc/libvlc: cannot insert stream filter record
+2026-10-23T12:00:14.087Z [app] vlc/libvlc: option quiet does not exist
+2026-10-23T12:00:14.088Z [app] vlc/libvlc: LoadFace: Error creating face for [path:redacted] - 0 - 2 - 2
+2026-10-23T12:00:14.088Z [app] vlc/libvlc: Error loading default face
+2026-10-23T12:00:14.088Z [app] player/vlc: video setup requested I0AL 3840x2176
+2026-10-23T12:00:14.089Z [app] player/vlc: I0AL coded 3840x2176, visible 3840x2160, 4 aligned slots of 24480 KiB, GPU color conversion
+2026-10-23T12:00:14.089Z [app] vlc/libvlc: LoadFace: Error creating face for [path:redacted] - 0 - 2 - 2
+2026-10-23T12:00:14.089Z [app] vlc/libvlc: Error loading default face
+2026-10-23T12:00:14.361Z [app] player/vlc: first video picture ready, 3840x2160, media 0.191s
+PLAYER_MEMORY_SESSION cycle=2 frames=72 position=3.150 state=2 heap_used=537391504 heap_free=267914864 dynamic_peak=1073397760 dynamic_live=0 failures=0
+PLAYER_MEMORY_RESULT {"result":"PASS","checks":464,"sessions":3,"frames":216,"heap_capacity":805306368,"pressure_bytes":536870912,"graphics_bytes":402653184,"graphics_layout":"split","direct_capacity":2415919104,"direct_peak":2281357312,"app_heap_used":537382320,"first_frame_heap_used":547960112,"heap_peak":566945008,"minimum_heap_free":238361360,"dynamic_peak":1073397760,"dynamic_allocations":200,"dynamic_releases":200,"mapping_errors":0,"post_close_dynamic_peak":25067520,"stopped_heap_first":537391280,"stopped_heap_last":537391504,"progressed_frames":33,"content_changes":213,"allocation_failures":0,"first_failed_bytes":0,"first_failed_operation":0,"failure_heap_used":0,"failure_heap_free":0,"failure_heap_largest":0,"failure_direct_free":0,"failure_direct_largest":0,"failure_kind":"none"}
+2026-10-23T12:00:17.420Z [session] Clean shutdown requested; draining the diagnostics writer.

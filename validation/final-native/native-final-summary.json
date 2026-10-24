@@ -1,0 +1,111 @@
+{
+  "status": "final-local-build-with-selective-port-updates-and-idempotent-patch-reentry",
+  "physicalConsoleTest": false,
+  "applicationVersion": "0.5.19",
+  "contentVersion": "00.069.000",
+  "titleId": "PPSA74126",
+  "sourceTreeSha256": "9016a56286cf954b99942ccb067acea4cf39297c36fa288be7a69da03baf5144",
+  "nativeBuildExit": 0,
+  "nativePackExit": 0,
+  "buildReceiptVerifyExit": 0,
+  "appIntegrity": {
+    "archives": 1,
+    "objects": 152,
+    "exit": 0
+  },
+  "engineIntegrity": {
+    "plugins": 106,
+    "staticArchives": 132,
+    "exit": 0
+  },
+  "patchReentry": {
+    "isolatedPass": true,
+    "patches": 25,
+    "sourceFilesCompared": 4383,
+    "generatedSourceMatchesPrevious": true,
+    "secondPassAllAlreadyApplied": true,
+    "actualNativeSetupReentryExit": 0,
+    "actualHostSetupReentryExit": 0,
+    "allEngineArchivesUnchanged": true,
+    "nativeEbootAndPieUnchanged": true,
+    "patch0014Sha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53"
+  },
+  "startupAudit": {
+    "inlineSystemCallInstructions": 0,
+    "memoryFunctions": "mmap/mprotect are platform imports",
+    "disassembler": "llvm-objdump-18",
+    "elfSha256": "c63cc78cbb749a4aa68bf9749761e9692ed0d431ead036ae4a594b580abbf9ad"
+  },
+  "processConfiguration": {
+    "previousHeapBytes": 18446744073709551615,
+    "processHeapBytes": 268435456,
+    "validatedParameterRelocations": 8,
+    "elfSha256": "3f0f6dbea738b1a8c69cfc2f1113c4e84651b434b8669f10c130a0c129b16134"
+  },
+  "importResolution": {
+    "functions": 535,
+    "allFromLoadedModules": true
+  },
+  "artifactComparison": {
+    "checks": 722,
+    "files": 227,
+    "directoriesIncludingRoot": 21,
+    "exit": 0
+  },
+  "debug": {
+    "addressLookupsPassed": 8,
+    "objectChecks": {
+      "app.cpp.o": {
+        "exit": 0,
+        "log": "native-app-cpp-o-dwarf-verify.log"
+      },
+      "hwdec_ps5.cpp.o": {
+        "exit": 0,
+        "log": "native-hwdec_ps5-cpp-o-dwarf-verify.log"
+      }
+    },
+    "globalDwarfVerifyExit": 1,
+    "globalDwarfErrorCount": 37812,
+    "limitation": "The complete linked ELF did not pass global DWARF verification. Real function address-to-line results and individual object verification are reported separately. Full variable/type debugging is not promised, and no ELF sections were removed to suppress diagnostics."
+  },
+  "commands": [
+    "BUILD_JOBS=1 CCACHE_DIR=\"$PWD/.deps/ccache\" bash tools/setup-vlc.sh",
+    "BUILD_JOBS=4 CCACHE_DIR=\"$PWD/.deps/ccache\" bash native/build.sh PPSA74126 \"Stremio Plus\"",
+    "BUILD_JOBS=4 bash native/pack.sh PPSA74126",
+    "python3 tools/build-receipt.py --verify \"$PWD\" \"$PWD/dist/PPSA74126\""
+  ],
+  "outputs": {
+    "dist/PPSA74126.zip": {
+      "bytes": 38271004,
+      "sha256": "aaab0ca60c8cd5d63643a3b43dba03bcb9a40fec2b43ba938d54ba17588eb15c"
+    },
+    "dist/PPSA74126.ffpfsc": {
+      "bytes": 42926080,
+      "sha256": "ec759630ece44c94f3454d1ce2943f6e0281026a4b9130414e849ba74d3456bd"
+    },
+    "dist/PPSA74126/eboot.bin": {
+      "bytes": 66530513,
+      "sha256": "8d794fdae13add239ad912dd21ac2cbb359e20caa94d8152debe929eb62dfb14"
+    },
+    "dist/PPSA74126/sce_module/libc.prx": {
+      "bytes": 1284674,
+      "sha256": "e6ff45d16adf687855cc3b33b0c8a4132b6504360b221e0a34c7e99fb3ba0036"
+    },
+    "build/native/pie.elf": {
+      "bytes": 117746000,
+      "sha256": "c63cc78cbb749a4aa68bf9749761e9692ed0d431ead036ae4a594b580abbf9ad"
+    },
+    "build/native/eboot.elf": {
+      "bytes": 68716812,
+      "sha256": "3f0f6dbea738b1a8c69cfc2f1113c4e84651b434b8669f10c130a0c129b16134"
+    },
+    "build/native/sandbox-elevator.elf": {
+      "bytes": 551472,
+      "sha256": "978526c2597e352be81dca02427a4dddfa38d5f8d01a1c06ff4c6e93f6947292"
+    },
+    "build/native/download-writer.elf": {
+      "bytes": 1503792,
+      "sha256": "03576159216f07261a0ce025712b365cb036fad077c1ad6440de334d79b4e992"
+    }
+  }
+}

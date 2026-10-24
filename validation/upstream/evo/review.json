@@ -1,0 +1,36 @@
+{
+  "checked_at_utc": "2026-10-23T11:37:46.934643+00:00",
+  "repository": "https://github.com/sainsaji/EVO-PLAYER-PS5",
+  "base_revision": "875f766dc9de762c1a1f608005d0afd1f25116f4",
+  "upstream_main": "875f766dc9de762c1a1f608005d0afd1f25116f4",
+  "upstream_date": "2026-10-19T05:21:00Z",
+  "latest_release": {
+    "tag": "v0.12.5",
+    "published_at": "2026-10-19T05:27:14Z"
+  },
+  "comparison": {
+    "status": "identical",
+    "ahead_by": 0,
+    "behind_by": 0,
+    "total_commits": 0
+  },
+  "changed_files": 0,
+  "attachment": {
+    "path": "/workspace/scratch/7fa7f080734e/project_sources/16-EVO-PLAYER-PS5-main.zip",
+    "sha256": "27f2b819c8dc6a0ceb3f267a7063640a5bc4ff0d88a65b204a232c50df5953ea"
+  },
+  "decision": "No newer EVO main or release exists relative to the supplied attachment. No production patch or upgrade is applicable.",
+  "evidence_sha256": {
+    "branch-claude_nifty-hopper-xtpgp6.json": "4ea0332032f214a0e53c5d0068a2ae664221bcaab8165691f6fb5da001a5c744",
+    "branch-feat_27-agc-submit-watchdog.json": "36f9c02ad60f145ef028040ad4c6f77206172393e1702a96ff309049fe1650e6",
+    "branch-feat_37-video-decoder-setting.json": "1f1169777321ac1df640d48ca425bd7fd566fecc7b933ef327ad60d82ba23b66",
+    "branch-feat_6-video-buffers-direct-mem.json": "91c0c3e1468425d4738e249b1160d7fe5bf1be8b9274410a94794e1134ad9163",
+    "branch-fix_57-4k-seek-sps-reinject.json": "009198dc8579ee6d95a415ae61a0ef7f74b3834a1560206174bceffe4fa191c0",
+    "branch-research_hardware-decode.json": "5834c01608c9438d677b95d332c4dbc15ab829be8b3f626d7330e879f7a6c9d7",
+    "branches.json": "b295fb45e91dbf8cb9d471e7f5f28fd776402ea6999816e5c76771217e74c6e1",
+    "compare.json": "3156693d95f2d4b4dad601c0d515a068c9f792f866a0f21544065b2c1a75a6b5",
+    "head.json": "a11dce82cf844ac16cfee60474a8609c57d8cc68fd3550a9ce3edb8edb489349",
+    "latest-release.json": "429d15c66d6d0df3a1bf7bbba62a4ce7517cd5228931e56c9c9ea557c47a5c86",
+    "release-tag.json": "34e2ecdb06807c420eb350f208ce8ffcdc2879743cc435d9e18bea3b7dcced98"
+  }
+}

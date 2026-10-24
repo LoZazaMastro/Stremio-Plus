@@ -1,0 +1,18 @@
+[
+  [
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-probe-baseline",
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/profile-baseline-h264-cropped",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/app",
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/probe-cropped.mkv",
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-h264-cropped-exact.txt",
+    ""
+  ],
+  [
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-probe-candidate",
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/profile-candidate-h264-cropped",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/app",
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/probe-cropped.mkv",
+    "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-h264-cropped-exact.txt",
+    ""
+  ]
+]

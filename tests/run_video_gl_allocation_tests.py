@@ -41,8 +41,8 @@ with tempfile.TemporaryDirectory(prefix='stremio-video-allocation-') as director
         result.check_returncode()
     output = args.output or root/'build/tests/video-gl-allocation.json'
     report = {'result': 'REPRODUCED' if args.expect_failure else 'PASS', 'checks': checks, 'failures': failures,
-              'scope': 'Real OpenGL output and texture lifetime; injected exhausted API allocations at every stage; fragmented native-size first-fit model; clear/reopen; unrelated preexisting GL errors',
-              'limits': 'The failure injection models an exhausted GL allocation after any driver retry. The physical ledger is an independent first-fit model using exact retained PS5 driver footprints, not a hardware trace or a reconstruction of the user session.',
+              'scope': 'Real OpenGL output and texture lifetime; exhausted 2D-output/rectangle-plane allocations at every stage; target-aware native-size first-fit model with reserved render staging for 4K10-bit and 1080p8-bit; clear/reopen; unrelated preexisting GL errors',
+              'limits': 'The failure injection models an exhausted GL allocation after any driver retry. The physical ledger is an independent first-fit model using retained PS5 driver footprints including rectangle render staging, not a hardware trace or a reconstruction of the user session.',
               'source_sha256': {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in
                                 (source, root/'src/video_gl.h', root/'tests/test_video_gl_allocation.cpp', Path(__file__))},
               'stdout': result.stdout, 'stderr': result.stderr}

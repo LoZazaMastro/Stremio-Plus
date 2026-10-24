@@ -1,0 +1,329 @@
+{
+  "result": "PASS",
+  "cases": 62,
+  "checks": 8234,
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "nativeAllocationOwnership": "Every physical allocation and mapping is tracked; each case ends with no owned allocations or mapped buffers.",
+  "source_sha256": {
+    "vendor/vlc-ps5/modules/ps5vdec.c": "12dafd115056d02be87bf984e99403b55f73813e4ab6dcdee72542b7868c6bee",
+    "tests/test_ps5vdec_startup.c": "112125c94811b4a2a1f5431d02cf06d211c93dbba7cd3028d7b06f902deb6709",
+    "tests/run_ps5vdec_startup_tests.py": "06ef705dd7810aa2ec6b85941b36f5269e96f6e0ae9d9521cd3bc210172fd21b"
+  },
+  "compiledStartupSha256": "4d7fb71a360f3966dc93ebb190dd25fadfa2659fbbf3547eb5e2abb42e10de16",
+  "scenarios": [
+    {
+      "scenario": "flexible workspace succeeds",
+      "checks": 142,
+      "result": "PASS"
+    },
+    {
+      "scenario": "flexible failure falls back to direct 0x33",
+      "checks": 149,
+      "result": "PASS"
+    },
+    {
+      "scenario": "null flexible mapping falls back to direct",
+      "checks": 149,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 1 cleans every attempt",
+      "checks": 61,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 2 cleans every attempt",
+      "checks": 88,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 3 cleans every attempt",
+      "checks": 115,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 4 cleans every attempt",
+      "checks": 142,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 5 cleans every attempt",
+      "checks": 169,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 6 cleans every attempt",
+      "checks": 196,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 7 cleans every attempt",
+      "checks": 223,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 8 cleans every attempt",
+      "checks": 250,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 9 cleans every attempt",
+      "checks": 277,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 10 cleans every attempt",
+      "checks": 304,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 11 cleans every attempt",
+      "checks": 331,
+      "result": "PASS"
+    },
+    {
+      "scenario": "physical failure at direct allocation 12 cleans every attempt",
+      "checks": 358,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 1 cleans every attempt",
+      "checks": 76,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 2 cleans every attempt",
+      "checks": 103,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 3 cleans every attempt",
+      "checks": 130,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 4 cleans every attempt",
+      "checks": 157,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 5 cleans every attempt",
+      "checks": 184,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 6 cleans every attempt",
+      "checks": 211,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 7 cleans every attempt",
+      "checks": 238,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 8 cleans every attempt",
+      "checks": 265,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 9 cleans every attempt",
+      "checks": 292,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 10 cleans every attempt",
+      "checks": 319,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 11 cleans every attempt",
+      "checks": 346,
+      "result": "PASS"
+    },
+    {
+      "scenario": "mapping failure at direct allocation 12 cleans every attempt",
+      "checks": 373,
+      "result": "PASS"
+    },
+    {
+      "scenario": "GPU failure also releases flexible CPU workspace",
+      "checks": 66,
+      "result": "PASS"
+    },
+    {
+      "scenario": "memory query failure",
+      "checks": 43,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder create failure",
+      "checks": 373,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder create returns null",
+      "checks": 373,
+      "result": "PASS"
+    },
+    {
+      "scenario": "lower pipeline depth succeeds after clean retry",
+      "checks": 257,
+      "result": "PASS"
+    },
+    {
+      "scenario": "lower decoder level succeeds after clean retries",
+      "checks": 373,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 1",
+      "checks": 42,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 2",
+      "checks": 42,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 3",
+      "checks": 42,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 4",
+      "checks": 42,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 5",
+      "checks": 45,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 6",
+      "checks": 57,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 7",
+      "checks": 84,
+      "result": "PASS"
+    },
+    {
+      "scenario": "decoder memory layout 8",
+      "checks": 113,
+      "result": "PASS"
+    },
+    {
+      "scenario": "zero frame count is rejected before allocation",
+      "checks": 27,
+      "result": "PASS"
+    },
+    {
+      "scenario": "frame count above cap is rejected before allocation",
+      "checks": 27,
+      "result": "PASS"
+    },
+    {
+      "scenario": "disabled",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "module-unavailable",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "codec",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "H264 High10",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "H264 422",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "H264 444",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "H264 CAVLC444",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "HEVC range extensions",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "oversized width",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "oversized height",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "state allocation",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "header allocation",
+      "checks": 141,
+      "result": "PASS"
+    },
+    {
+      "scenario": "unprepared queue is never prepared by OpenDecoder",
+      "checks": 12,
+      "result": "PASS"
+    },
+    {
+      "scenario": "queue failure 1 stays cached without late retry",
+      "checks": 18,
+      "result": "PASS"
+    },
+    {
+      "scenario": "queue failure 2 stays cached without late retry",
+      "checks": 21,
+      "result": "PASS"
+    },
+    {
+      "scenario": "queue failure 3 stays cached without late retry",
+      "checks": 26,
+      "result": "PASS"
+    },
+    {
+      "scenario": "queue failure 4 stays cached without late retry",
+      "checks": 29,
+      "result": "PASS"
+    },
+    {
+      "scenario": "queue failure 5 stays cached without late retry",
+      "checks": 29,
+      "result": "PASS"
+    },
+    {
+      "scenario": "queue failure 6 stays cached without late retry",
+      "checks": 18,
+      "result": "PASS"
+    }
+  ],
+  "limits": "Host fault injection covers startup and native allocation ownership. It does not validate PS5 hardware decode or diagnose a console SIGABRT."
+}

@@ -18,6 +18,7 @@
 #include "hwdec_ps5.h"
 #include "netstream.h"
 #include "growing_file.h"
+#include "playback_volume.h"
 #include "subtitles.h"
 #include "yuv_convert.h"
 
@@ -46,6 +47,7 @@ public:
 		// downloaded over several connections (netstream.h).
 		bool parallel = false;
 		bool audio_passthrough = false;
+		int volume_percent = playback_volume::default_percent;
 		std::shared_ptr<GrowingFilePlayback> growing_download;
 		// A previously presented timestamp whose download identity, total size
 		// and durable prefix have been validated by the caller. Never estimated
@@ -103,6 +105,9 @@ public:
 	std::vector<Track> audio_tracks() const;
 	int audio_stream() const { return audio_stream_.load(); }
 	void select_audio(int stream);
+	void set_volume(int percent) { volume_percent_.store(playback_volume::clamp_percent(percent), std::memory_order_relaxed); }
+	int volume() const { return volume_percent_.load(std::memory_order_relaxed); }
+	bool audio_passthrough_active() const;
 
 	// Text subtitles inside the file (SRT/ASS/WebVTT/mov_text).
 	std::vector<Track> subtitle_tracks() const;
@@ -115,12 +120,16 @@ public:
 
 	std::string stats();
 	std::string codec_summary() const;
+	// Declared stream rate, independent of renderer pickup/presentation cadence.
+	double source_fps() const;
 	std::string audio_output_status() const;
 	// Every 30 s while playing: frame rate shown, drops, buffer, decoder (to the log).
 	void log_stats();
 	bool too_heavy() const { return too_heavy_; }
 
 private:
+	// Independent of VLC's own callback gain; applied once to decoded PCM.
+	std::atomic<int> volume_percent_{playback_volume::default_percent};
 #ifdef STREMIO_USE_LIBVLC
 	struct Vlc;
 	std::unique_ptr<Vlc> vlc_;
@@ -264,6 +273,6 @@ private:
 	std::atomic<bool> too_heavy_{false};
 	double heavy_window_start_ = 0;
 	int heavy_window_dropped_ = 0, heavy_window_decoded_ = 0;
-	double fps_ = 0;
+	std::atomic<double> fps_{0};
 #endif
 };

@@ -1,0 +1,6 @@
+{
+  "inlineSystemCallInstructions": 0,
+  "memoryFunctions": "mmap/mprotect are platform imports",
+  "disassembler": "llvm-objdump-18",
+  "elfSha256": "6f37caf3bd87ac30505031a4259623a8f7d7b15cc0c0c68cb0bdd8d0f725eefe"
+}

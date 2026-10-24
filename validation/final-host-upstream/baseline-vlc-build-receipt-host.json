@@ -1,0 +1,1085 @@
+{
+  "result": "PASS",
+  "target": "host",
+  "vlc_version": "3.0.24",
+  "ffmpeg_version": "8.1.2",
+  "sources": [
+    {
+      "filename": "vlc-3.0.24.tar.xz",
+      "sha256": "e7cab503d1d7d5849b89d2cf0e1ee60d0ef6d012407791b644b9cfc0cc225fdf",
+      "bytes": 27620304
+    },
+    {
+      "filename": "nasm-2.16.03.tar.xz",
+      "sha256": "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148",
+      "bytes": 1032388
+    },
+    {
+      "filename": "zlib-1.3.1.tar.gz",
+      "sha256": "9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23",
+      "bytes": 1512791
+    },
+    {
+      "filename": "ffmpeg-8.1.2.tar.xz",
+      "sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c",
+      "bytes": 11710924
+    },
+    {
+      "filename": "dav1d-1.5.4.tar.xz",
+      "sha256": "686616b7c69eb88d44459391ab25cac13b6647a3b288835c5784e71c1514a5c5",
+      "bytes": 1038852
+    },
+    {
+      "filename": "libebml-1.4.6.tar.xz",
+      "sha256": "d06cf1d5ad89390389eeb1eb7d50f70b55ac7538b19aeac8859eed3f2a9908dc",
+      "bytes": 52424
+    },
+    {
+      "filename": "libmatroska-1.7.2.tar.xz",
+      "sha256": "f3e4d406daf7f1399962c43940e4a87de089474d5bcfbf2e6ca516e98bb87cfc",
+      "bytes": 63016
+    },
+    {
+      "filename": "libdvbpsi-1.3.3.tar.bz2",
+      "sha256": "02b5998bcf289cdfbd8757bedd5987e681309b0a25b3ffe6cebae599f7a00112",
+      "bytes": 488020
+    },
+    {
+      "filename": "freetype-2.13.3.tar.xz",
+      "sha256": "0550350666d427c74daeb85d5ac7bb353acba5f76956395995311a9c6f063289",
+      "bytes": 2617564
+    },
+    {
+      "filename": "fribidi-1.0.16.tar.xz",
+      "sha256": "1b1cde5b235d40479e91be2f0e88a309e3214c8ab470ec8a2744d82a5a9ea05c",
+      "bytes": 1098260
+    },
+    {
+      "filename": "harfbuzz-10.4.0.tar.xz",
+      "sha256": "480b6d25014169300669aa1fc39fb356c142d5028324ea52b3a27648b9beaad8",
+      "bytes": 18120656
+    },
+    {
+      "filename": "gmp-6.3.0.tar.xz",
+      "sha256": "a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898",
+      "bytes": 2094196
+    },
+    {
+      "filename": "nettle-3.10.2.tar.gz",
+      "sha256": "fe9ff51cb1f2abb5e65a6b8c10a92da0ab5ab6eaf26e7fc2b675c45f1fb519b5",
+      "bytes": 2644644
+    },
+    {
+      "filename": "gnutls-3.8.13.tar.xz",
+      "sha256": "ffed8ec1bf09c2426d4f14aae377de4753b53e537d685e604e99a8b16ca9c97e",
+      "bytes": 7275324
+    },
+    {
+      "filename": "libxml2-2.15.3.tar.xz",
+      "sha256": "78262a6e7ac170d6528ebfe2efccdf220191a5af6a6cd61ea4a9a9a5042c7a07",
+      "bytes": 3152452
+    },
+    {
+      "filename": "libass-0.17.5.tar.xz",
+      "sha256": "2dca25c0e0c837ddf00b52011b3f82cac1e4ddd3ad018227806b0c2288864acc",
+      "bytes": 460148
+    },
+    {
+      "filename": "libiconv-1.18.tar.gz",
+      "sha256": "3b08f5f4f9b4eb82f151a7040bfd6fe6c6fb922efe4b1659c66ea933276965e8",
+      "bytes": 5822590
+    },
+    {
+      "filename": "utf8cpp-3.2.5.tar.gz",
+      "sha256": "821e50be16112907a85416143b7b8cbd51f84e2dc00c8a0dfe174da3146b52b8",
+      "bytes": 28896
+    }
+  ],
+  "patches": [
+    {
+      "path": "patches/0001-freetype-ps5-default-fonts.patch",
+      "sha256": "dac7605901f1413c58c041b10609458f536ea233317aed1178767f903381b19e"
+    },
+    {
+      "path": "patches/0002-posix-error-ps5-no-strerror_l.patch",
+      "sha256": "54a2bccff4967765ac673bc491db730796bc8f9ff39bd6729b6db2bcfb32d2cf"
+    },
+    {
+      "path": "patches/0003-interrupt-ps5-sliced-poll.patch",
+      "sha256": "dd3ad19a6839dd17042c78ea5fe2943c8f4ed2510e622ed9347d2f02f0eb19ff"
+    },
+    {
+      "path": "patches/0004-thread-ps5-cpu-count.patch",
+      "sha256": "b1588b151a54024ba7ab302ceaf945bf2b87955c9fd0992166d94f2c23e80bdd"
+    },
+    {
+      "path": "patches/0005-freetype-ps5-fallback-fonts.patch",
+      "sha256": "d236815ab4b2af3bb58ffa07ee408f94bb98a763fc30abf788c345f47ec3793a"
+    },
+    {
+      "path": "patches/0006-netconf-ps5-no-proxy-helper.patch",
+      "sha256": "bd495438362b11c5138599039c30109e183687981f430d29ba4ab6cdb0e770df"
+    },
+    {
+      "path": "patches/0007-no-named-locales-ps5.patch",
+      "sha256": "07bd10c786c144ec98cc2c1d8a81541ee9df408314ded0646f7338ccf711ef12"
+    },
+    {
+      "path": "patches/0008-libass-ps5-default-font.patch",
+      "sha256": "eb5ca0e8eb62a37ecbba2e5aedc333e61d12e4259eba3532725f0277b1445cfa"
+    },
+    {
+      "path": "patches/0009-dvdnav-ps5-stream-demux.patch",
+      "sha256": "aba70016c03bcf178f9c8645465f8781636bc393a556860e877efd8a2e38a7da"
+    },
+    {
+      "path": "patches/0010-bluray-ps5-menu-state.patch",
+      "sha256": "9d12e8ef167af62286411d2dda18e4a06b70e35364b210a0c3401e5ba380382d"
+    },
+    {
+      "path": "patches/0011-freetype-ps5-utf8-without-iconv.patch",
+      "sha256": "06b1be96da9e5db56c26ef5ab3e37bb3b729583f429396053eb4ad101302008a"
+    },
+    {
+      "path": "patches/0012-adaptive-ps5-http-res-malloc.patch",
+      "sha256": "fb2b555cb224f0edeccdc887ef9ca6f37db3230e94ea3f3b5017a4c929202423"
+    },
+    {
+      "path": "patches/0013-avcodec-opus-bare-header.patch",
+      "sha256": "01892d88705d1a3ff9e92dee3fc275858c7164250ba81fbdb0ea145c20e22375"
+    },
+    {
+      "path": "patches/0014-vmem-ps5-colour-info.patch",
+      "sha256": "5ec6d7da78fb1c5aab57663a1e481135b22302bb8dcd23c2cb954317bc0f7009"
+    },
+    {
+      "path": "patches/0015-picture-ps5-big-pictures-direct-memory.patch",
+      "sha256": "d9a241931bc790badf6df768a11f809f1719f415b98dcf06b4ee5f364b28594f"
+    },
+    {
+      "path": "patches/0016-vmem-ps5-parallel-copy.patch",
+      "sha256": "4f93747f50a7416b1e7616afaf02ca1945d35ee26e00e52e10314940242c16e8"
+    },
+    {
+      "path": "patches/0017-smb2-ps5-bigger-reads.patch",
+      "sha256": "a4ae4582c64f099564dff7f502b5e950834ad92eac6dd81bdf6376cbbb4b1b03"
+    },
+    {
+      "path": "patches/0018-stremio-subtitle-callback.patch",
+      "sha256": "88c60c7754af30846592cdc48c30ecc1cd2e348c693151e16fc9afcae5a5f14e"
+    },
+    {
+      "path": "patches/0019-static-vc1-module-name.patch",
+      "sha256": "d80b472254cde3f22a98cdf2634a283d0777f1b35043aba8292fd97bbb89f5a2"
+    },
+    {
+      "path": "patches/0020-growing-input-direct-access.patch",
+      "sha256": "52743cdc815f91f1e0224badb51a206fd318191556585c86ef94d3a58d7ead51"
+    },
+    {
+      "path": "patches/0021-reference-safe-rebuffering.patch",
+      "sha256": "a3776f52aab38c56ac4c68c004d047990c78ed78415c65e21f633fa7111013a7"
+    },
+    {
+      "path": "patches/0022-stremio-video-metadata.patch",
+      "sha256": "c5eaf8ba4c778b628aff089081f2c918ef4e4b05fd664755acc358665a6ec5fe"
+    },
+    {
+      "path": "patches/0023-stremio-decoder-error.patch",
+      "sha256": "f11ac02f13ca12560badef4e2114736239ab0dfaa636fddf115075077568e90d"
+    },
+    {
+      "path": "patches/0024-reset-frame-discard-after-preroll.patch",
+      "sha256": "2b83e3a35c644e4a6b4a4223436b7ad2ce12484e59bb106d214600f323a971ec"
+    },
+    {
+      "path": "patches/dvdread/0001-plain-input-reads-streams.patch",
+      "sha256": "2010d672d0175d9f562e028f43543b17f9a116a42770a7a53daf256be90bba15"
+    },
+    {
+      "path": "patches/ffmpeg/0001-opus-ps5-recording-header.patch",
+      "sha256": "813b977e8c2b4608e8d5c547ffdb0e49f03df4aeaf776b87d2e5aade56d7df19"
+    },
+    {
+      "path": "patches/mesa/0001-videoout-hdr10.patch",
+      "sha256": "e300f1713295c0c151cb08aea39715d50d80ed629c68878d6e62656112f272b9"
+    },
+    {
+      "path": "patches/smb2/0001-socket-big-buffers.patch",
+      "sha256": "ca7e5c01424143e3f39ed928985c391961fa26b6a137869f23acdbd636302c50"
+    },
+    {
+      "path": "patches/upnp/0001-ssdp-listener-optional.patch",
+      "sha256": "00bdb29b8892fff20dc2c61fd31d842f7673f3e2386b5508d6d78be55a44ce6b"
+    }
+  ],
+  "plugins": [
+    "filesystem",
+    "imem",
+    "access_concat",
+    "cache_read",
+    "cache_block",
+    "prefetch",
+    "inflate",
+    "skiptags",
+    "http",
+    "https",
+    "gnutls",
+    "memory_keystore",
+    "directory_demux",
+    "xml",
+    "adaptive",
+    "playlist",
+    "udp",
+    "rtp",
+    "ftp",
+    "mkv",
+    "mp4",
+    "avi",
+    "asf",
+    "es",
+    "ps",
+    "ts",
+    "h26x",
+    "mpgv",
+    "vc1",
+    "wav",
+    "flacsys",
+    "subtitle",
+    "vobsub",
+    "avformat",
+    "idummy",
+    "avcodec",
+    "dav1d",
+    "araw",
+    "lpcm",
+    "adpcm",
+    "rawvideo",
+    "subsdec",
+    "substx3g",
+    "subsusf",
+    "webvtt",
+    "ttml",
+    "cc",
+    "spudec",
+    "dvbsub",
+    "cvdsub",
+    "svcdsub",
+    "packetizer_a52",
+    "packetizer_av1",
+    "packetizer_avparser",
+    "packetizer_copy",
+    "packetizer_dirac",
+    "packetizer_dts",
+    "packetizer_flac",
+    "packetizer_h264",
+    "packetizer_hevc",
+    "packetizer_mlp",
+    "packetizer_mpeg4audio",
+    "packetizer_mpeg4video",
+    "packetizer_mpegaudio",
+    "packetizer_mpegvideo",
+    "packetizer_vc1",
+    "swscale",
+    "chain",
+    "yuvp",
+    "blend",
+    "scale",
+    "canvas",
+    "croppadd",
+    "transform",
+    "deinterlace",
+    "i420_rgb",
+    "i420_rgb_sse2",
+    "i420_yuy2",
+    "i420_yuy2_sse2",
+    "i422_i420",
+    "i422_yuy2",
+    "i422_yuy2_sse2",
+    "yuy2_i420",
+    "yuy2_i422",
+    "grey_yuv",
+    "i420_10_p010",
+    "i420_nv12",
+    "freetype",
+    "libass",
+    "adjust",
+    "logo",
+    "marq",
+    "audio_format",
+    "ugly_resampler",
+    "scaletempo",
+    "trivial_channel_mixer",
+    "simple_channel_mixer",
+    "dolby_surround_decoder",
+    "remap",
+    "float_mixer",
+    "integer_mixer",
+    "equalizer",
+    "vmem",
+    "amem",
+    "vdummy",
+    "adummy"
+  ],
+  "registered_module_entries": [
+    "vlc_entry__a52",
+    "vlc_entry__access",
+    "vlc_entry__adaptive",
+    "vlc_entry__adjust",
+    "vlc_entry__adpcm",
+    "vlc_entry__adummy",
+    "vlc_entry__amem",
+    "vlc_entry__araw",
+    "vlc_entry__asf",
+    "vlc_entry__audio_format",
+    "vlc_entry__av1",
+    "vlc_entry__avcodec",
+    "vlc_entry__avformat",
+    "vlc_entry__avi",
+    "vlc_entry__blend",
+    "vlc_entry__cache_block",
+    "vlc_entry__cache_read",
+    "vlc_entry__canvas",
+    "vlc_entry__cc",
+    "vlc_entry__chain",
+    "vlc_entry__concat",
+    "vlc_entry__copy",
+    "vlc_entry__croppadd",
+    "vlc_entry__cvdsub",
+    "vlc_entry__dav1d",
+    "vlc_entry__deinterlace",
+    "vlc_entry__dirac",
+    "vlc_entry__directory",
+    "vlc_entry__dolby",
+    "vlc_entry__dts",
+    "vlc_entry__dvbsub",
+    "vlc_entry__equalizer",
+    "vlc_entry__es",
+    "vlc_entry__filesystem",
+    "vlc_entry__flac",
+    "vlc_entry__flacsys",
+    "vlc_entry__float_mixer",
+    "vlc_entry__freetype",
+    "vlc_entry__ftp",
+    "vlc_entry__gnutls",
+    "vlc_entry__grey_yuv",
+    "vlc_entry__h264",
+    "vlc_entry__h26x",
+    "vlc_entry__hevc",
+    "vlc_entry__http",
+    "vlc_entry__i420_10_p010",
+    "vlc_entry__i420_nv12",
+    "vlc_entry__i420_rgb",
+    "vlc_entry__i420_rgb_sse2",
+    "vlc_entry__i420_yuy2",
+    "vlc_entry__i420_yuy2_sse2",
+    "vlc_entry__i422_i420",
+    "vlc_entry__i422_yuy2",
+    "vlc_entry__i422_yuy2_sse2",
+    "vlc_entry__idummy",
+    "vlc_entry__imem_access",
+    "vlc_entry__inflate",
+    "vlc_entry__integer_mixer",
+    "vlc_entry__libass",
+    "vlc_entry__logo",
+    "vlc_entry__lpcm",
+    "vlc_entry__marq",
+    "vlc_entry__memory",
+    "vlc_entry__mkv",
+    "vlc_entry__mlp",
+    "vlc_entry__mp4",
+    "vlc_entry__mpeg4audio",
+    "vlc_entry__mpeg4video",
+    "vlc_entry__mpegaudio",
+    "vlc_entry__mpegvideo",
+    "vlc_entry__mpgv",
+    "vlc_entry__packetizer_avparser",
+    "vlc_entry__packetizer_vc1",
+    "vlc_entry__playlist",
+    "vlc_entry__prefetch",
+    "vlc_entry__ps",
+    "vlc_entry__rawvideo",
+    "vlc_entry__remap",
+    "vlc_entry__rtp",
+    "vlc_entry__scale",
+    "vlc_entry__scaletempo",
+    "vlc_entry__simple_channel_mixer",
+    "vlc_entry__skiptags",
+    "vlc_entry__spudec",
+    "vlc_entry__stremiohttp",
+    "vlc_entry__stremiosub",
+    "vlc_entry__subsdec",
+    "vlc_entry__substx3g",
+    "vlc_entry__subsusf",
+    "vlc_entry__subtitle",
+    "vlc_entry__svcdsub",
+    "vlc_entry__swscale",
+    "vlc_entry__transform",
+    "vlc_entry__trivial",
+    "vlc_entry__ts",
+    "vlc_entry__ttml",
+    "vlc_entry__udp",
+    "vlc_entry__ugly",
+    "vlc_entry__vc1",
+    "vlc_entry__vdummy",
+    "vlc_entry__vmem",
+    "vlc_entry__vobsub",
+    "vlc_entry__wav",
+    "vlc_entry__webvtt",
+    "vlc_entry__xml",
+    "vlc_entry__yuvp",
+    "vlc_entry__yuy2_i420",
+    "vlc_entry__yuy2_i422"
+  ],
+  "archives": [
+    {
+      "path": "build-vlc-host/lib/.libs/libvlc.a",
+      "sha256": "acc2484408473e08b8dec1117f135f46671e7716cf70eeaf046f6f6b3aeac0aa",
+      "bytes": 263262
+    },
+    {
+      "path": "build-vlc-host/src/.libs/libvlccore.a",
+      "sha256": "99c775e7851b57483811364ffb427d82037baaf180a2ceb80bbe4de4f7d9d357",
+      "bytes": 1982998
+    },
+    {
+      "path": "prefix-host/lib/libass.a",
+      "sha256": "27a404d3f4ede8ffa60558fe899836edfddbf83fc43831fce3a16d4041d25f0a",
+      "bytes": 414808
+    },
+    {
+      "path": "prefix-host/lib/libavcodec.a",
+      "sha256": "f8b160e5689e00cdc928068b39c1fd92d08a6592e0a0c7d1e65f4c37cdba7339",
+      "bytes": 22010024
+    },
+    {
+      "path": "prefix-host/lib/libavformat.a",
+      "sha256": "19f74a1f05e9435f234adfebae73a916fde5fac1d88fcaed13a560bb5ee274a2",
+      "bytes": 3244416
+    },
+    {
+      "path": "prefix-host/lib/libavutil.a",
+      "sha256": "80f0cad1fa8d3a7ce5dc28c5995ac629e4ffae4f093d7c13af2d5738a3d67c3a",
+      "bytes": 1443036
+    },
+    {
+      "path": "prefix-host/lib/libdav1d.a",
+      "sha256": "f5606f601b09cefdb76cdf71b6736b038133faf6129c30cfa41f95a377058c4a",
+      "bytes": 3276168
+    },
+    {
+      "path": "prefix-host/lib/libdvbpsi.a",
+      "sha256": "16f4bb1a6ce9cd42659bb4df272484f85a99c3918b97f7c766604f4912b8d11f",
+      "bytes": 321934
+    },
+    {
+      "path": "prefix-host/lib/libebml.a",
+      "sha256": "fbd7a7ee809af844ad9fa9bd4bddc630005e20fec8b315fe123cd40cb6c7cfa8",
+      "bytes": 388492
+    },
+    {
+      "path": "prefix-host/lib/libfreetype.a",
+      "sha256": "da868bb23965504d28d55b483cd1e47077c85393da014d96fafce5cd1b6b3c5f",
+      "bytes": 1155018
+    },
+    {
+      "path": "prefix-host/lib/libfribidi.a",
+      "sha256": "64c6d687c793587a87235e7291198b8f0bd9da3e3fe72200e7cfdb610c34f5d9",
+      "bytes": 160602
+    },
+    {
+      "path": "prefix-host/lib/libgmp.a",
+      "sha256": "7c0bf4afc664fd2a1019cdd2c9bedf7d05cd95b5e39ad576116d44c29a2c7b4d",
+      "bytes": 1390050
+    },
+    {
+      "path": "prefix-host/lib/libgnutls.a",
+      "sha256": "02fda7d1dcfa91a7eb1ab4f4f5a67fcdbf2162d8100a9887814d9a1acd6d51f6",
+      "bytes": 4753804
+    },
+    {
+      "path": "prefix-host/lib/libharfbuzz-subset.a",
+      "sha256": "6772cd46d24e6de3132075a3100241d329d90578a840040653830d94e0f60402",
+      "bytes": 3164186
+    },
+    {
+      "path": "prefix-host/lib/libharfbuzz.a",
+      "sha256": "e12de1d26342f9b8a85485b391bea7f75a33977af3b90fcfe73268190852baea",
+      "bytes": 2679610
+    },
+    {
+      "path": "prefix-host/lib/libhogweed.a",
+      "sha256": "74bbf9c1a420220175b27b58a8b0fad7f16d6b231f1c43e826f6ca5cec0d7110",
+      "bytes": 18890886
+    },
+    {
+      "path": "prefix-host/lib/libiconv.a",
+      "sha256": "fc4c89bb85fa94a07b04fc0d5c98cc8ae407b7855fee15728c2cb0001818a80f",
+      "bytes": 1028474
+    },
+    {
+      "path": "prefix-host/lib/libmatroska.a",
+      "sha256": "12e3afab3882df1b3ef29745ea9b66118edc4798db35686c391345ab645c4f15",
+      "bytes": 2243212
+    },
+    {
+      "path": "prefix-host/lib/libnettle.a",
+      "sha256": "357f19242c6550de321af8bd8f68a0e9957d1242ea76e52d558479cca8ef6840",
+      "bytes": 19068282
+    },
+    {
+      "path": "prefix-host/lib/libswresample.a",
+      "sha256": "0849e010567e1a749d8e5edc54c687b092c6fb251952668229d744be149308d6",
+      "bytes": 203650
+    },
+    {
+      "path": "prefix-host/lib/libswscale.a",
+      "sha256": "60b34c829075099675cea77743da91b9c7cc1864eed0ab483a62937223e01660",
+      "bytes": 2547530
+    },
+    {
+      "path": "prefix-host/lib/libxml2.a",
+      "sha256": "3e860a8d05d55a9d07fd9cbfb441e0c299145ee5411e5a73fd952d3b10c69366",
+      "bytes": 1023526
+    },
+    {
+      "path": "prefix-host/lib/libz.a",
+      "sha256": "277caaf924a464822ee00fbe5004c05e3a9f8a3ae07a034f3b4c5c81c73bac17",
+      "bytes": 129964
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libfilesystem_plugin.a",
+      "sha256": "576f27afb7951766e416eb673a3e89f39f4feca3e834472e8cfddae810b1260b",
+      "bytes": 16472
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libimem_plugin.a",
+      "sha256": "092d27959c0319b99df8e7270005a01b469b1a939306f389430651bc0f97cad1",
+      "bytes": 6144
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libaccess_concat_plugin.a",
+      "sha256": "7bac8fa1ce3ae791391193b3fd75262fe6b9175459d7eda41f77c3f8cade75e9",
+      "bytes": 10496
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libcache_read_plugin.a",
+      "sha256": "31b178a9cfb911cc7e83ebc8e60977ebfe81d085047485d76a2597ffb645e4c3",
+      "bytes": 10412
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libcache_block_plugin.a",
+      "sha256": "c883175be9e31eb4e3c78e8ca9576174ab18ad29587554fccfd0aafd9a920cd6",
+      "bytes": 9936
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libprefetch_plugin.a",
+      "sha256": "8586d180f58892da842baf657ece9f964b94f4a8999ba41e262aa5fecf43a3d6",
+      "bytes": 14110
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libinflate_plugin.a",
+      "sha256": "4bc18930961b90a407dc0ae6a1a267f60da7defca83a39b5ec57f06b6427e38f",
+      "bytes": 6772
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libskiptags_plugin.a",
+      "sha256": "68e1aae51d8f310e04ce1edba625c4ce3fe05da01756729537450d811ff94a03",
+      "bytes": 7566
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libhttp_plugin.a",
+      "sha256": "4e33c759611417ee61aad827944c17fff52400aa10760da04a3c7839d9bf2796",
+      "bytes": 30026
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libhttps_plugin.a",
+      "sha256": "03fa09852be6e72e89c4624195f590e193e57ebac8c6f6a6f75faba9adf51052",
+      "bytes": 152980
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libgnutls_plugin.a",
+      "sha256": "dbda55255f1961f451e5bfcf355621245afa8a656dfa0dc7e8a52bc2cde242c5",
+      "bytes": 24362
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libmemory_keystore_plugin.a",
+      "sha256": "52e06a4676c63c406d8a7878990701596a8d7323c91e0b6877002aa0fc48026f",
+      "bytes": 8630
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libdirectory_demux_plugin.a",
+      "sha256": "76aa97208c2709c4f0360d18d48389c68c116630d1f1c93c2f4f7c0306939284",
+      "bytes": 5434
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libxml_plugin.a",
+      "sha256": "7c511365539d96b12daf5f7770a37f538f79e83084f3725451aec05b57e93d76",
+      "bytes": 7720
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libadaptive_plugin.a",
+      "sha256": "6b94bc40f93f8bcda50c958fa5c2d6045800bbf5185f73d25d615ca08c25f1dd",
+      "bytes": 2445386
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libplaylist_plugin.a",
+      "sha256": "1b56433e7f752d2b63e6722928299c05942577767342efa71a6ba019dce02219",
+      "bytes": 195180
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libudp_plugin.a",
+      "sha256": "8eb4aa7d634468b5e0c27858ea06e94ec1cca58c6cd21303f99982a62d9c4dd7",
+      "bytes": 7880
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/librtp_plugin.a",
+      "sha256": "7a4feaaaad9462809c7a581a433603945a9542baa3f625fa86bc0f67a9c33558",
+      "bytes": 48052
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libftp_plugin.a",
+      "sha256": "5e93be335cbc84987020e747fe66aad0e0578092e9e8f54e1250a0d86232c22a",
+      "bytes": 60096
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libmkv_plugin.a",
+      "sha256": "32890a0b53fddb0db793ebe1599bd1c08cd5af75c357c53f89f1621559b60959",
+      "bytes": 961972
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libmp4_plugin.a",
+      "sha256": "d734f94a58e1154c09aa6fdae514c35268eeb2531d21d7fc7915a2dc35cf5706",
+      "bytes": 359890
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libavi_plugin.a",
+      "sha256": "e998dc96d2ec6d3599729210dc96ef0d8618fbe55e04dc415aa18cd26d2ac9ff",
+      "bytes": 119926
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libasf_plugin.a",
+      "sha256": "464c568851bb55659ddf6976a90a3f63bffe9a3568ad60aee161eb8145ede5cb",
+      "bytes": 94848
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libes_plugin.a",
+      "sha256": "a5f143f97c05fa8b0670da02cf0d93f07487db4ea5a9411f6b2b71e6405df097",
+      "bytes": 50820
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libps_plugin.a",
+      "sha256": "2681747524baf696cbe7d3f81d33fec53ca719d0c086294c0ccace8de5fba078",
+      "bytes": 39180
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libts_plugin.a",
+      "sha256": "a03fc7b0a409602897918455097c736cdc88d5e395b884c2fdcd64feca9dfcdf",
+      "bytes": 354088
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libh26x_plugin.a",
+      "sha256": "d1706d3bdb434ff7d278c62e157f6ed02dd98e637e9adaca8e9131475f8ae811",
+      "bytes": 108214
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libmpgv_plugin.a",
+      "sha256": "fce6cdff1b7cc95ae511a21d9ea74eedb8f672e3a1c70d3e0a87d546edc6519e",
+      "bytes": 6330
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libvc1_plugin.a",
+      "sha256": "1a630c72f3dbc27bf096c25f79aa540fe388042b433a884f23d9a06af39963b4",
+      "bytes": 7328
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libwav_plugin.a",
+      "sha256": "e287ca4cf5abe92b75b9dbcdacb89e7557132025192a6985c27ff17361c9d884",
+      "bytes": 20568
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libflacsys_plugin.a",
+      "sha256": "b34c633017ed51bc5861ec952f551c89493cb0e2ca2349b647c9bb611d75eee3",
+      "bytes": 44344
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libsubtitle_plugin.a",
+      "sha256": "c605721a0973edcee8608e59c6f86f3a019c278dce38c2288a92fc8dd9986bb2",
+      "bytes": 56726
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libvobsub_plugin.a",
+      "sha256": "ed0914a7a5d9a5389f460918b44409c3e890b7e98df913b18af429c5612206a9",
+      "bytes": 22520
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libavformat_plugin.a",
+      "sha256": "7f67bf60b44af6f7e858f2e66c89931e1c50deb450bd0885dd7828ef1ed12eea",
+      "bytes": 58150
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libidummy_plugin.a",
+      "sha256": "294c261bd39cea48c96e540272138e1ace55c27366f6f283e7386ebafaaaae23",
+      "bytes": 7952
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libavcodec_plugin.a",
+      "sha256": "2c8ef4269fc29325203175e207adbb3673262eceb3fde6dd55484fde085c3915",
+      "bytes": 119990
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libdav1d_plugin.a",
+      "sha256": "677d46dcdab46258d5cb1452965d32a05ab682a49660e9caf84b979dafe99b22",
+      "bytes": 10598
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libaraw_plugin.a",
+      "sha256": "2e207c752dd026b7caf0998819a911625a4b747413c542f087f925880c21d87c",
+      "bytes": 21210
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/liblpcm_plugin.a",
+      "sha256": "e8c0eb8a6be76115504e6b11af26d9267d1fde2c783c3d88701f7ff4dcc5f6f2",
+      "bytes": 15554
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libadpcm_plugin.a",
+      "sha256": "4429e246aad7f24615eebda028876afd82138ea52ade4f51b6bd6c6d21d02f5d",
+      "bytes": 14878
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/librawvideo_plugin.a",
+      "sha256": "0ccb2b0001bd75e9e006064fd3f01f27b1a5677aea92713591809525713c4a65",
+      "bytes": 7934
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libsubsdec_plugin.a",
+      "sha256": "a6d1e29e700889ec141979a3fb24c69ef1b95fe83f105a5f01424d1f87dee9d9",
+      "bytes": 32876
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libsubstx3g_plugin.a",
+      "sha256": "ef21b16ef4916a648563172b1856f23e60066017fb38f0359bb8884f0dd8c6bf",
+      "bytes": 11926
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libsubsusf_plugin.a",
+      "sha256": "e8e08a39d745e752c1b458584966a9153631d9ac3dc8186a417b274b743aca3c",
+      "bytes": 29308
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libwebvtt_plugin.a",
+      "sha256": "884dc009ab114a337f88a9f0d000719b10eacacb7caa8d110168530e59e97f85",
+      "bytes": 172002
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libttml_plugin.a",
+      "sha256": "6c3dcde5a6d748160533933a4d0210c723987678ac13c5bdbbc8f4d849e30d4c",
+      "bytes": 61180
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libcc_plugin.a",
+      "sha256": "700c73939f3526450975578d5fdf7e21b7ed94e671bccfb7db76149e904b2a98",
+      "bytes": 53326
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libspudec_plugin.a",
+      "sha256": "1fa9192f8c4cd7b45c0da02fa62e58204f305e0c7d5477a746537b47102025f0",
+      "bytes": 22364
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libdvbsub_plugin.a",
+      "sha256": "509a392ada02747b19f064d5437b92475d7cec8adfcdff418b00e1bce0f56847",
+      "bytes": 60568
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libcvdsub_plugin.a",
+      "sha256": "b402520189cc27c1eec573ccc56f0a13d29cc224e465c55e4c857e80a5824bd9",
+      "bytes": 16216
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libsvcdsub_plugin.a",
+      "sha256": "a0aec21d218d93a9ce6f0fc2d272f6c02eda703ee0febec4cb623fb029b79212",
+      "bytes": 11620
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_a52_plugin.a",
+      "sha256": "91e6e0d94f4586f04ee21a4066a006570da4fb70a1f67284702980da7d69f37e",
+      "bytes": 14016
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_av1_plugin.a",
+      "sha256": "a42fd88ed854257eb94ab25a638314d17c69afe7cbb23f9aae619fd02d22a037",
+      "bytes": 42410
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_avparser_plugin.a",
+      "sha256": "fe4d3bb9c3ad7e718436da9187efc7032a440a7894d47c31ccbe6b6a99dc9931",
+      "bytes": 17712
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_copy_plugin.a",
+      "sha256": "f164e994c592340afcb3f25b7c374f7e2fc89cfda065a4d9296463929ebcb79a",
+      "bytes": 8146
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_dirac_plugin.a",
+      "sha256": "d4165fb572744fca46ccd3deff5e82602f910f52178b41fee1420146f6d62d18",
+      "bytes": 25214
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_dts_plugin.a",
+      "sha256": "ab73b33f205585b72d8f66bc547bdb362fc7eac1780df70f5adad6e02362c60c",
+      "bytes": 22536
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_flac_plugin.a",
+      "sha256": "e563406cc131cce70567a7b8f0ba0a9ae57517f24645282898085aa6e7c11855",
+      "bytes": 16938
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_h264_plugin.a",
+      "sha256": "491cdd726abe8931e8b30e5fa2b32135825917fc7cc31ad62b0ac8601ff9616d",
+      "bytes": 172442
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_hevc_plugin.a",
+      "sha256": "e761879c8837ba47ae9fc880a3b9ed8c30f7dd95b92441e2d9157ad1b184715f",
+      "bytes": 188838
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_mlp_plugin.a",
+      "sha256": "311ac75734999e26b1e2886977e22d2adfb2499472f7180744685517a0cc9ef0",
+      "bytes": 17848
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_mpeg4audio_plugin.a",
+      "sha256": "27ee4ba6d929e015117e6187787e215b7604690759a8b363d0d16bcba65a071a",
+      "bytes": 41308
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_mpeg4video_plugin.a",
+      "sha256": "9327966be1438b2846190a57f3722145f0241553e06fb6f2594f6e42fdf1c9c6",
+      "bytes": 25052
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_mpegaudio_plugin.a",
+      "sha256": "0260beabcbc9bd17b16ebbc9b30663e9d1e7ca4735d1e2fa5d56b6e49031e56b",
+      "bytes": 12898
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_mpegvideo_plugin.a",
+      "sha256": "e0fb1f2111bcd05be43cb4f406719a284d311db73e2fe478cbf6a00e430d4238",
+      "bytes": 26722
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libpacketizer_vc1_plugin.a",
+      "sha256": "bdf4ee4e1aabc8d71d6f8d885de329786d2a9a1fc15a597ac8c546553da8f960",
+      "bytes": 33832
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libswscale_plugin.a",
+      "sha256": "e72a7859d118556f54b87d3dd60d829b483211f1db111cb442e93ac88ec30c30",
+      "bytes": 22994
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libchain_plugin.a",
+      "sha256": "78c0a112b011c106e0ca69b99801d3c81ed67457b81393ec7b4a7c521d155b69",
+      "bytes": 15822
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libyuvp_plugin.a",
+      "sha256": "08a8b8c428f8c617046066da060e84c1895dd53e0d2b15d3bd4690a8e5fe1e92",
+      "bytes": 5930
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libblend_plugin.a",
+      "sha256": "39ee9f89e0104a16b3a27337da66c14e9bf792a674489a740d315b5902a459c9",
+      "bytes": 157692
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libscale_plugin.a",
+      "sha256": "347b082bbd02b7dc0a864cd7c5cc163a1de58c87c545cdee04797135074762d1",
+      "bytes": 6094
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libcanvas_plugin.a",
+      "sha256": "4998c549a2f4fe93f5f356c86eaf89ddb43f6cd5f19b003a030376418f53a0f3",
+      "bytes": 12208
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libcroppadd_plugin.a",
+      "sha256": "687c8360466d211eabed63fc1c490c086c76b2cf7f35cda75b6ed8525a699f82",
+      "bytes": 15654
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libtransform_plugin.a",
+      "sha256": "5e5ba4f9e2d4afaee024a70c3548761faeb6ca417ae259c0804a814fc129a8de",
+      "bytes": 32194
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libdeinterlace_plugin.a",
+      "sha256": "983c0a983699ff82e5dc71d62a54206ae68bad0c27e3b442cfe624cfa86d87ad",
+      "bytes": 163560
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi420_rgb_plugin.a",
+      "sha256": "943aa609049581ec18c210c82dda84c21d65f500f24a95b9db5bbb1b59fc77b7",
+      "bytes": 27634
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi420_rgb_sse2_plugin.a",
+      "sha256": "2f5257eff228f7a1b1170cd6067608f34433d7153ac455997f2e9996b331d09b",
+      "bytes": 109914
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi420_yuy2_plugin.a",
+      "sha256": "ffc9dd4a31c5bb8719ad7f60358df434d30380e8e3e2c305e550ae9b0f114e11",
+      "bytes": 42450
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi420_yuy2_sse2_plugin.a",
+      "sha256": "8697cdd238a499610b9b98861a36a15fdbecd7246ab33bfb7aa2519aa75a51a0",
+      "bytes": 22278
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi422_i420_plugin.a",
+      "sha256": "c2fffe08b2caca0c0c839be032e81f8b702e2e606612a43ca566fccd7bb03a09",
+      "bytes": 7466
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi422_yuy2_plugin.a",
+      "sha256": "a8b471d61b97757600b2cd53f8cd19ee0b2be41d1d9f47aaca208e1276c34661",
+      "bytes": 31786
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi422_yuy2_sse2_plugin.a",
+      "sha256": "f1df20d22a8e2306a388b49456aa3cd55262d9a9359204573c1575f3a08778be",
+      "bytes": 16270
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libyuy2_i420_plugin.a",
+      "sha256": "91353477e282c592d78c08a92dffc1bf896c8cfa109bba82f4b7f825545ae1f5",
+      "bytes": 38418
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libyuy2_i422_plugin.a",
+      "sha256": "e6e82bc9864fd2f6b2df78b3fa98bb475e7642008c418eab7ff358eb1f6d1712",
+      "bytes": 31898
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libgrey_yuv_plugin.a",
+      "sha256": "16fc345d6b86c68aa00a33605b907e71a447efdf0b28fbbc5ff30ebaefea3cef",
+      "bytes": 11286
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi420_10_p010_plugin.a",
+      "sha256": "f2338e332f062ddb4087a5491493cda9bd62676794d64a543b213fd49291df2e",
+      "bytes": 88484
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libi420_nv12_plugin.a",
+      "sha256": "a230a1806198bbd9a18e0a0b17c5d8b01287ff05458b278a2b47a6ec5f6b62cb",
+      "bytes": 92070
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libfreetype_plugin.a",
+      "sha256": "30a58fd59c873562d0212f8efe24d20b6ec7bec69362610bd15067cd0677d590",
+      "bytes": 101042
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/liblibass_plugin.a",
+      "sha256": "2d1a6cbab5880cb9fb5022d37ac055c0c13816c8dd6795626f281bb87b1e2c7f",
+      "bytes": 18914
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libadjust_plugin.a",
+      "sha256": "3887abadefc56d4c23ebebba545b0fdb59060e894b429e776face550731041f8",
+      "bytes": 87582
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/liblogo_plugin.a",
+      "sha256": "9a62da178e08f406656298f1e3a7071898a5802d7e816d3efcbeca8fa12de68c",
+      "bytes": 20562
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libmarq_plugin.a",
+      "sha256": "79904b9a5c2df0ef6eca467a35090d8f88aae74953b781d190b945087857a4bd",
+      "bytes": 18538
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libaudio_format_plugin.a",
+      "sha256": "d228ca4f92fb93bf1304cec7b6e50e7263f042917862f63548dc613d2d5ddc1a",
+      "bytes": 31274
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libugly_resampler_plugin.a",
+      "sha256": "531ce90b9c112dc1768711685d077097a8919f6390013325b1668da2f3a95ce1",
+      "bytes": 4362
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libscaletempo_plugin.a",
+      "sha256": "a10a3700225d9551fdae6d6af66a4b7b33d7d08af44ee389204204bed33f0605",
+      "bytes": 14788
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libtrivial_channel_mixer_plugin.a",
+      "sha256": "45e754a9edf53d87ca42bc761f2aa693f8db4a68e5a92f83c0144ee64802e8aa",
+      "bytes": 7612
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libsimple_channel_mixer_plugin.a",
+      "sha256": "b2c0519dffcbb7b9c6e83c2e31ef59673bfe77341f2771690d1cffecf071e035",
+      "bytes": 16682
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libdolby_surround_decoder_plugin.a",
+      "sha256": "6cee599f82c481163ae9a2c2017a5ae0e8ac130aeef94e7ba1238255bb56a9aa",
+      "bytes": 7270
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libremap_plugin.a",
+      "sha256": "e647bd886667d16c746de4d1be483ca07bfdea700311263f84e4bd0be4ea8d3c",
+      "bytes": 16838
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libfloat_mixer_plugin.a",
+      "sha256": "b59da7a2fb2b48fe496a618e60d2392ba00835e62df98f3129af1e1cec5dd31d",
+      "bytes": 4414
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libinteger_mixer_plugin.a",
+      "sha256": "07c718863f4875408c83af1e9b0a8a290abc1b73017b90977e247252729bcb66",
+      "bytes": 6152
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libequalizer_plugin.a",
+      "sha256": "c87dbf174efb0fbef4043ca31f3d1ba0346d3f81bb983b15fe50efb20993b475",
+      "bytes": 25130
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libvmem_plugin.a",
+      "sha256": "f7c5848f4581eda3599d29cdd44dee9bdc994c18fa21960879bc48397bddaa52",
+      "bytes": 11450
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libamem_plugin.a",
+      "sha256": "62fa3f3bbce08decebd395f984b8e6cbb4af270b2b77a2992d067ab58dc8da1b",
+      "bytes": 9074
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libvdummy_plugin.a",
+      "sha256": "385fb41f916bdfb9059fb4a294120bb8c2bf53242e7abf5a8b26790159743117",
+      "bytes": 7472
+    },
+    {
+      "path": "build-vlc-host/modules/.libs/libadummy_plugin.a",
+      "sha256": "bc67f56c166672522310d3416300a4554ea67f8de925afe170722823b84bf382",
+      "bytes": 3808
+    }
+  ],
+  "vlc_config_sha256": "ad435a3426a180917c7a4fb958e34a1e2974d93d6ab295ca411ef79bd31cc1d1",
+  "static_modules_sha256": "b871924ed7f95463fa69095d84daee0649f933ab135c9574119edbbb5564ef1c",
+  "link_response_sha256": "b66087ccd30ce8333c92b06225a30698d0e1376dc2668e7e545e845d050fa9f9",
+  "ffmpeg_build_configuration": "# Automatically generated by configure - do not modify!\nifndef FFMPEG_CONFIG_MAK\nFFMPEG_CONFIG_MAK=1\nFFMPEG_CONFIGURATION=--prefix=/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host --enable-static --disable-shared --enable-pic --disable-autodetect --disable-programs --disable-doc --disable-debug --disable-avdevice --disable-devices --disable-avfilter --disable-filters --disable-network --disable-iconv --disable-bzlib --disable-lzma --disable-encoders --disable-muxers --disable-hwaccels --enable-zlib --extra-cflags=-I/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/include --extra-ldflags=-L/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/lib\nprefix=/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host\nLIBDIR=$(DESTDIR)${prefix}/lib\nSHLIBDIR=$(DESTDIR)${prefix}/lib\nINCDIR=$(DESTDIR)${prefix}/include\nBINDIR=$(DESTDIR)${prefix}/bin\nDATADIR=$(DESTDIR)${prefix}/share/ffmpeg\nDOCDIR=$(DESTDIR)${prefix}/share/doc/ffmpeg\nMANDIR=$(DESTDIR)${prefix}/share/man\nPKGCONFIGDIR=$(DESTDIR)${prefix}/lib/pkgconfig\nINSTALL_NAME_DIR=\nSRC_PATH=.\nSRC_LINK=.\nifndef MAIN_MAKEFILE\nSRC_PATH:=$(SRC_PATH:.%=..%)\nendif\nCC_IDENT=gcc 13 (Ubuntu 13.3.0-6ubuntu2~24.04.1)\nARCH=x86\nINTRINSICS=sse2\nEXTERN_PREFIX=\nCC=gcc\nCXX=g++\nAS=gcc\nOBJCC=gcc\nLD=gcc\nDEPCC=gcc\nDEPCCFLAGS= $(CPPFLAGS)\nDEPCXX=gcc\nDEPCXXFLAGS= $(CPPFLAGS)\nDEPAS=gcc\nDEPASFLAGS= $(CPPFLAGS)\nX86ASM=nasm\nDEPX86ASM=nasm\nDEPX86ASMFLAGS=$(X86ASMFLAGS)\nAR=ar\nARFLAGS=rcD\nRESPONSE_FILES=yes\nAR_O=$@\nAR_CMD=ar\nNM_CMD=nm -g\nGLSLC=glslc\nMETALCC=xcrun -sdk macosx metal\nMETALLIB=xcrun -sdk macosx metallib\nRANLIB=ranlib -D\nSTRIP=strip\nSTRIPTYPE=direct\nNVCC=clang\nCP=cp -p\nLN_S=ln -s -f\nCPPFLAGS= -D_ISOC11_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_POSIX_C_SOURCE=200112 -D_XOPEN_SOURCE=600 -DPIC -DZLIB_CONST\nCFLAGS=-O2 -fPIC  -I/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/include -std=c17 -fomit-frame-pointer -fPIC -pthread -I/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/include -Wall -Wdisabled-optimization -Wpointer-arith -Wredundant-decls -Wwrite-strings -Wtype-limits -Wundef -Wempty-body -Wstack-usage=122880 -Wmissing-prototypes -Wstrict-prototypes -Wno-parentheses -Wno-switch -Wno-format-zero-length -Wno-pointer-sign -Wno-unused-const-variable -Wno-bool-operation -Wno-char-subscripts -O3 -fno-math-errno -fno-signed-zeros -Werror=implicit-function-declaration -Werror=missing-prototypes -Werror=format-security -Werror=return-type -Werror=vla -Wformat -fdiagnostics-color=auto -Wno-maybe-uninitialized\nCXXFLAGS=-O2 -fPIC   -D__STDC_CONSTANT_MACROS -std=c++17 -fomit-frame-pointer -fPIC -pthread -Wall -Wdisabled-optimization -Wpointer-arith -Wredundant-decls -Wwrite-strings -Wtype-limits -Wundef -Wempty-body -Wstack-usage=122880 -Wno-parentheses -Wno-switch -Wno-format-zero-length -Wno-unused-const-variable -Wno-bool-operation -Wno-char-subscripts -O3 -fno-math-errno -fno-signed-zeros -Werror=format-security -Werror=return-type -Werror=vla -Wformat -fdiagnostics-color=auto -Wno-maybe-uninitialized\nOBJCFLAGS=   -fPIC -pthread\nASFLAGS=  -I/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/include -fPIC\nGLSLCFLAGS=\nNVCCFLAGS=--cuda-gpu-arch=sm_30 -O2 -std=c++11 -m64 -S -nocudalib -nocudainc --cuda-device-only -Wno-c++11-narrowing -include ./compat/cuda/cuda_runtime.h\nAS_C=-c\nAS_O=-o $@\nOBJCC_C=-c\nOBJCC_E=-E -o $@\nOBJCC_O=-o $@\nCC_C=-c\nCC_E=-E -o $@\nCC_O=-o $@\nCXX_C=-c\nCXX_O=-o $@\nGLSLC_O=-o $@\nNVCC_C=\nNVCC_O=-o $@\nLD_O=-o $@\nX86ASM_O=-o $@\nLD_LIB=-l%\nLD_PATH=-L\nDLLTOOL=\nWINDRES=windres\nDOXYGEN=doxygen\nLDFLAGS= -L/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/lib  -Wl,--as-needed -Wl,-z,noexecstack -Wl,-rpath-link=:libswresample:libswscale:libavfilter:libavdevice:libavformat:libavcodec:libavutil\nLDEXEFLAGS=\nLDSOFLAGS=\nSHFLAGS=-shared -Wl,-soname,$$(@F) -Wl,-Bsymbolic -Wl,--version-script,$(SUBDIR)lib$(NAME).ver\nASMSTRIPFLAGS= -x\nX86ASMFLAGS=-f elf64\nMSAFLAGS=\nMMIFLAGS=\nLSXFLAGS=\nLASXFLAGS=\nBUILDSUF=\nPROGSSUF=\nFULLNAME=$(NAME)$(BUILDSUF)\nLIBPREF=lib\nLIBSUF=.a\nLIBNAME=$(LIBPREF)$(FULLNAME)$(LIBSUF)\nSLIBPREF=lib\nSLIBSUF=.so\nEXESUF=\nEXTRA_VERSION=\nCCDEP=\nCXXDEP=\nCCDEP_FLAGS=\nCXXDEP_FLAGS=\nASDEP=\nASDEP_FLAGS=\nCC_DEPFLAGS=-MMD -MF $(@:.o=.d) -MT $@\nCXX_DEPFLAGS=-MMD -MF $(@:.o=.d) -MT $@\nOBJCC_DEPFLAGS=-MMD -MF $(@:.o=.d) -MT $@\nAS_DEPFLAGS=-MMD -MF $(@:.o=.d) -MT $@\nX86ASM_DEPFLAGS=-MD $(@:.o=.d)\nGLSLC_DEPFLAGS=\nHOSTCC=gcc\nHOSTLD=gcc\nHOSTCFLAGS=  -std=c17 -Wall -O3\nHOSTCPPFLAGS= -D_ISOC11_SOURCE -D_POSIX_C_SOURCE=200112 -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200112 -D_XOPEN_SOURCE=600\nHOSTEXESUF=\nHOSTLDFLAGS= \nHOSTEXTRALIBS=-lm\nDEPHOSTCC=gcc\nDEPHOSTCCFLAGS= $(HOSTCCFLAGS)\nHOSTCCDEP=\nHOSTCCDEP_FLAGS=\nHOSTCC_DEPFLAGS=-MMD -MF $(@:.o=.d) -MT $@\nHOSTCC_C=-c\nHOSTCC_O=-o $@\nHOSTLD_O=-o $@\nTARGET_EXEC= \nTARGET_PATH=$(CURDIR)\nTARGET_SAMPLES=$(SAMPLES)\nCFLAGS-ffplay=\nCFLAGS_HEADERS= -Wno-deprecated-declarations -Wno-unused-variable\nLIB_INSTALL_EXTRA_CMD=$$(RANLIB) \"$(LIBDIR)/$(LIBNAME)\"\nEXTRALIBS=\nCOMPAT_OBJS=\nINSTALL=install\nLIBTARGET=\nSLIBNAME=$(SLIBPREF)$(FULLNAME)$(SLIBSUF)\nSLIBNAME_WITH_VERSION=$(SLIBNAME).$(LIBVERSION)\nSLIBNAME_WITH_MAJOR=$(SLIBNAME).$(LIBMAJOR)\nSLIB_CREATE_DEF_CMD=\nSLIB_EXTRA_CMD=\nSLIB_INSTALL_NAME=$(SLIBNAME_WITH_VERSION)\nSLIB_INSTALL_LINKS=$(SLIBNAME_WITH_MAJOR) $(SLIBNAME)\nSLIB_INSTALL_EXTRA_LIB=\nSLIB_INSTALL_EXTRA_SHLIB=\nVERSION_SCRIPT_POSTPROCESS_CMD=cat\nSAMPLES:=$(FATE_SAMPLES)\nNOREDZONE_FLAGS=-mno-red-zone\nLIBFUZZER_PATH=\nIGNORE_TESTS=\nVERSION_TRACKING=yes\navdevice_FFLIBS=avformat avcodec swresample avutil\navfilter_FFLIBS=avutil\nswscale_FFLIBS=avutil\navformat_FFLIBS=avcodec swresample avutil\navcodec_FFLIBS=swresample avutil\nswresample_FFLIBS=avutil\navutil_FFLIBS=\nEXTRALIBS-avdevice=-lm -latomic\nEXTRALIBS-avfilter=-pthread -lm -latomic -L/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/lib -lz\nEXTRALIBS-swscale=-lm -latomic\nEXTRALIBS-avformat=-lm -latomic -L/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/lib -lz\nEXTRALIBS-avcodec=-pthread -lm -latomic -L/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/lib -lz\nEXTRALIBS-swresample=-lm -latomic\nEXTRALIBS-avutil=-lm -L/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/lib -lz -latomic -pthread\nEXTRALIBS-ffplay=\nEXTRALIBS-ffprobe=\nEXTRALIBS-ffmpeg=\nEXTRALIBS-cpu_init=-pthread\nEXTRALIBS-cws2fws=-L/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host/lib -lz\n!ARCH_AARCH64=yes\n!ARCH_ARM=yes\n!ARCH_IA64=yes\n!ARCH_LOONGARCH=yes\n!ARCH_LOONGARCH32=yes\n!ARCH_LOONGARCH64=yes\n!ARCH_M68K=yes\n!ARCH_MIPS=yes\n!ARCH_MIPS64=yes\n!ARCH_PARISC=yes\n!ARCH_PPC=yes\n!ARCH_PPC64=yes\n!ARCH_RISCV=yes\n!ARCH_S390=yes\n!ARCH_SPARC=yes\n!ARCH_SPARC64=yes\n!ARCH_TILEGX=yes\n!ARCH_TILEPRO=yes\n!ARCH_WASM=yes\nARCH_X86=yes\n!ARCH_X86_32=yes\nARCH_X86_64=yes\n!HAVE_ARMV5TE=yes\n!HAVE_ARMV6=yes\n!HAVE_ARMV6T2=yes\n!HAVE_ARMV8=yes\n!HAVE_ARM_CRC=yes\n!HAVE_DOTPROD=yes\n!HAVE_I8MM=yes\n!HAVE_NEON=yes\n!HAVE_VFP=yes\n!HAVE_VFPV3=yes\n!HAVE_SETEND=yes\n!HAVE_SVE=yes\n!HAVE_SVE2=yes\n!HAVE_SME=yes\n!HAVE_SME_I16I64=yes\n!HAVE_SME2=yes\n!HAVE_ALTIVEC=yes\n!HAVE_DCBZL=yes\n!HAVE_LDBRX=yes\n!HAVE_POWER8=yes\n!HAVE_PPC4XX=yes\n!HAVE_VEC_XL=yes\n!HAVE_VSX=yes\n!HAVE_RV=yes\n!HAVE_RVV=yes\nHAVE_RV_ZICBOP=yes\n!HAVE_RV_ZVBB=yes\n!HAVE_SIMD128=yes\nHAVE_AESNI=yes\nHAVE_CLMUL=yes\nHAVE_AMD3DNOW=yes\nHAVE_AMD3DNOWEXT=yes\nHAVE_AVX=yes\nHAVE_AVX2=yes\nHAVE_AVX512=yes\nHAVE_AVX512ICL=yes\nHAVE_FMA3=yes\nHAVE_FMA4=yes\nHAVE_MMX=yes\nHAVE_MMXEXT=yes\nHAVE_SSE=yes\nHAVE_SSE2=yes\nHAVE_SSE3=yes\nHAVE_SSE4=yes\nHAVE_SSE42=yes\nHAVE_SSSE3=yes\nHAVE_XOP=yes\nHAVE_I686=yes\n!HAVE_MIPSFPU=yes\n!HAVE_MIPS32R2=yes\n!HAVE_MIPS32R5=yes\n!HAVE_MIPS64R2=yes\n!HAVE_MIPS32R6=yes\n!HAVE_MIPS64R6=yes\n!HAVE_MIPSDSP=yes\n!HAVE_MIPSDSPR2=yes\n!HAVE_MSA=yes\n!HAVE_LOONGSON2=yes\n!HAVE_LOONGSON3=yes\n!HAVE_MMI=yes\n!HAVE_LSX=yes\n!HAVE_LASX=yes\n!HAVE_ARMV5TE_EXTERNAL=yes\n!HAVE_ARMV6_EXTERNAL=yes\n!HAVE_ARMV6T2_EXTERNAL=yes\n!HAVE_ARMV8_EXTERNAL=yes\n!HAVE_ARM_CRC_EXTERNAL=yes\n!HAVE_DOTPROD_EXTERNAL=yes\n!HAVE_I8MM_EXTERNAL=yes\n!HAVE_NEON_EXTERNAL=yes\n!HAVE_VFP_EXTERNAL=yes\n!HAVE_VFPV3_EXTERNAL=yes\n!HAVE_SETEND_EXTERNAL=yes\n!HAVE_SVE_EXTERNAL=yes\n!HAVE_SVE2_EXTERNAL=yes\n!HAVE_SME_EXTERNAL=yes\n!HAVE_SME_I16I64_EXTERNAL=yes\n!HAVE_SME2_EXTERNAL=yes\n!HAVE_ALTIVEC_EXTERNAL=yes\n!HAVE_DCBZL_EXTERNAL=yes\n!HAVE_LDBRX_EXTERNAL=yes\n!HAVE_POWER8_EXTERNAL=yes\n!HAVE_PPC4XX_EXTERNAL=yes\n!HAVE_VEC_XL_EXTERNAL=yes\n!HAVE_VSX_EXTERNAL=yes\n!HAVE_RV_EXTERNAL=yes\n!HAVE_RVV_EXTERNAL=yes\n!HAVE_RV_ZICBOP_EXTERNAL=yes\n!HAVE_RV_ZVBB_EXTERNAL=yes\n!HAVE_SIMD128_EXTERNAL=yes\nHAVE_AESNI_EXTERNAL=yes\nHAVE_CLMUL_EXTERNAL=yes\n!HAVE_AMD3DNOW_EXTERNAL=yes\n!HAVE_AMD3DNOWEXT_EXTERNAL=yes\nHAVE_AVX_EXTERNAL=yes\nHAVE_AVX2_EXTERNAL=yes\nHAVE_AVX512_EXTERNAL=yes\nHAVE_AVX512ICL_EXTERNAL=yes\nHAVE_FMA3_EXTERNAL=yes\nHAVE_FMA4_EXTERNAL=yes\nHAVE_MMX_EXTERNAL=yes\nHAVE_MMXEXT_EXTERNAL=yes\nHAVE_SSE_EXTERNAL=yes\nHAVE_SSE2_EXTERNAL=yes\nHAVE_SSE3_EXTERNAL=yes\nHAVE_SSE4_EXTERNAL=yes\nHAVE_SSE42_EXTERNAL=yes\nHAVE_SSSE3_EXTERNAL=yes\nHAVE_XOP_EXTERNAL=yes\n!HAVE_I686_EXTERNAL=yes\n!HAVE_MIPSFPU_EXTERNAL=yes\n!HAVE_MIPS32R2_EXTERNAL=yes\n!HAVE_MIPS32R5_EXTERNAL=yes\n!HAVE_MIPS64R2_EXTERNAL=yes\n!HAVE_MIPS32R6_EXTERNAL=yes\n!HAVE_MIPS64R6_EXTERNAL=yes\n!HAVE_MIPSDSP_EXTERNAL=yes\n!HAVE_MIPSDSPR2_EXTERNAL=yes\n!HAVE_MSA_EXTERNAL=yes\n!HAVE_LOONGSON2_EXTERNAL=yes\n!HAVE_LOONGSON3_EXTERNAL=yes\n!HAVE_MMI_EXTERNAL=yes\n!HAVE_LSX_EXTERNAL=yes\n!HAVE_LASX_EXTERNAL=yes\n!HAVE_ARMV5TE_INLINE=yes\n!HAVE_ARMV6_INLINE=yes\n!HAVE_ARMV6T2_INLINE=yes\n!HAVE_ARMV8_INLINE=yes\n!HAVE_ARM_CRC_INLINE=yes\n!HAVE_DOTPROD_INLINE=yes\n!HAVE_I8MM_INLINE=yes\n!HAVE_NEON_INLINE=yes\n!HAVE_VFP_INLINE=yes\n!HAVE_VFPV3_INLINE=yes\n!HAVE_SETEND_INLINE=yes\n!HAVE_SVE_INLINE=yes\n!HAVE_SVE2_INLINE=yes\n!HAVE_SME_INLINE=yes\n!HAVE_SME_I16I64_INLINE=yes\n!HAVE_SME2_INLINE=yes\n!HAVE_ALTIVEC_INLINE=yes\n!HAVE_DCBZL_INLINE=yes\n!HAVE_LDBRX_INLINE=yes\n!HAVE_POWER8_INLINE=yes\n!HAVE_PPC4XX_INLINE=yes\n!HAVE_VEC_XL_INLINE=yes\n!HAVE_VSX_INLINE=yes\n!HAVE_RV_INLINE=yes\n!HAVE_RVV_INLINE=yes\n!HAVE_RV_ZICBOP_INLINE=yes\n!HAVE_RV_ZVBB_INLINE=yes\n!HAVE_SIMD128_INLINE=yes\nHAVE_AESNI_INLINE=yes\nHAVE_CLMUL_INLINE=yes\n!HAVE_AMD3DNOW_INLINE=yes\n!HAVE_AMD3DNOWEXT_INLINE=yes\nHAVE_AVX_INLINE=yes\nHAVE_AVX2_INLINE=yes\nHAVE_AVX512_INLINE=yes\nHAVE_AVX512ICL_INLINE=yes\nHAVE_FMA3_INLINE=yes\nHAVE_FMA4_INLINE=yes\nHAVE_MMX_INLINE=yes\nHAVE_MMXEXT_INLINE=yes\nHAVE_SSE_INLINE=yes\nHAVE_SSE2_INLINE=yes\nHAVE_SSE3_INLINE=yes\nHAVE_SSE4_INLINE=yes\nHAVE_SSE42_INLINE=yes\nHAVE_SSSE3_INLINE=yes\nHAVE_XOP_INLINE=yes\n!HAVE_I686_INLINE=yes\n!HAVE_MIPSFPU_INLINE=yes\n!HAVE_MIPS32R2_INLINE=yes\n!HAVE_MIPS32R5_INLINE=yes\n!HAVE_MIPS64R2_INLINE=yes\n!HAVE_MIPS32R6_INLINE=yes\n!HAVE_MIPS64R6_INLINE=yes\n!HAVE_MIPSDSP_INLINE=yes\n!HAVE_MIPSDSPR2_INLINE=yes\n!HAVE_MSA_INLINE=yes\n!HAVE_LOONGSON2_INLINE=yes\n!HAVE_LOONGSON3_INLINE=yes\n!HAVE_MMI_INLINE=yes\n!HAVE_LSX_INLINE=yes\n!HAVE_LASX_INLINE=yes\nHAVE_ALIGNED_STACK=yes\nHAVE_FAST_64BIT=yes\nHAVE_FAST_CLZ=yes\nHAVE_FAST_CMOV=yes\n!HAVE_FAST_FLOAT16=yes\nHAVE_SIMD_ALIGN_16=yes\nHAVE_SIMD_ALIGN_32=yes\nHAVE_SIMD_ALIGN_64=yes\n!HAVE_MEMORYBARRIER=yes\nHAVE_MM_EMPTY=yes\n!HAVE_RDTSC=yes\nHAVE_SEM_TIMEDWAIT=yes\nHAVE_INLINE_ASM=yes\nHAVE_SYMVER=yes\nHAVE_X86ASM=yes\n!HAVE_BIGENDIAN=yes\nHAVE_FAST_UNALIGNED=yes\n!HAVE_ARPA_INET_H=yes\n!HAVE_ASM_HWPROBE_H=yes\nHAVE_ASM_TYPES_H=yes\n!HAVE_CDIO_PARANOIA_H=yes\n!HAVE_CDIO_PARANOIA_PARANOIA_H=yes\n!HAVE_CUDA_H=yes\n!HAVE_DISPATCH_DISPATCH_H=yes\n!HAVE_DIRECT_H=yes\nHAVE_DIRENT_H=yes\n!HAVE_DXGIDEBUG_H=yes\n!HAVE_DXVA_H=yes\n!HAVE_ES2_GL_H=yes\n!HAVE_GSM_H=yes\n!HAVE_IO_H=yes\n!HAVE_LINUX_DMA_BUF_H=yes\nHAVE_LINUX_PERF_EVENT_H=yes\nHAVE_MALLOC_H=yes\nHAVE_POLL_H=yes\n!HAVE_PTHREAD_NP_H=yes\n!HAVE_SYS_HWPROBE_H=yes\nHAVE_SYS_PARAM_H=yes\nHAVE_SYS_RESOURCE_H=yes\nHAVE_SYS_SELECT_H=yes\nHAVE_SYS_SOUNDCARD_H=yes\nHAVE_SYS_TIME_H=yes\nHAVE_SYS_UN_H=yes\n!HAVE_SYS_VIDEOIO_H=yes\nHAVE_TERMIOS_H=yes\n!HAVE_UDPLITE_H=yes\nHAVE_UNISTD_H=yes\n!HAVE_VALGRIND_VALGRIND_H=yes\n!HAVE_WINDOWS_H=yes\n!HAVE_WINSOCK2_H=yes\n!HAVE_INTRINSICS_NEON=yes\nHAVE_INTRINSICS_SSE2=yes\nHAVE_ATANF=yes\nHAVE_ATAN2F=yes\nHAVE_CBRT=yes\nHAVE_CBRTF=yes\nHAVE_COPYSIGN=yes\nHAVE_COSF=yes\nHAVE_ERF=yes\nHAVE_EXP2=yes\nHAVE_EXP2F=yes\nHAVE_EXPF=yes\nHAVE_HYPOT=yes\nHAVE_ISFINITE=yes\nHAVE_ISINF=yes\nHAVE_ISNAN=yes\nHAVE_LDEXPF=yes\nHAVE_LLRINT=yes\nHAVE_LLRINTF=yes\nHAVE_LOG2=yes\nHAVE_LOG2F=yes\nHAVE_LOG10F=yes\nHAVE_LRINT=yes\nHAVE_LRINTF=yes\nHAVE_POWF=yes\nHAVE_RINT=yes\nHAVE_ROUND=yes\nHAVE_ROUNDF=yes\nHAVE_SINF=yes\nHAVE_TRUNC=yes\nHAVE_TRUNCF=yes\n!HAVE_DOS_PATHS=yes\n!HAVE_LIBC_MSVCRT=yes\n!HAVE_MMAL_PARAMETER_VIDEO_MAX_NUM_CALLBACKS=yes\nHAVE_SECTION_DATA_REL_RO=yes\nHAVE_THREADS=yes\n!HAVE_UWP=yes\n!HAVE_WINRT=yes\nHAVE_ACCESS=yes\n!HAVE_ALIGNED_MALLOC=yes\n!HAVE_ARC4RANDOM_BUF=yes\nHAVE_CLOCK_GETTIME=yes\n!HAVE_CLOSESOCKET=yes\n!HAVE_COMMANDLINETOARGVW=yes\n!HAVE_ELF_AUX_INFO=yes\nHAVE_FCNTL=yes\n!HAVE_GETADDRINFO=yes\nHAVE_GETAUXVAL=yes\nHAVE_GETENV=yes\n!HAVE_GETHRTIME=yes\nHAVE_GETOPT=yes\n!HAVE_GETMODULEHANDLE=yes\n!HAVE_GETPROCESSAFFINITYMASK=yes\n!HAVE_GETPROCESSMEMORYINFO=yes\n!HAVE_GETPROCESSTIMES=yes\nHAVE_GETRUSAGE=yes\n!HAVE_GETSTDHANDLE=yes\n!HAVE_GETSYSTEMTIMEASFILETIME=yes\nHAVE_GETTIMEOFDAY=yes\nHAVE_GLOB=yes\n!HAVE_GLXGETPROCADDRESS=yes\nHAVE_GMTIME_R=yes\n!HAVE_INET_ATON=yes\nHAVE_ISATTY=yes\n!HAVE_KBHIT=yes\nHAVE_LOCALTIME_R=yes\nHAVE_LSTAT=yes\n!HAVE_LZO1X_999_COMPRESS=yes\n!HAVE_MACH_ABSOLUTE_TIME=yes\n!HAVE_MAPVIEWOFFILE=yes\nHAVE_MEMALIGN=yes\nHAVE_MKSTEMP=yes\nHAVE_MMAP=yes\nHAVE_MPROTECT=yes\nHAVE_NANOSLEEP=yes\n!HAVE_PEEKNAMEDPIPE=yes\nHAVE_POSIX_MEMALIGN=yes\nHAVE_PRCTL=yes\nHAVE_PTHREAD_CANCEL=yes\n!HAVE_PTHREAD_SET_NAME_NP=yes\n!HAVE_PTHREAD_SETNAME_NP=yes\nHAVE_SCHED_GETAFFINITY=yes\n!HAVE_SECITEMIMPORT=yes\n!HAVE_SETCONSOLETEXTATTRIBUTE=yes\n!HAVE_SETCONSOLECTRLHANDLER=yes\n!HAVE_SETDLLDIRECTORY=yes\n!HAVE_SETMODE=yes\nHAVE_SETRLIMIT=yes\n!HAVE_SLEEP=yes\nHAVE_STRERROR_R=yes\nHAVE_SYSCONF=yes\n!HAVE_SYSCTL=yes\n!HAVE_SYSCTLBYNAME=yes\nHAVE_TEMPNAM=yes\nHAVE_USLEEP=yes\n!HAVE_UTGETOSTYPEFROMSTRING=yes\n!HAVE_VIRTUALALLOC=yes\n!HAVE_WGLGETPROCADDRESS=yes\n!HAVE_BCRYPT=yes\n!HAVE_VAAPI_DRM=yes\n!HAVE_VAAPI_X11=yes\n!HAVE_VAAPI_WIN32=yes\n!HAVE_VDPAU_X11=yes\nHAVE_PTHREADS=yes\n!HAVE_OS2THREADS=yes\n!HAVE_W32THREADS=yes\n!HAVE_AS_ARCH_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_CRC_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_DOTPROD_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_I8MM_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_SVE_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_SVE2_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_SME_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_SME_I16I64_DIRECTIVE=yes\n!HAVE_AS_ARCHEXT_SME2_DIRECTIVE=yes\n!HAVE_AS_DN_DIRECTIVE=yes\n!HAVE_AS_FPU_DIRECTIVE=yes\n!HAVE_AS_FUNC=yes\n!HAVE_AS_OBJECT_ARCH=yes\n!HAVE_ASM_MOD_Q=yes\n!HAVE_BLOCKS_EXTENSION=yes\nHAVE_EBP_AVAILABLE=yes\nHAVE_EBX_AVAILABLE=yes\n!HAVE_GNU_AS=yes\n!HAVE_GNU_WINDRES=yes\n!HAVE_IBM_ASM=yes\nHAVE_INLINE_ASM_DIRECT_SYMBOL_REFS=yes\nHAVE_INLINE_ASM_LABELS=yes\nHAVE_INLINE_ASM_NONLOCAL_LABELS=yes\nHAVE_PRAGMA_DEPRECATED=yes\nHAVE_RSYNC_CONTIMEOUT=yes\n!HAVE_SYMVER_ASM_LABEL=yes\nHAVE_SYMVER_GNU_ASM=yes\n!HAVE_VFP_ARGS=yes\n!HAVE_XFORM_ASM=yes\nHAVE_XMM_CLOBBERS=yes\n!HAVE_DPI_AWARENESS_CONTEXT=yes\n!HAVE_IDXGIOUTPUT5=yes\n!HAVE___X_ABI_CWINDOWS_CGRAPHICS_CCAPTURE_CIGRAPHICSCAPTURESESSION5=yes\n!HAVE_IDIRECT3DDXGIINTERFACEACCESS=yes\n!HAVE_KCMVIDEOCODECTYPE_HEVC=yes\n!HAVE_KCMVIDEOCODECTYPE_HEVCWITHALPHA=yes\n!HAVE_KCMVIDEOCODECTYPE_VP9=yes\n!HAVE_KCMVIDEOCODECTYPE_AV1=yes\n!HAVE_KCVPIXELFORMATTYPE_420YPCBCR10BIPLANARVIDEORANGE=yes\n!HAVE_KCVPIXELFORMATTYPE_422YPCBCR8BIPLANARVIDEORANGE=yes\n!HAVE_KCVPIXELFORMATTYPE_422YPCBCR10BIPLANARVIDEORANGE=yes\n!HAVE_KCVPIXELFORMATTYPE_422YPCBCR16BIPLANARVIDEORANGE=yes\n!HAVE_KCVPIXELFORMATTYPE_444YPCBCR8BIPLANARVIDEORANGE=yes\n!HAVE_KCVPIXELFORMATTYPE_444YPCBCR10BIPLANARVIDEORANGE=yes\n!HAVE_KCVPIXELFORMATTYPE_444YPCBCR16BIPLANARVIDEORANGE=yes\n!HAVE_KCVPIXELFORMATTYPE_422YPCBCR8_YUVS=yes\n!HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_SMPTE_ST_2084_PQ=yes\n!HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_ITU_R_2100_HLG=yes\n!HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_LINEAR=yes\n!HAVE_KCVIMAGEBUFFERYCBCRMATRIX_ITU_R_2020=yes\n!HAVE_KCVIMAGEBUFFERCOLORPRIMARIES_ITU_R_2020=yes\n!HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_ITU_R_2020=yes\n!HAVE_KCVIMAGEBUFFERTRANSFERFUNCTION_SMPTE_ST_428_1=yes\n!HAVE_KVTQPMODULATIONLEVEL_DEFAULT=yes\n!HAVE_SECPKGCONTEXT_KEYINGMATERIALINFO=yes\n!HAVE_SOCKLEN_T=yes\n!HAVE_STRUCT_ADDRINFO=yes\n!HAVE_STRUCT_GROUP_SOURCE_REQ=yes\n!HAVE_STRUCT_IP_MREQ_SOURCE=yes\n!HAVE_STRUCT_IPV6_MREQ=yes\n!HAVE_STRUCT_MSGHDR_MSG_FLAGS=yes\n!HAVE_STRUCT_POLLFD=yes\nHAVE_STRUCT_RUSAGE_RU_MAXRSS=yes\n!HAVE_STRUCT_SCTP_EVENT_SUBSCRIBE=yes\n!HAVE_STRUCT_SOCKADDR_IN6=yes\n!HAVE_STRUCT_SOCKADDR_SA_LEN=yes\n!HAVE_STRUCT_SOCKADDR_STORAGE=yes\nHAVE_STRUCT_STAT_ST_MTIM_TV_NSEC=yes\nHAVE_STRUCT_V4L2_FRMIVALENUM_DISCRETE=yes\n!HAVE_STRUCT_MFXCONFIGINTERFACE=yes\nHAVE_GZIP=yes\n!HAVE_IOCTL_POSIX=yes\n!HAVE_LIBDRM_GETFB2=yes\n!HAVE_MAKEINFO=yes\n!HAVE_MAKEINFO_HTML=yes\n!HAVE_OPENCL_D3D11=yes\n!HAVE_OPENCL_DRM_ARM=yes\n!HAVE_OPENCL_DRM_BEIGNET=yes\n!HAVE_OPENCL_DXVA2=yes\n!HAVE_OPENCL_VAAPI_BEIGNET=yes\n!HAVE_OPENCL_VAAPI_INTEL_MEDIA=yes\n!HAVE_OPENCL_VIDEOTOOLBOX=yes\nHAVE_PERL=yes\nHAVE_POD2MAN=yes\n!HAVE_TEXI2HTML=yes\n!HAVE_XMLLINT=yes\nHAVE_ZLIB_GZIP=yes\n!HAVE_OPENVINO2=yes\n!CONFIG_DOC=yes\n!CONFIG_HTMLPAGES=yes\nCONFIG_MANPAGES=yes\nCONFIG_PODPAGES=yes\n!CONFIG_TXTPAGES=yes\nCONFIG_AVIO_HTTP_SERVE_FILES_EXAMPLE=yes\nCONFIG_AVIO_LIST_DIR_EXAMPLE=yes\nCONFIG_AVIO_READ_CALLBACK_EXAMPLE=yes\nCONFIG_DECODE_AUDIO_EXAMPLE=yes\n!CONFIG_DECODE_FILTER_AUDIO_EXAMPLE=yes\n!CONFIG_DECODE_FILTER_VIDEO_EXAMPLE=yes\nCONFIG_DECODE_VIDEO_EXAMPLE=yes\nCONFIG_DEMUX_DECODE_EXAMPLE=yes\nCONFIG_ENCODE_AUDIO_EXAMPLE=yes\nCONFIG_ENCODE_VIDEO_EXAMPLE=yes\nCONFIG_EXTRACT_MVS_EXAMPLE=yes\n!CONFIG_FILTER_AUDIO_EXAMPLE=yes\nCONFIG_HW_DECODE_EXAMPLE=yes\nCONFIG_MUX_EXAMPLE=yes\n!CONFIG_QSV_DECODE_EXAMPLE=yes\nCONFIG_REMUX_EXAMPLE=yes\nCONFIG_RESAMPLE_AUDIO_EXAMPLE=yes\nCONFIG_SCALE_VIDEO_EXAMPLE=yes\nCONFIG_SHOW_METADATA_EXAMPLE=yes\nCONFIG_TRANSCODE_AAC_EXAMPLE=yes\n!CONFIG_TRANSCODE_EXAMPLE=yes\n!CONFIG_VAAPI_ENCODE_EXAMPLE=yes\n!CONFIG_VAAPI_TRANSCODE_EXAMPLE=yes\n!CONFIG_QSV_TRANSCODE_EXAMPLE=yes\n!CONFIG_AVISYNTH=yes\n!CONFIG_FREI0R=yes\n!CONFIG_LIBCDIO=yes\n!CONFIG_LIBDAVS2=yes\n!CONFIG_LIBDVDNAV=yes\n!CONFIG_LIBDVDREAD=yes\n!CONFIG_LIBRUBBERBAND=yes\n!CONFIG_LIBVIDSTAB=yes\n!CONFIG_LIBX264=yes\n!CONFIG_LIBX265=yes\n!CONFIG_LIBXAVS=yes\n!CONFIG_LIBXAVS2=yes\n!CONFIG_LIBXVID=yes\n!CONFIG_DECKLINK=yes\n!CONFIG_LIBFDK_AAC=yes\n!CONFIG_LIBMPEGHDEC=yes\n!CONFIG_GMP=yes\n!CONFIG_LIBARIBB24=yes\n!CONFIG_LIBLENSFUN=yes\n!CONFIG_LIBOPENCORE_AMRNB=yes\n!CONFIG_LIBOPENCORE_AMRWB=yes\n!CONFIG_LIBVO_AMRWBENC=yes\n!CONFIG_MBEDTLS=yes\n!CONFIG_RKMPP=yes\n!CONFIG_LIBSMBCLIENT=yes\n!CONFIG_CAIRO=yes\n!CONFIG_CHROMAPRINT=yes\n!CONFIG_GCRYPT=yes\n!CONFIG_GNUTLS=yes\n!CONFIG_JNI=yes\n!CONFIG_LADSPA=yes\n!CONFIG_LCMS2=yes\n!CONFIG_LIBAOM=yes\n!CONFIG_LIBARIBCAPTION=yes\n!CONFIG_LIBASS=yes\n!CONFIG_LIBBLURAY=yes\n!CONFIG_LIBBS2B=yes\n!CONFIG_LIBCACA=yes\n!CONFIG_LIBCELT=yes\n!CONFIG_LIBCODEC2=yes\n!CONFIG_LIBDAV1D=yes\n!CONFIG_LIBDC1394=yes\n!CONFIG_LIBFLITE=yes\n!CONFIG_LIBFONTCONFIG=yes\n!CONFIG_LIBFREETYPE=yes\n!CONFIG_LIBFRIBIDI=yes\n!CONFIG_LIBHARFBUZZ=yes\n!CONFIG_LIBGLSLANG=yes\n!CONFIG_LIBGME=yes\n!CONFIG_LIBGSM=yes\n!CONFIG_LIBIEC61883=yes\n!CONFIG_LIBILBC=yes\n!CONFIG_LIBJACK=yes\n!CONFIG_LIBJXL=yes\n!CONFIG_LIBKLVANC=yes\n!CONFIG_LIBKVAZAAR=yes\n!CONFIG_LIBLC3=yes\n!CONFIG_LIBLCEVC_DEC=yes\n!CONFIG_LIBMODPLUG=yes\n!CONFIG_LIBMP3LAME=yes\n!CONFIG_LIBMYSOFA=yes\n!CONFIG_LIBOAPV=yes\n!CONFIG_LIBOPENCV=yes\n!CONFIG_LIBOPENCOLORIO=yes\n!CONFIG_LIBOPENH264=yes\n!CONFIG_LIBOPENJPEG=yes\n!CONFIG_LIBOPENMPT=yes\n!CONFIG_LIBOPENVINO=yes\n!CONFIG_LIBOPUS=yes\n!CONFIG_LIBPLACEBO=yes\n!CONFIG_LIBPULSE=yes\n!CONFIG_LIBQRENCODE=yes\n!CONFIG_LIBQUIRC=yes\n!CONFIG_LIBRABBITMQ=yes\n!CONFIG_LIBRAV1E=yes\n!CONFIG_LIBRIST=yes\n!CONFIG_LIBRSVG=yes\n!CONFIG_LIBRTMP=yes\n!CONFIG_LIBSHADERC=yes\n!CONFIG_LIBSHINE=yes\n!CONFIG_LIBSMBCLIENT=yes\n!CONFIG_LIBSNAPPY=yes\n!CONFIG_LIBSOXR=yes\n!CONFIG_LIBSPEEX=yes\n!CONFIG_LIBSRT=yes\n!CONFIG_LIBSSH=yes\n!CONFIG_LIBSVTAV1=yes\n!CONFIG_LIBSVTJPEGXS=yes\n!CONFIG_LIBTENSORFLOW=yes\n!CONFIG_LIBTESSERACT=yes\n!CONFIG_LIBTHEORA=yes\n!CONFIG_LIBTLS=yes\n!CONFIG_LIBTORCH=yes\n!CONFIG_LIBTWOLAME=yes\n!CONFIG_LIBUAVS3D=yes\n!CONFIG_LIBV4L2=yes\n!CONFIG_LIBVMAF=yes\n!CONFIG_LIBVORBIS=yes\n!CONFIG_LIBVPX=yes\n!CONFIG_LIBVVENC=yes\n!CONFIG_LIBWEBP=yes\n!CONFIG_LIBXEVD=yes\n!CONFIG_LIBXEVDB=yes\n!CONFIG_LIBXEVE=yes\n!CONFIG_LIBXEVEB=yes\n!CONFIG_LIBXML2=yes\n!CONFIG_LIBZIMG=yes\n!CONFIG_LIBZMQ=yes\n!CONFIG_LIBZVBI=yes\n!CONFIG_LV2=yes\n!CONFIG_MEDIACODEC=yes\n!CONFIG_OHCODEC=yes\n!CONFIG_OPENAL=yes\n!CONFIG_OPENGL=yes\n!CONFIG_OPENSSL=yes\n!CONFIG_POCKETSPHINX=yes\n!CONFIG_VAPOURSYNTH=yes\n!CONFIG_VULKAN_STATIC=yes\n!CONFIG_WHISPER=yes\n!CONFIG_ALSA=yes\n!CONFIG_APPKIT=yes\n!CONFIG_AVFOUNDATION=yes\n!CONFIG_BZLIB=yes\n!CONFIG_COREIMAGE=yes\n!CONFIG_ICONV=yes\n!CONFIG_LIBXCB=yes\n!CONFIG_LIBXCB_SHM=yes\n!CONFIG_LIBXCB_SHAPE=yes\n!CONFIG_LIBXCB_XFIXES=yes\n!CONFIG_LZMA=yes\n!CONFIG_MEDIAFOUNDATION=yes\n!CONFIG_METAL=yes\n!CONFIG_SCHANNEL=yes\n!CONFIG_SDL2=yes\n!CONFIG_SECURETRANSPORT=yes\n!CONFIG_SNDIO=yes\n!CONFIG_XLIB=yes\nCONFIG_ZLIB=yes\n!CONFIG_CUDA_NVCC=yes\n!CONFIG_CUDA_SDK=yes\n!CONFIG_LIBNPP=yes\n!CONFIG_LIBMFX=yes\n!CONFIG_LIBVPL=yes\n!CONFIG_MMAL=yes\n!CONFIG_OMX=yes\n!CONFIG_OPENCL=yes\n!CONFIG_AMF=yes\n!CONFIG_AUDIOTOOLBOX=yes\n!CONFIG_CUDA=yes\n!CONFIG_CUDA_LLVM=yes\n!CONFIG_CUVID=yes\n!CONFIG_D3D11VA=yes\n!CONFIG_D3D12VA=yes\n!CONFIG_DXVA2=yes\n!CONFIG_FFNVCODEC=yes\n!CONFIG_LIBDRM=yes\n!CONFIG_NVDEC=yes\n!CONFIG_NVENC=yes\n!CONFIG_VAAPI=yes\n!CONFIG_VDPAU=yes\n!CONFIG_VIDEOTOOLBOX=yes\n!CONFIG_VULKAN=yes\n!CONFIG_V4L2_M2M=yes\n!CONFIG_FTRAPV=yes\n!CONFIG_GRAY=yes\n!CONFIG_HARDCODED_TABLES=yes\n!CONFIG_OMX_RPI=yes\nCONFIG_RUNTIME_CPUDETECT=yes\nCONFIG_SAFE_BITSTREAM_READER=yes\n!CONFIG_SHARED=yes\n!CONFIG_SMALL=yes\nCONFIG_STATIC=yes\nCONFIG_SWSCALE_ALPHA=yes\nCONFIG_UNSTABLE=yes\n!CONFIG_GPL=yes\n!CONFIG_NONFREE=yes\n!CONFIG_VERSION3=yes\n!CONFIG_AVDEVICE=yes\n!CONFIG_AVFILTER=yes\nCONFIG_SWSCALE=yes\nCONFIG_AVFORMAT=yes\nCONFIG_AVCODEC=yes\nCONFIG_SWRESAMPLE=yes\nCONFIG_AVUTIL=yes\n!CONFIG_FFPLAY=yes\n!CONFIG_FFPROBE=yes\n!CONFIG_FFMPEG=yes\nCONFIG_DWT=yes\nCONFIG_ERROR_RESILIENCE=yes\nCONFIG_FAAN=yes\nCONFIG_FAST_UNALIGNED=yes\nCONFIG_IAMF=yes\nCONFIG_LSP=yes\n!CONFIG_PIXELUTILS=yes\n!CONFIG_NETWORK=yes\n!CONFIG_AUTODETECT=yes\n!CONFIG_FONTCONFIG=yes\nCONFIG_LARGE_TESTS=yes\n!CONFIG_LINUX_PERF=yes\n!CONFIG_MACOS_KPERF=yes\n!CONFIG_MEMORY_POISONING=yes\n!CONFIG_NEON_CLOBBER_TEST=yes\n!CONFIG_OSSFUZZ=yes\nCONFIG_PIC=yes\nCONFIG_SHADER_COMPRESSION=yes\nCONFIG_RESOURCE_COMPRESSION=yes\n!CONFIG_THUMB=yes\n!CONFIG_VALGRIND_BACKTRACE=yes\n!CONFIG_XMM_CLOBBER_TEST=yes\nCONFIG_BSFS=yes\nCONFIG_DECODERS=yes\n!CONFIG_ENCODERS=yes\n!CONFIG_HWACCELS=yes\nCONFIG_PARSERS=yes\n!CONFIG_INDEVS=yes\n!CONFIG_OUTDEVS=yes\n!CONFIG_FILTERS=yes\nCONFIG_DEMUXERS=yes\n!CONFIG_MUXERS=yes\nCONFIG_PROTOCOLS=yes\nCONFIG_AANDCTTABLES=yes\nCONFIG_AC3DSP=yes\nCONFIG_ADTS_HEADER=yes\nCONFIG_ATSC_A53=yes\n!CONFIG_AUDIO_FRAME_QUEUE=yes\nCONFIG_AUDIODSP=yes\nCONFIG_BLOCKDSP=yes\nCONFIG_BSWAPDSP=yes\nCONFIG_CABAC=yes\nCONFIG_CBS=yes\nCONFIG_CBS_APV=yes\nCONFIG_CBS_AV1=yes\nCONFIG_CBS_H264=yes\nCONFIG_CBS_H265=yes\nCONFIG_CBS_H266=yes\n!CONFIG_CBS_JPEG=yes\nCONFIG_CBS_LCEVC=yes\nCONFIG_CBS_MPEG2=yes\nCONFIG_CBS_VP8=yes\nCONFIG_CBS_VP9=yes\nCONFIG_CELP_MATH=yes\n!CONFIG_D3D12_INTRA_REFRESH=yes\n!CONFIG_D3D12_MOTION_ESTIMATOR=yes\n!CONFIG_D3D12_VIDEO_PROCESS_REFERENCE_INFO=yes\n!CONFIG_D3D12VA_ENCODE=yes\n!CONFIG_D3D12VA_ME_PRECISION_EIGHTH_PIXEL=yes\n!CONFIG_DEFLATE_WRAPPER=yes\nCONFIG_DIRAC_PARSE=yes\n!CONFIG_DNN=yes\nCONFIG_DOVI_RPUDEC=yes\nCONFIG_DOVI_RPUENC=yes\nCONFIG_DVPROFILE=yes\nCONFIG_EVCPARSE=yes\nCONFIG_FAANDCT=yes\nCONFIG_FAANIDCT=yes\nCONFIG_FDCTDSP=yes\nCONFIG_FMTCONVERT=yes\n!CONFIG_FRAME_THREAD_ENCODER=yes\nCONFIG_G722DSP=yes\nCONFIG_GOLOMB=yes\n!CONFIG_GPLV3=yes\nCONFIG_H263DSP=yes\nCONFIG_H264CHROMA=yes\nCONFIG_H264DSP=yes\nCONFIG_H264PARSE=yes\nCONFIG_H264PRED=yes\nCONFIG_H264QPEL=yes\nCONFIG_H264_SEI=yes\nCONFIG_HEVCPARSE=yes\nCONFIG_HEVC_SEI=yes\nCONFIG_HPELDSP=yes\nCONFIG_HUFFMAN=yes\nCONFIG_HUFFYUVDSP=yes\n!CONFIG_HUFFYUVENCDSP=yes\nCONFIG_IAMFDEC=yes\n!CONFIG_IAMFENC=yes\nCONFIG_IDCTDSP=yes\nCONFIG_INFLATE_WRAPPER=yes\nCONFIG_INTRAX8=yes\nCONFIG_ISO_MEDIA=yes\n!CONFIG_ISO_WRITER=yes\nCONFIG_IVIDSP=yes\nCONFIG_JPEGTABLES=yes\n!CONFIG_LGPLV3=yes\n!CONFIG_LIBX262=yes\n!CONFIG_LIBX264_HDR10=yes\nCONFIG_LLAUDDSP=yes\nCONFIG_LLVIDDSP=yes\n!CONFIG_LLVIDENCDSP=yes\n!CONFIG_LPC=yes\nCONFIG_LZF=yes\nCONFIG_ME_CMP=yes\nCONFIG_MPEG_ER=yes\nCONFIG_MPEGAUDIO=yes\nCONFIG_MPEGAUDIODSP=yes\nCONFIG_MPEGAUDIOHEADER=yes\nCONFIG_MPEG4AUDIO=yes\nCONFIG_MPEGVIDEO=yes\nCONFIG_MPEGVIDEODEC=yes\n!CONFIG_MPEGVIDEOENC=yes\nCONFIG_MPEGVIDEOENCDSP=yes\nCONFIG_MSMPEG4DEC=yes\n!CONFIG_MSMPEG4ENC=yes\nCONFIG_MSS34DSP=yes\n!CONFIG_PIXBLOCKDSP=yes\nCONFIG_QPELDSP=yes\n!CONFIG_QSV=yes\n!CONFIG_QSVDEC=yes\n!CONFIG_QSVENC=yes\n!CONFIG_QSVVPP=yes\nCONFIG_RANGECODER=yes\nCONFIG_RIFFDEC=yes\n!CONFIG_RIFFENC=yes\n!CONFIG_RTPDEC=yes\n!CONFIG_RTPENC_CHAIN=yes\nCONFIG_RV34DSP=yes\n!CONFIG_SCENE_SAD=yes\nCONFIG_SINEWIN=yes\nCONFIG_SMPTE_436M=yes\nCONFIG_SNAPPY=yes\n!CONFIG_SRTP=yes\nCONFIG_STARTCODE=yes\nCONFIG_TEXTUREDSP=yes\n!CONFIG_TEXTUREDSPENC=yes\nCONFIG_TPELDSP=yes\n!CONFIG_VAAPI_1=yes\n!CONFIG_VAAPI_ENCODE=yes\n!CONFIG_VULKAN_1_4=yes\nCONFIG_VC1DSP=yes\nCONFIG_VIDEODSP=yes\nCONFIG_VP3DSP=yes\nCONFIG_VP8DSP=yes\n!CONFIG_VULKAN_ENCODE=yes\nCONFIG_VVC_SEI=yes\nCONFIG_WMA_FREQS=yes\nCONFIG_WMV2DSP=yes\nCONFIG_AAC_ADTSTOASC_BSF=yes\n!CONFIG_AHX_TO_MP2_BSF=yes\nCONFIG_APV_METADATA_BSF=yes\nCONFIG_AV1_FRAME_MERGE_BSF=yes\nCONFIG_AV1_FRAME_SPLIT_BSF=yes\nCONFIG_AV1_METADATA_BSF=yes\nCONFIG_CHOMP_BSF=yes\nCONFIG_DUMP_EXTRADATA_BSF=yes\nCONFIG_DCA_CORE_BSF=yes\nCONFIG_DOVI_RPU_BSF=yes\nCONFIG_DTS2PTS_BSF=yes\nCONFIG_DV_ERROR_MARKER_BSF=yes\nCONFIG_EAC3_CORE_BSF=yes\nCONFIG_EIA608_TO_SMPTE436M_BSF=yes\nCONFIG_EVC_FRAME_MERGE_BSF=yes\nCONFIG_EXTRACT_EXTRADATA_BSF=yes\nCONFIG_FILTER_UNITS_BSF=yes\nCONFIG_H264_METADATA_BSF=yes\nCONFIG_H264_MP4TOANNEXB_BSF=yes\nCONFIG_H264_REDUNDANT_PPS_BSF=yes\nCONFIG_HAPQA_EXTRACT_BSF=yes\nCONFIG_HEVC_METADATA_BSF=yes\nCONFIG_HEVC_MP4TOANNEXB_BSF=yes\nCONFIG_IMX_DUMP_HEADER_BSF=yes\nCONFIG_LCEVC_METADATA_BSF=yes\nCONFIG_MEDIA100_TO_MJPEGB_BSF=yes\nCONFIG_MJPEG2JPEG_BSF=yes\nCONFIG_MJPEGA_DUMP_HEADER_BSF=yes\nCONFIG_MPEG2_METADATA_BSF=yes\nCONFIG_MPEG4_UNPACK_BFRAMES_BSF=yes\nCONFIG_MOV2TEXTSUB_BSF=yes\nCONFIG_NOISE_BSF=yes\nCONFIG_NULL_BSF=yes\nCONFIG_OPUS_METADATA_BSF=yes\nCONFIG_PCM_RECHUNK_BSF=yes\nCONFIG_PGS_FRAME_MERGE_BSF=yes\nCONFIG_PRORES_METADATA_BSF=yes\nCONFIG_REMOVE_EXTRADATA_BSF=yes\nCONFIG_SETTS_BSF=yes\nCONFIG_SHOWINFO_BSF=yes\nCONFIG_SMPTE436M_TO_EIA608_BSF=yes\nCONFIG_TEXT2MOVSUB_BSF=yes\nCONFIG_TRACE_HEADERS_BSF=yes\nCONFIG_TRUEHD_CORE_BSF=yes\nCONFIG_VP9_METADATA_BSF=yes\nCONFIG_VP9_RAW_REORDER_BSF=yes\nCONFIG_VP9_SUPERFRAME_BSF=yes\nCONFIG_VP9_SUPERFRAME_SPLIT_BSF=yes\nCONFIG_VVC_METADATA_BSF=yes\nCONFIG_VVC_MP4TOANNEXB_BSF=yes\nCONFIG_AASC_DECODER=yes\nCONFIG_AIC_DECODER=yes\nCONFIG_ALIAS_PIX_DECODER=yes\nCONFIG_AGM_DECODER=yes\nCONFIG_AMV_DECODER=yes\nCONFIG_ANM_DECODER=yes\nCONFIG_ANSI_DECODER=yes\nCONFIG_APNG_DECODER=yes\nCONFIG_APV_DECODER=yes\nCONFIG_ARBC_DECODER=yes\nCONFIG_ARGO_DECODER=yes\nCONFIG_ASV1_DECODER=yes\nCONFIG_ASV2_DECODER=yes\nCONFIG_AURA_DECODER=yes\nCONFIG_AURA2_DECODER=yes\nCONFIG_AVRP_DECODER=yes\nCONFIG_AVRN_DECODER=yes\nCONFIG_AVS_DECODER=yes\nCONFIG_AVUI_DECODER=yes\nCONFIG_BETHSOFTVID_DECODER=yes\nCONFIG_BFI_DECODER=yes\nCONFIG_BINK_DECODER=yes\nCONFIG_BITPACKED_DECODER=yes\nCONFIG_BMP_DECODER=yes\nCONFIG_BMV_VIDEO_DECODER=yes\nCONFIG_BRENDER_PIX_DECODER=yes\nCONFIG_C93_DECODER=yes\nCONFIG_CAVS_DECODER=yes\nCONFIG_CDGRAPHICS_DECODER=yes\nCONFIG_CDTOONS_DECODER=yes\nCONFIG_CDXL_DECODER=yes\nCONFIG_CFHD_DECODER=yes\nCONFIG_CINEPAK_DECODER=yes\nCONFIG_CLEARVIDEO_DECODER=yes\nCONFIG_CLJR_DECODER=yes\nCONFIG_CLLC_DECODER=yes\nCONFIG_COMFORTNOISE_DECODER=yes\nCONFIG_CPIA_DECODER=yes\nCONFIG_CRI_DECODER=yes\nCONFIG_CSCD_DECODER=yes\nCONFIG_CYUV_DECODER=yes\nCONFIG_DDS_DECODER=yes\nCONFIG_DFA_DECODER=yes\nCONFIG_DIRAC_DECODER=yes\nCONFIG_DNXHD_DECODER=yes\nCONFIG_DPX_DECODER=yes\nCONFIG_DSICINVIDEO_DECODER=yes\nCONFIG_DVAUDIO_DECODER=yes\nCONFIG_DVVIDEO_DECODER=yes\nCONFIG_DXA_DECODER=yes\nCONFIG_DXTORY_DECODER=yes\nCONFIG_DXV_DECODER=yes\nCONFIG_EACMV_DECODER=yes\nCONFIG_EAMAD_DECODER=yes\nCONFIG_EATGQ_DECODER=yes\nCONFIG_EATGV_DECODER=yes\nCONFIG_EATQI_DECODER=yes\nCONFIG_EIGHTBPS_DECODER=yes\nCONFIG_EIGHTSVX_EXP_DECODER=yes\nCONFIG_EIGHTSVX_FIB_DECODER=yes\nCONFIG_ESCAPE124_DECODER=yes\nCONFIG_ESCAPE130_DECODER=yes\nCONFIG_EXR_DECODER=yes\nCONFIG_FFV1_DECODER=yes\nCONFIG_FFVHUFF_DECODER=yes\nCONFIG_FIC_DECODER=yes\nCONFIG_FITS_DECODER=yes\nCONFIG_FLASHSV_DECODER=yes\nCONFIG_FLASHSV2_DECODER=yes\nCONFIG_FLIC_DECODER=yes\nCONFIG_FLV_DECODER=yes\nCONFIG_FMVC_DECODER=yes\nCONFIG_FOURXM_DECODER=yes\nCONFIG_FRAPS_DECODER=yes\nCONFIG_FRWU_DECODER=yes\nCONFIG_G2M_DECODER=yes\nCONFIG_GDV_DECODER=yes\nCONFIG_GEM_DECODER=yes\nCONFIG_GIF_DECODER=yes\nCONFIG_H261_DECODER=yes\nCONFIG_H263_DECODER=yes\nCONFIG_H263I_DECODER=yes\nCONFIG_H263P_DECODER=yes\n!CONFIG_H263_V4L2M2M_DECODER=yes\nCONFIG_H264_DECODER=yes\n!CONFIG_H264_V4L2M2M_DECODER=yes\n!CONFIG_H264_MEDIACODEC_DECODER=yes\n!CONFIG_H264_MMAL_DECODER=yes\n!CONFIG_H264_QSV_DECODER=yes\n!CONFIG_H264_RKMPP_DECODER=yes\nCONFIG_HAP_DECODER=yes\nCONFIG_HEVC_DECODER=yes\n!CONFIG_HEVC_QSV_DECODER=yes\n!CONFIG_HEVC_RKMPP_DECODER=yes\n!CONFIG_HEVC_V4L2M2M_DECODER=yes\nCONFIG_HNM4_VIDEO_DECODER=yes\nCONFIG_HQ_HQA_DECODER=yes\nCONFIG_HQX_DECODER=yes\nCONFIG_HUFFYUV_DECODER=yes\nCONFIG_HYMT_DECODER=yes\nCONFIG_IDCIN_DECODER=yes\nCONFIG_IFF_ILBM_DECODER=yes\nCONFIG_IMM4_DECODER=yes\nCONFIG_IMM5_DECODER=yes\nCONFIG_INDEO2_DECODER=yes\nCONFIG_INDEO3_DECODER=yes\nCONFIG_INDEO4_DECODER=yes\nCONFIG_INDEO5_DECODER=yes\nCONFIG_INTERPLAY_VIDEO_DECODER=yes\nCONFIG_IPU_DECODER=yes\nCONFIG_JPEG2000_DECODER=yes\nCONFIG_JPEGLS_DECODER=yes\nCONFIG_JV_DECODER=yes\nCONFIG_KGV1_DECODER=yes\nCONFIG_KMVC_DECODER=yes\nCONFIG_LAGARITH_DECODER=yes\nCONFIG_LEAD_DECODER=yes\nCONFIG_LOCO_DECODER=yes\nCONFIG_LSCR_DECODER=yes\nCONFIG_M101_DECODER=yes\nCONFIG_MAGICYUV_DECODER=yes\nCONFIG_MDEC_DECODER=yes\nCONFIG_MEDIA100_DECODER=yes\nCONFIG_MIMIC_DECODER=yes\nCONFIG_MJPEG_DECODER=yes\nCONFIG_MJPEGB_DECODER=yes\nCONFIG_MMVIDEO_DECODER=yes\nCONFIG_MOBICLIP_DECODER=yes\nCONFIG_MOTIONPIXELS_DECODER=yes\nCONFIG_MPEG1VIDEO_DECODER=yes\nCONFIG_MPEG2VIDEO_DECODER=yes\nCONFIG_MPEG4_DECODER=yes\n!CONFIG_MPEG4_V4L2M2M_DECODER=yes\n!CONFIG_MPEG4_MMAL_DECODER=yes\nCONFIG_MPEGVIDEO_DECODER=yes\n!CONFIG_MPEG1_V4L2M2M_DECODER=yes\n!CONFIG_MPEG2_MMAL_DECODER=yes\n!CONFIG_MPEG2_V4L2M2M_DECODER=yes\n!CONFIG_MPEG2_QSV_DECODER=yes\n!CONFIG_MPEG2_MEDIACODEC_DECODER=yes\nCONFIG_MSA1_DECODER=yes\nCONFIG_MSCC_DECODER=yes\nCONFIG_MSMPEG4V1_DECODER=yes\nCONFIG_MSMPEG4V2_DECODER=yes\nCONFIG_MSMPEG4V3_DECODER=yes\nCONFIG_MSP2_DECODER=yes\nCONFIG_MSRLE_DECODER=yes\nCONFIG_MSS1_DECODER=yes\nCONFIG_MSS2_DECODER=yes\nCONFIG_MSVIDEO1_DECODER=yes\nCONFIG_MSZH_DECODER=yes\nCONFIG_MTS2_DECODER=yes\nCONFIG_MV30_DECODER=yes\nCONFIG_MVC1_DECODER=yes\nCONFIG_MVC2_DECODER=yes\nCONFIG_MVDV_DECODER=yes\nCONFIG_MVHA_DECODER=yes\nCONFIG_MWSC_DECODER=yes\nCONFIG_MXPEG_DECODER=yes\nCONFIG_NOTCHLC_DECODER=yes\nCONFIG_NUV_DECODER=yes\nCONFIG_PAF_VIDEO_DECODER=yes\nCONFIG_PAM_DECODER=yes\nCONFIG_PBM_DECODER=yes\nCONFIG_PCX_DECODER=yes\nCONFIG_PDV_DECODER=yes\nCONFIG_PFM_DECODER=yes\nCONFIG_PGM_DECODER=yes\nCONFIG_PGMYUV_DECODER=yes\nCONFIG_PGX_DECODER=yes\nCONFIG_PHM_DECODER=yes\nCONFIG_PHOTOCD_DECODER=yes\nCONFIG_PICTOR_DECODER=yes\nCONFIG_PIXLET_DECODER=yes\nCONFIG_PNG_DECODER=yes\nCONFIG_PPM_DECODER=yes\nCONFIG_PRORES_DECODER=yes\nCONFIG_PRORES_RAW_DECODER=yes\nCONFIG_PROSUMER_DECODER=yes\nCONFIG_PSD_DECODER=yes\nCONFIG_PTX_DECODER=yes\nCONFIG_QDRAW_DECODER=yes\nCONFIG_QOI_DECODER=yes\nCONFIG_QPEG_DECODER=yes\nCONFIG_QTRLE_DECODER=yes\nCONFIG_R10K_DECODER=yes\nCONFIG_R210_DECODER=yes\nCONFIG_RASC_DECODER=yes\nCONFIG_RAWVIDEO_DECODER=yes\nCONFIG_RKA_DECODER=yes\nCONFIG_RL2_DECODER=yes\nCONFIG_ROQ_DECODER=yes\nCONFIG_RPZA_DECODER=yes\nCONFIG_RSCC_DECODER=yes\nCONFIG_RTV1_DECODER=yes\nCONFIG_RV10_DECODER=yes\nCONFIG_RV20_DECODER=yes\nCONFIG_RV30_DECODER=yes\nCONFIG_RV40_DECODER=yes\nCONFIG_RV60_DECODER=yes\nCONFIG_S302M_DECODER=yes\nCONFIG_SANM_DECODER=yes\nCONFIG_SCPR_DECODER=yes\nCONFIG_SCREENPRESSO_DECODER=yes\nCONFIG_SGA_DECODER=yes\nCONFIG_SGI_DECODER=yes\nCONFIG_SGIRLE_DECODER=yes\nCONFIG_SHEERVIDEO_DECODER=yes\nCONFIG_SIMBIOSIS_IMX_DECODER=yes\nCONFIG_SMACKER_DECODER=yes\nCONFIG_SMC_DECODER=yes\nCONFIG_SMVJPEG_DECODER=yes\nCONFIG_SNOW_DECODER=yes\nCONFIG_SP5X_DECODER=yes\nCONFIG_SPEEDHQ_DECODER=yes\nCONFIG_SPEEX_DECODER=yes\nCONFIG_SRGC_DECODER=yes\nCONFIG_SUNRAST_DECODER=yes\nCONFIG_SVQ1_DECODER=yes\nCONFIG_SVQ3_DECODER=yes\nCONFIG_TARGA_DECODER=yes\nCONFIG_TARGA_Y216_DECODER=yes\nCONFIG_TDSC_DECODER=yes\nCONFIG_THEORA_DECODER=yes\nCONFIG_THP_DECODER=yes\nCONFIG_TIERTEXSEQVIDEO_DECODER=yes\nCONFIG_TIFF_DECODER=yes\nCONFIG_TMV_DECODER=yes\nCONFIG_TRUEMOTION1_DECODER=yes\nCONFIG_TRUEMOTION2_DECODER=yes\nCONFIG_TRUEMOTION2RT_DECODER=yes\nCONFIG_TSCC_DECODER=yes\nCONFIG_TSCC2_DECODER=yes\nCONFIG_TXD_DECODER=yes\nCONFIG_ULTI_DECODER=yes\nCONFIG_UTVIDEO_DECODER=yes\nCONFIG_V210_DECODER=yes\nCONFIG_V210X_DECODER=yes\nCONFIG_V308_DECODER=yes\nCONFIG_V408_DECODER=yes\nCONFIG_V410_DECODER=yes\nCONFIG_VB_DECODER=yes\nCONFIG_VBN_DECODER=yes\nCONFIG_VBLE_DECODER=yes\nCONFIG_VC1_DECODER=yes\nCONFIG_VC1IMAGE_DECODER=yes\n!CONFIG_VC1_MMAL_DECODER=yes\n!CONFIG_VC1_QSV_DECODER=yes\n!CONFIG_VC1_V4L2M2M_DECODER=yes\nCONFIG_VCR1_DECODER=yes\nCONFIG_VMDVIDEO_DECODER=yes\nCONFIG_VMIX_DECODER=yes\nCONFIG_VMNC_DECODER=yes\nCONFIG_VP3_DECODER=yes\nCONFIG_VP4_DECODER=yes\nCONFIG_VP5_DECODER=yes\nCONFIG_VP6_DECODER=yes\nCONFIG_VP6A_DECODER=yes\nCONFIG_VP6F_DECODER=yes\nCONFIG_VP7_DECODER=yes\nCONFIG_VP8_DECODER=yes\n!CONFIG_VP8_RKMPP_DECODER=yes\n!CONFIG_VP8_V4L2M2M_DECODER=yes\nCONFIG_VP9_DECODER=yes\n!CONFIG_VP9_RKMPP_DECODER=yes\n!CONFIG_VP9_V4L2M2M_DECODER=yes\nCONFIG_VQA_DECODER=yes\nCONFIG_VQC_DECODER=yes\nCONFIG_VVC_DECODER=yes\nCONFIG_WBMP_DECODER=yes\nCONFIG_WEBP_DECODER=yes\nCONFIG_WCMV_DECODER=yes\nCONFIG_WRAPPED_AVFRAME_DECODER=yes\nCONFIG_WMV1_DECODER=yes\nCONFIG_WMV2_DECODER=yes\nCONFIG_WMV3_DECODER=yes\nCONFIG_WMV3IMAGE_DECODER=yes\nCONFIG_WNV1_DECODER=yes\nCONFIG_XAN_WC3_DECODER=yes\nCONFIG_XAN_WC4_DECODER=yes\nCONFIG_XBM_DECODER=yes\nCONFIG_XFACE_DECODER=yes\nCONFIG_XL_DECODER=yes\nCONFIG_XPM_DECODER=yes\nCONFIG_XWD_DECODER=yes\nCONFIG_Y41P_DECODER=yes\nCONFIG_YLC_DECODER=yes\nCONFIG_YOP_DECODER=yes\nCONFIG_YUV4_DECODER=yes\nCONFIG_ZERO12V_DECODER=yes\nCONFIG_ZEROCODEC_DECODER=yes\nCONFIG_ZLIB_DECODER=yes\nCONFIG_ZMBV_DECODER=yes\nCONFIG_AAC_DECODER=yes\nCONFIG_AAC_FIXED_DECODER=yes\nCONFIG_AAC_LATM_DECODER=yes\nCONFIG_AC3_DECODER=yes\nCONFIG_AC3_FIXED_DECODER=yes\nCONFIG_ACELP_KELVIN_DECODER=yes\n!CONFIG_AHX_DECODER=yes\nCONFIG_ALAC_DECODER=yes\nCONFIG_ALS_DECODER=yes\nCONFIG_AMRNB_DECODER=yes\nCONFIG_AMRWB_DECODER=yes\nCONFIG_APAC_DECODER=yes\nCONFIG_APE_DECODER=yes\nCONFIG_APTX_DECODER=yes\nCONFIG_APTX_HD_DECODER=yes\nCONFIG_ATRAC1_DECODER=yes\nCONFIG_ATRAC3_DECODER=yes\nCONFIG_ATRAC3AL_DECODER=yes\nCONFIG_ATRAC3P_DECODER=yes\nCONFIG_ATRAC3PAL_DECODER=yes\nCONFIG_ATRAC9_DECODER=yes\nCONFIG_BINKAUDIO_DCT_DECODER=yes\nCONFIG_BINKAUDIO_RDFT_DECODER=yes\nCONFIG_BMV_AUDIO_DECODER=yes\nCONFIG_BONK_DECODER=yes\nCONFIG_COOK_DECODER=yes\nCONFIG_DCA_DECODER=yes\nCONFIG_DFPWM_DECODER=yes\nCONFIG_DOLBY_E_DECODER=yes\nCONFIG_DSD_LSBF_DECODER=yes\nCONFIG_DSD_MSBF_DECODER=yes\nCONFIG_DSD_LSBF_PLANAR_DECODER=yes\nCONFIG_DSD_MSBF_PLANAR_DECODER=yes\nCONFIG_DSICINAUDIO_DECODER=yes\nCONFIG_DSS_SP_DECODER=yes\nCONFIG_DST_DECODER=yes\nCONFIG_EAC3_DECODER=yes\nCONFIG_EVRC_DECODER=yes\nCONFIG_FASTAUDIO_DECODER=yes\nCONFIG_FFWAVESYNTH_DECODER=yes\nCONFIG_FLAC_DECODER=yes\nCONFIG_FTR_DECODER=yes\nCONFIG_G723_1_DECODER=yes\nCONFIG_G728_DECODER=yes\nCONFIG_G729_DECODER=yes\nCONFIG_GSM_DECODER=yes\nCONFIG_GSM_MS_DECODER=yes\nCONFIG_HCA_DECODER=yes\nCONFIG_HCOM_DECODER=yes\nCONFIG_HDR_DECODER=yes\nCONFIG_IAC_DECODER=yes\nCONFIG_ILBC_DECODER=yes\nCONFIG_IMC_DECODER=yes\nCONFIG_INTERPLAY_ACM_DECODER=yes\nCONFIG_MACE3_DECODER=yes\nCONFIG_MACE6_DECODER=yes\nCONFIG_METASOUND_DECODER=yes\nCONFIG_MISC4_DECODER=yes\nCONFIG_MLP_DECODER=yes\nCONFIG_MP1_DECODER=yes\nCONFIG_MP1FLOAT_DECODER=yes\nCONFIG_MP2_DECODER=yes\nCONFIG_MP2FLOAT_DECODER=yes\nCONFIG_MP3FLOAT_DECODER=yes\nCONFIG_MP3_DECODER=yes\nCONFIG_MP3ADUFLOAT_DECODER=yes\nCONFIG_MP3ADU_DECODER=yes\nCONFIG_MP3ON4FLOAT_DECODER=yes\nCONFIG_MP3ON4_DECODER=yes\nCONFIG_MPC7_DECODER=yes\nCONFIG_MPC8_DECODER=yes\nCONFIG_MSNSIREN_DECODER=yes\nCONFIG_NELLYMOSER_DECODER=yes\nCONFIG_ON2AVC_DECODER=yes\nCONFIG_OPUS_DECODER=yes\nCONFIG_OSQ_DECODER=yes\nCONFIG_PAF_AUDIO_DECODER=yes\nCONFIG_QCELP_DECODER=yes\nCONFIG_QDM2_DECODER=yes\nCONFIG_QDMC_DECODER=yes\nCONFIG_QOA_DECODER=yes\nCONFIG_RA_144_DECODER=yes\nCONFIG_RA_288_DECODER=yes\nCONFIG_RALF_DECODER=yes\nCONFIG_SBC_DECODER=yes\nCONFIG_SHORTEN_DECODER=yes\nCONFIG_SIPR_DECODER=yes\nCONFIG_SIREN_DECODER=yes\nCONFIG_SMACKAUD_DECODER=yes\nCONFIG_SONIC_DECODER=yes\nCONFIG_TAK_DECODER=yes\nCONFIG_TRUEHD_DECODER=yes\nCONFIG_TRUESPEECH_DECODER=yes\nCONFIG_TTA_DECODER=yes\nCONFIG_TWINVQ_DECODER=yes\nCONFIG_VMDAUDIO_DECODER=yes\nCONFIG_VORBIS_DECODER=yes\nCONFIG_WAVARC_DECODER=yes\nCONFIG_WAVPACK_DECODER=yes\nCONFIG_WMALOSSLESS_DECODER=yes\nCONFIG_WMAPRO_DECODER=yes\nCONFIG_WMAV1_DECODER=yes\nCONFIG_WMAV2_DECODER=yes\nCONFIG_WMAVOICE_DECODER=yes\nCONFIG_WS_SND1_DECODER=yes\nCONFIG_XMA1_DECODER=yes\nCONFIG_XMA2_DECODER=yes\nCONFIG_PCM_ALAW_DECODER=yes\nCONFIG_PCM_BLURAY_DECODER=yes\nCONFIG_PCM_DVD_DECODER=yes\nCONFIG_PCM_F16LE_DECODER=yes\nCONFIG_PCM_F24LE_DECODER=yes\nCONFIG_PCM_F32BE_DECODER=yes\nCONFIG_PCM_F32LE_DECODER=yes\nCONFIG_PCM_F64BE_DECODER=yes\nCONFIG_PCM_F64LE_DECODER=yes\nCONFIG_PCM_LXF_DECODER=yes\nCONFIG_PCM_MULAW_DECODER=yes\nCONFIG_PCM_S8_DECODER=yes\nCONFIG_PCM_S8_PLANAR_DECODER=yes\nCONFIG_PCM_S16BE_DECODER=yes\nCONFIG_PCM_S16BE_PLANAR_DECODER=yes\nCONFIG_PCM_S16LE_DECODER=yes\nCONFIG_PCM_S16LE_PLANAR_DECODER=yes\nCONFIG_PCM_S24BE_DECODER=yes\nCONFIG_PCM_S24DAUD_DECODER=yes\nCONFIG_PCM_S24LE_DECODER=yes\nCONFIG_PCM_S24LE_PLANAR_DECODER=yes\nCONFIG_PCM_S32BE_DECODER=yes\nCONFIG_PCM_S32LE_DECODER=yes\nCONFIG_PCM_S32LE_PLANAR_DECODER=yes\nCONFIG_PCM_S64BE_DECODER=yes\nCONFIG_PCM_S64LE_DECODER=yes\nCONFIG_PCM_SGA_DECODER=yes\nCONFIG_PCM_U8_DECODER=yes\nCONFIG_PCM_U16BE_DECODER=yes\nCONFIG_PCM_U16LE_DECODER=yes\nCONFIG_PCM_U24BE_DECODER=yes\nCONFIG_PCM_U24LE_DECODER=yes\nCONFIG_PCM_U32BE_DECODER=yes\nCONFIG_PCM_U32LE_DECODER=yes\nCONFIG_PCM_VIDC_DECODER=yes\nCONFIG_CBD2_DPCM_DECODER=yes\nCONFIG_DERF_DPCM_DECODER=yes\nCONFIG_GREMLIN_DPCM_DECODER=yes\nCONFIG_INTERPLAY_DPCM_DECODER=yes\nCONFIG_ROQ_DPCM_DECODER=yes\nCONFIG_SDX2_DPCM_DECODER=yes\nCONFIG_SOL_DPCM_DECODER=yes\nCONFIG_XAN_DPCM_DECODER=yes\nCONFIG_WADY_DPCM_DECODER=yes\nCONFIG_ADPCM_4XM_DECODER=yes\nCONFIG_ADPCM_ADX_DECODER=yes\nCONFIG_ADPCM_AFC_DECODER=yes\nCONFIG_ADPCM_AGM_DECODER=yes\nCONFIG_ADPCM_AICA_DECODER=yes\nCONFIG_ADPCM_ARGO_DECODER=yes\n!CONFIG_ADPCM_CIRCUS_DECODER=yes\nCONFIG_ADPCM_CT_DECODER=yes\nCONFIG_ADPCM_DTK_DECODER=yes\nCONFIG_ADPCM_EA_DECODER=yes\nCONFIG_ADPCM_EA_MAXIS_XA_DECODER=yes\nCONFIG_ADPCM_EA_R1_DECODER=yes\nCONFIG_ADPCM_EA_R2_DECODER=yes\nCONFIG_ADPCM_EA_R3_DECODER=yes\nCONFIG_ADPCM_EA_XAS_DECODER=yes\nCONFIG_ADPCM_G722_DECODER=yes\nCONFIG_ADPCM_G726_DECODER=yes\nCONFIG_ADPCM_G726LE_DECODER=yes\nCONFIG_ADPCM_IMA_ACORN_DECODER=yes\nCONFIG_ADPCM_IMA_AMV_DECODER=yes\nCONFIG_ADPCM_IMA_ALP_DECODER=yes\nCONFIG_ADPCM_IMA_APC_DECODER=yes\nCONFIG_ADPCM_IMA_APM_DECODER=yes\nCONFIG_ADPCM_IMA_CUNNING_DECODER=yes\nCONFIG_ADPCM_IMA_DAT4_DECODER=yes\nCONFIG_ADPCM_IMA_DK3_DECODER=yes\nCONFIG_ADPCM_IMA_DK4_DECODER=yes\nCONFIG_ADPCM_IMA_EA_EACS_DECODER=yes\nCONFIG_ADPCM_IMA_EA_SEAD_DECODER=yes\n!CONFIG_ADPCM_IMA_ESCAPE_DECODER=yes\n!CONFIG_ADPCM_IMA_HVQM2_DECODER=yes\n!CONFIG_ADPCM_IMA_HVQM4_DECODER=yes\nCONFIG_ADPCM_IMA_ISS_DECODER=yes\n!CONFIG_ADPCM_IMA_MAGIX_DECODER=yes\nCONFIG_ADPCM_IMA_MOFLEX_DECODER=yes\nCONFIG_ADPCM_IMA_MTF_DECODER=yes\nCONFIG_ADPCM_IMA_OKI_DECODER=yes\n!CONFIG_ADPCM_IMA_PDA_DECODER=yes\nCONFIG_ADPCM_IMA_QT_DECODER=yes\nCONFIG_ADPCM_IMA_RAD_DECODER=yes\nCONFIG_ADPCM_IMA_SSI_DECODER=yes\nCONFIG_ADPCM_IMA_SMJPEG_DECODER=yes\nCONFIG_ADPCM_IMA_WAV_DECODER=yes\nCONFIG_ADPCM_IMA_WS_DECODER=yes\nCONFIG_ADPCM_IMA_XBOX_DECODER=yes\nCONFIG_ADPCM_MS_DECODER=yes\nCONFIG_ADPCM_MTAF_DECODER=yes\n!CONFIG_ADPCM_N64_DECODER=yes\nCONFIG_ADPCM_PSX_DECODER=yes\n!CONFIG_ADPCM_PSXC_DECODER=yes\nCONFIG_ADPCM_SANYO_DECODER=yes\nCONFIG_ADPCM_SBPRO_2_DECODER=yes\nCONFIG_ADPCM_SBPRO_3_DECODER=yes\nCONFIG_ADPCM_SBPRO_4_DECODER=yes\nCONFIG_ADPCM_SWF_DECODER=yes\nCONFIG_ADPCM_THP_DECODER=yes\nCONFIG_ADPCM_THP_LE_DECODER=yes\nCONFIG_ADPCM_VIMA_DECODER=yes\nCONFIG_ADPCM_XA_DECODER=yes\nCONFIG_ADPCM_XMD_DECODER=yes\nCONFIG_ADPCM_YAMAHA_DECODER=yes\nCONFIG_ADPCM_ZORK_DECODER=yes\nCONFIG_SSA_DECODER=yes\nCONFIG_ASS_DECODER=yes\nCONFIG_CCAPTION_DECODER=yes\nCONFIG_DVBSUB_DECODER=yes\nCONFIG_DVDSUB_DECODER=yes\nCONFIG_JACOSUB_DECODER=yes\nCONFIG_MICRODVD_DECODER=yes\nCONFIG_MOVTEXT_DECODER=yes\nCONFIG_MPL2_DECODER=yes\nCONFIG_PGSSUB_DECODER=yes\nCONFIG_PJS_DECODER=yes\nCONFIG_REALTEXT_DECODER=yes\nCONFIG_SAMI_DECODER=yes\nCONFIG_SRT_DECODER=yes\nCONFIG_STL_DECODER=yes\nCONFIG_SUBRIP_DECODER=yes\nCONFIG_SUBVIEWER_DECODER=yes\nCONFIG_SUBVIEWER1_DECODER=yes\nCONFIG_TEXT_DECODER=yes\nCONFIG_VPLAYER_DECODER=yes\nCONFIG_WEBVTT_DECODER=yes\nCONFIG_XSUB_DECODER=yes\n!CONFIG_AAC_AT_DECODER=yes\n!CONFIG_AC3_AT_DECODER=yes\n!CONFIG_ADPCM_IMA_QT_AT_DECODER=yes\n!CONFIG_ALAC_AT_DECODER=yes\n!CONFIG_AMR_NB_AT_DECODER=yes\n!CONFIG_EAC3_AT_DECODER=yes\n!CONFIG_GSM_MS_AT_DECODER=yes\n!CONFIG_ILBC_AT_DECODER=yes\n!CONFIG_MP1_AT_DECODER=yes\n!CONFIG_MP2_AT_DECODER=yes\n!CONFIG_MP3_AT_DECODER=yes\n!CONFIG_PCM_ALAW_AT_DECODER=yes\n!CONFIG_PCM_MULAW_AT_DECODER=yes\n!CONFIG_QDMC_AT_DECODER=yes\n!CONFIG_QDM2_AT_DECODER=yes\n!CONFIG_LIBARIBCAPTION_DECODER=yes\n!CONFIG_LIBARIBB24_DECODER=yes\n!CONFIG_LIBCELT_DECODER=yes\n!CONFIG_LIBCODEC2_DECODER=yes\n!CONFIG_LIBDAV1D_DECODER=yes\n!CONFIG_LIBDAVS2_DECODER=yes\n!CONFIG_LIBFDK_AAC_DECODER=yes\n!CONFIG_LIBGSM_DECODER=yes\n!CONFIG_LIBGSM_MS_DECODER=yes\n!CONFIG_LIBILBC_DECODER=yes\n!CONFIG_LIBJXL_ANIM_DECODER=yes\n!CONFIG_LIBJXL_DECODER=yes\n!CONFIG_LIBLC3_DECODER=yes\n!CONFIG_LIBMPEGHDEC_DECODER=yes\n!CONFIG_LIBOPENCORE_AMRNB_DECODER=yes\n!CONFIG_LIBOPENCORE_AMRWB_DECODER=yes\n!CONFIG_LIBOPUS_DECODER=yes\n!CONFIG_LIBRSVG_DECODER=yes\n!CONFIG_LIBSPEEX_DECODER=yes\n!CONFIG_LIBSVTJPEGXS_DECODER=yes\n!CONFIG_LIBUAVS3D_DECODER=yes\n!CONFIG_LIBVORBIS_DECODER=yes\n!CONFIG_LIBVPX_VP8_DECODER=yes\n!CONFIG_LIBVPX_VP9_DECODER=yes\n!CONFIG_LIBXEVD_DECODER=yes\n!CONFIG_LIBZVBI_TELETEXT_DECODER=yes\nCONFIG_BINTEXT_DECODER=yes\nCONFIG_XBIN_DECODER=yes\nCONFIG_IDF_DECODER=yes\n!CONFIG_AAC_MEDIACODEC_DECODER=yes\n!CONFIG_AMRNB_MEDIACODEC_DECODER=yes\n!CONFIG_AMRWB_MEDIACODEC_DECODER=yes\n!CONFIG_LIBAOM_AV1_DECODER=yes\nCONFIG_AV1_DECODER=yes\n!CONFIG_AV1_CUVID_DECODER=yes\n!CONFIG_AV1_MEDIACODEC_DECODER=yes\n!CONFIG_AV1_QSV_DECODER=yes\n!CONFIG_AV1_AMF_DECODER=yes\n!CONFIG_LIBOPENH264_DECODER=yes\n!CONFIG_H264_AMF_DECODER=yes\n!CONFIG_H264_CUVID_DECODER=yes\n!CONFIG_H264_OH_DECODER=yes\n!CONFIG_HEVC_AMF_DECODER=yes\n!CONFIG_HEVC_CUVID_DECODER=yes\n!CONFIG_HEVC_MEDIACODEC_DECODER=yes\n!CONFIG_HEVC_OH_DECODER=yes\n!CONFIG_MJPEG_CUVID_DECODER=yes\n!CONFIG_MJPEG_QSV_DECODER=yes\n!CONFIG_MP3_MEDIACODEC_DECODER=yes\n!CONFIG_MPEG1_CUVID_DECODER=yes\n!CONFIG_MPEG2_CUVID_DECODER=yes\n!CONFIG_MPEG4_CUVID_DECODER=yes\n!CONFIG_MPEG4_MEDIACODEC_DECODER=yes\n!CONFIG_VC1_CUVID_DECODER=yes\n!CONFIG_VP8_CUVID_DECODER=yes\n!CONFIG_VP8_MEDIACODEC_DECODER=yes\n!CONFIG_VP8_QSV_DECODER=yes\n!CONFIG_VP9_AMF_DECODER=yes\n!CONFIG_VP9_CUVID_DECODER=yes\n!CONFIG_VP9_MEDIACODEC_DECODER=yes\n!CONFIG_VP9_QSV_DECODER=yes\n!CONFIG_VVC_QSV_DECODER=yes\nCONFIG_VNULL_DECODER=yes\nCONFIG_ANULL_DECODER=yes\n!CONFIG_A64MULTI_ENCODER=yes\n!CONFIG_A64MULTI5_ENCODER=yes\n!CONFIG_ALIAS_PIX_ENCODER=yes\n!CONFIG_AMV_ENCODER=yes\n!CONFIG_APNG_ENCODER=yes\n!CONFIG_ASV1_ENCODER=yes\n!CONFIG_ASV2_ENCODER=yes\n!CONFIG_AVRP_ENCODER=yes\n!CONFIG_AVUI_ENCODER=yes\n!CONFIG_BITPACKED_ENCODER=yes\n!CONFIG_BMP_ENCODER=yes\n!CONFIG_CFHD_ENCODER=yes\n!CONFIG_CINEPAK_ENCODER=yes\n!CONFIG_CLJR_ENCODER=yes\n!CONFIG_COMFORTNOISE_ENCODER=yes\n!CONFIG_DNXHD_ENCODER=yes\n!CONFIG_DPX_ENCODER=yes\n!CONFIG_DVVIDEO_ENCODER=yes\n!CONFIG_DXV_ENCODER=yes\n!CONFIG_EXR_ENCODER=yes\n!CONFIG_FFV1_ENCODER=yes\n!CONFIG_FFV1_VULKAN_ENCODER=yes\n!CONFIG_FFVHUFF_ENCODER=yes\n!CONFIG_FITS_ENCODER=yes\n!CONFIG_FLASHSV_ENCODER=yes\n!CONFIG_FLASHSV2_ENCODER=yes\n!CONFIG_FLV_ENCODER=yes\n!CONFIG_GIF_ENCODER=yes\n!CONFIG_H261_ENCODER=yes\n!CONFIG_H263_ENCODER=yes\n!CONFIG_H263P_ENCODER=yes\n!CONFIG_H264_MEDIACODEC_ENCODER=yes\n!CONFIG_H264_RKMPP_ENCODER=yes\n!CONFIG_HAP_ENCODER=yes\n!CONFIG_HEVC_RKMPP_ENCODER=yes\n!CONFIG_HUFFYUV_ENCODER=yes\n!CONFIG_JPEG2000_ENCODER=yes\n!CONFIG_JPEGLS_ENCODER=yes\n!CONFIG_LJPEG_ENCODER=yes\n!CONFIG_MAGICYUV_ENCODER=yes\n!CONFIG_MJPEG_ENCODER=yes\n!CONFIG_MPEG1VIDEO_ENCODER=yes\n!CONFIG_MPEG2VIDEO_ENCODER=yes\n!CONFIG_MPEG4_ENCODER=yes\n!CONFIG_MSMPEG4V2_ENCODER=yes\n!CONFIG_MSMPEG4V3_ENCODER=yes\n!CONFIG_MSRLE_ENCODER=yes\n!CONFIG_MSVIDEO1_ENCODER=yes\n!CONFIG_PAM_ENCODER=yes\n!CONFIG_PBM_ENCODER=yes\n!CONFIG_PCX_ENCODER=yes\n!CONFIG_PFM_ENCODER=yes\n!CONFIG_PGM_ENCODER=yes\n!CONFIG_PGMYUV_ENCODER=yes\n!CONFIG_PHM_ENCODER=yes\n!CONFIG_PNG_ENCODER=yes\n!CONFIG_PPM_ENCODER=yes\n!CONFIG_PRORES_ENCODER=yes\n!CONFIG_PRORES_AW_ENCODER=yes\n!CONFIG_PRORES_KS_ENCODER=yes\n!CONFIG_PRORES_KS_VULKAN_ENCODER=yes\n!CONFIG_QOI_ENCODER=yes\n!CONFIG_QTRLE_ENCODER=yes\n!CONFIG_R10K_ENCODER=yes\n!CONFIG_R210_ENCODER=yes\n!CONFIG_RAWVIDEO_ENCODER=yes\n!CONFIG_ROQ_ENCODER=yes\n!CONFIG_RPZA_ENCODER=yes\n!CONFIG_RV10_ENCODER=yes\n!CONFIG_RV20_ENCODER=yes\n!CONFIG_S302M_ENCODER=yes\n!CONFIG_SGI_ENCODER=yes\n!CONFIG_SMC_ENCODER=yes\n!CONFIG_SNOW_ENCODER=yes\n!CONFIG_SPEEDHQ_ENCODER=yes\n!CONFIG_SUNRAST_ENCODER=yes\n!CONFIG_SVQ1_ENCODER=yes\n!CONFIG_TARGA_ENCODER=yes\n!CONFIG_TIFF_ENCODER=yes\n!CONFIG_UTVIDEO_ENCODER=yes\n!CONFIG_V210_ENCODER=yes\n!CONFIG_V308_ENCODER=yes\n!CONFIG_V408_ENCODER=yes\n!CONFIG_V410_ENCODER=yes\n!CONFIG_VBN_ENCODER=yes\n!CONFIG_VC2_ENCODER=yes\n!CONFIG_WBMP_ENCODER=yes\n!CONFIG_WRAPPED_AVFRAME_ENCODER=yes\n!CONFIG_WMV1_ENCODER=yes\n!CONFIG_WMV2_ENCODER=yes\n!CONFIG_XBM_ENCODER=yes\n!CONFIG_XFACE_ENCODER=yes\n!CONFIG_XWD_ENCODER=yes\n!CONFIG_Y41P_ENCODER=yes\n!CONFIG_YUV4_ENCODER=yes\n!CONFIG_ZLIB_ENCODER=yes\n!CONFIG_ZMBV_ENCODER=yes\n!CONFIG_AAC_ENCODER=yes\n!CONFIG_AC3_ENCODER=yes\n!CONFIG_AC3_FIXED_ENCODER=yes\n!CONFIG_ALAC_ENCODER=yes\n!CONFIG_APTX_ENCODER=yes\n!CONFIG_APTX_HD_ENCODER=yes\n!CONFIG_DCA_ENCODER=yes\n!CONFIG_DFPWM_ENCODER=yes\n!CONFIG_EAC3_ENCODER=yes\n!CONFIG_FLAC_ENCODER=yes\n!CONFIG_G723_1_ENCODER=yes\n!CONFIG_HDR_ENCODER=yes\n!CONFIG_MLP_ENCODER=yes\n!CONFIG_MP2_ENCODER=yes\n!CONFIG_MP2FIXED_ENCODER=yes\n!CONFIG_NELLYMOSER_ENCODER=yes\n!CONFIG_OPUS_ENCODER=yes\n!CONFIG_RA_144_ENCODER=yes\n!CONFIG_SBC_ENCODER=yes\n!CONFIG_SONIC_ENCODER=yes\n!CONFIG_SONIC_LS_ENCODER=yes\n!CONFIG_TRUEHD_ENCODER=yes\n!CONFIG_TTA_ENCODER=yes\n!CONFIG_VORBIS_ENCODER=yes\n!CONFIG_WAVPACK_ENCODER=yes\n!CONFIG_WMAV1_ENCODER=yes\n!CONFIG_WMAV2_ENCODER=yes\n!CONFIG_PCM_ALAW_ENCODER=yes\n!CONFIG_PCM_BLURAY_ENCODER=yes\n!CONFIG_PCM_DVD_ENCODER=yes\n!CONFIG_PCM_F32BE_ENCODER=yes\n!CONFIG_PCM_F32LE_ENCODER=yes\n!CONFIG_PCM_F64BE_ENCODER=yes\n!CONFIG_PCM_F64LE_ENCODER=yes\n!CONFIG_PCM_MULAW_ENCODER=yes\n!CONFIG_PCM_S8_ENCODER=yes\n!CONFIG_PCM_S8_PLANAR_ENCODER=yes\n!CONFIG_PCM_S16BE_ENCODER=yes\n!CONFIG_PCM_S16BE_PLANAR_ENCODER=yes\n!CONFIG_PCM_S16LE_ENCODER=yes\n!CONFIG_PCM_S16LE_PLANAR_ENCODER=yes\n!CONFIG_PCM_S24BE_ENCODER=yes\n!CONFIG_PCM_S24DAUD_ENCODER=yes\n!CONFIG_PCM_S24LE_ENCODER=yes\n!CONFIG_PCM_S24LE_PLANAR_ENCODER=yes\n!CONFIG_PCM_S32BE_ENCODER=yes\n!CONFIG_PCM_S32LE_ENCODER=yes\n!CONFIG_PCM_S32LE_PLANAR_ENCODER=yes\n!CONFIG_PCM_S64BE_ENCODER=yes\n!CONFIG_PCM_S64LE_ENCODER=yes\n!CONFIG_PCM_U8_ENCODER=yes\n!CONFIG_PCM_U16BE_ENCODER=yes\n!CONFIG_PCM_U16LE_ENCODER=yes\n!CONFIG_PCM_U24BE_ENCODER=yes\n!CONFIG_PCM_U24LE_ENCODER=yes\n!CONFIG_PCM_U32BE_ENCODER=yes\n!CONFIG_PCM_U32LE_ENCODER=yes\n!CONFIG_PCM_VIDC_ENCODER=yes\n!CONFIG_ROQ_DPCM_ENCODER=yes\n!CONFIG_ADPCM_ADX_ENCODER=yes\n!CONFIG_ADPCM_ARGO_ENCODER=yes\n!CONFIG_ADPCM_G722_ENCODER=yes\n!CONFIG_ADPCM_G726_ENCODER=yes\n!CONFIG_ADPCM_G726LE_ENCODER=yes\n!CONFIG_ADPCM_IMA_AMV_ENCODER=yes\n!CONFIG_ADPCM_IMA_ALP_ENCODER=yes\n!CONFIG_ADPCM_IMA_APM_ENCODER=yes\n!CONFIG_ADPCM_IMA_QT_ENCODER=yes\n!CONFIG_ADPCM_IMA_SSI_ENCODER=yes\n!CONFIG_ADPCM_IMA_WAV_ENCODER=yes\n!CONFIG_ADPCM_IMA_WS_ENCODER=yes\n!CONFIG_ADPCM_MS_ENCODER=yes\n!CONFIG_ADPCM_SWF_ENCODER=yes\n!CONFIG_ADPCM_YAMAHA_ENCODER=yes\n!CONFIG_SSA_ENCODER=yes\n!CONFIG_ASS_ENCODER=yes\n!CONFIG_DVBSUB_ENCODER=yes\n!CONFIG_DVDSUB_ENCODER=yes\n!CONFIG_MOVTEXT_ENCODER=yes\n!CONFIG_SRT_ENCODER=yes\n!CONFIG_SUBRIP_ENCODER=yes\n!CONFIG_TEXT_ENCODER=yes\n!CONFIG_TTML_ENCODER=yes\n!CONFIG_WEBVTT_ENCODER=yes\n!CONFIG_XSUB_ENCODER=yes\n!CONFIG_AAC_AT_ENCODER=yes\n!CONFIG_ALAC_AT_ENCODER=yes\n!CONFIG_ILBC_AT_ENCODER=yes\n!CONFIG_PCM_ALAW_AT_ENCODER=yes\n!CONFIG_PCM_MULAW_AT_ENCODER=yes\n!CONFIG_LIBAOM_AV1_ENCODER=yes\n!CONFIG_LIBCODEC2_ENCODER=yes\n!CONFIG_LIBFDK_AAC_ENCODER=yes\n!CONFIG_LIBGSM_ENCODER=yes\n!CONFIG_LIBGSM_MS_ENCODER=yes\n!CONFIG_LIBILBC_ENCODER=yes\n!CONFIG_LIBJXL_ANIM_ENCODER=yes\n!CONFIG_LIBJXL_ENCODER=yes\n!CONFIG_LIBLC3_ENCODER=yes\n!CONFIG_LIBMP3LAME_ENCODER=yes\n!CONFIG_LIBOAPV_ENCODER=yes\n!CONFIG_LIBOPENCORE_AMRNB_ENCODER=yes\n!CONFIG_LIBOPENJPEG_ENCODER=yes\n!CONFIG_LIBOPUS_ENCODER=yes\n!CONFIG_LIBRAV1E_ENCODER=yes\n!CONFIG_LIBSHINE_ENCODER=yes\n!CONFIG_LIBSPEEX_ENCODER=yes\n!CONFIG_LIBSVTAV1_ENCODER=yes\n!CONFIG_LIBSVTJPEGXS_ENCODER=yes\n!CONFIG_LIBTHEORA_ENCODER=yes\n!CONFIG_LIBTWOLAME_ENCODER=yes\n!CONFIG_LIBVO_AMRWBENC_ENCODER=yes\n!CONFIG_LIBVORBIS_ENCODER=yes\n!CONFIG_LIBVPX_VP8_ENCODER=yes\n!CONFIG_LIBVPX_VP9_ENCODER=yes\n!CONFIG_LIBVVENC_ENCODER=yes\n!CONFIG_LIBWEBP_ANIM_ENCODER=yes\n!CONFIG_LIBWEBP_ENCODER=yes\n!CONFIG_LIBX262_ENCODER=yes\n!CONFIG_LIBX264_ENCODER=yes\n!CONFIG_LIBX264RGB_ENCODER=yes\n!CONFIG_LIBX265_ENCODER=yes\n!CONFIG_LIBXEVE_ENCODER=yes\n!CONFIG_LIBXAVS_ENCODER=yes\n!CONFIG_LIBXAVS2_ENCODER=yes\n!CONFIG_LIBXVID_ENCODER=yes\n!CONFIG_AAC_MF_ENCODER=yes\n!CONFIG_AC3_MF_ENCODER=yes\n!CONFIG_H263_V4L2M2M_ENCODER=yes\n!CONFIG_AV1_D3D12VA_ENCODER=yes\n!CONFIG_AV1_MEDIACODEC_ENCODER=yes\n!CONFIG_AV1_NVENC_ENCODER=yes\n!CONFIG_AV1_QSV_ENCODER=yes\n!CONFIG_AV1_AMF_ENCODER=yes\n!CONFIG_AV1_MF_ENCODER=yes\n!CONFIG_AV1_VAAPI_ENCODER=yes\n!CONFIG_AV1_VULKAN_ENCODER=yes\n!CONFIG_LIBOPENH264_ENCODER=yes\n!CONFIG_H264_AMF_ENCODER=yes\n!CONFIG_H264_D3D12VA_ENCODER=yes\n!CONFIG_H264_MF_ENCODER=yes\n!CONFIG_H264_NVENC_ENCODER=yes\n!CONFIG_H264_OH_ENCODER=yes\n!CONFIG_H264_OMX_ENCODER=yes\n!CONFIG_H264_QSV_ENCODER=yes\n!CONFIG_H264_V4L2M2M_ENCODER=yes\n!CONFIG_H264_VAAPI_ENCODER=yes\n!CONFIG_H264_VIDEOTOOLBOX_ENCODER=yes\n!CONFIG_H264_VULKAN_ENCODER=yes\n!CONFIG_HEVC_AMF_ENCODER=yes\n!CONFIG_HEVC_D3D12VA_ENCODER=yes\n!CONFIG_HEVC_MEDIACODEC_ENCODER=yes\n!CONFIG_HEVC_MF_ENCODER=yes\n!CONFIG_HEVC_NVENC_ENCODER=yes\n!CONFIG_HEVC_OH_ENCODER=yes\n!CONFIG_HEVC_QSV_ENCODER=yes\n!CONFIG_HEVC_V4L2M2M_ENCODER=yes\n!CONFIG_HEVC_VAAPI_ENCODER=yes\n!CONFIG_HEVC_VIDEOTOOLBOX_ENCODER=yes\n!CONFIG_HEVC_VULKAN_ENCODER=yes\n!CONFIG_LIBKVAZAAR_ENCODER=yes\n!CONFIG_MJPEG_QSV_ENCODER=yes\n!CONFIG_MJPEG_VAAPI_ENCODER=yes\n!CONFIG_MP3_MF_ENCODER=yes\n!CONFIG_MPEG2_QSV_ENCODER=yes\n!CONFIG_MPEG2_VAAPI_ENCODER=yes\n!CONFIG_MPEG4_MEDIACODEC_ENCODER=yes\n!CONFIG_MPEG4_OMX_ENCODER=yes\n!CONFIG_MPEG4_V4L2M2M_ENCODER=yes\n!CONFIG_PRORES_VIDEOTOOLBOX_ENCODER=yes\n!CONFIG_VP8_MEDIACODEC_ENCODER=yes\n!CONFIG_VP8_V4L2M2M_ENCODER=yes\n!CONFIG_VP8_VAAPI_ENCODER=yes\n!CONFIG_VP9_MEDIACODEC_ENCODER=yes\n!CONFIG_VP9_VAAPI_ENCODER=yes\n!CONFIG_VP9_QSV_ENCODER=yes\n!CONFIG_VNULL_ENCODER=yes\n!CONFIG_ANULL_ENCODER=yes\n!CONFIG_AV1_D3D11VA_HWACCEL=yes\n!CONFIG_AV1_D3D11VA2_HWACCEL=yes\n!CONFIG_AV1_D3D12VA_HWACCEL=yes\n!CONFIG_AV1_DXVA2_HWACCEL=yes\n!CONFIG_AV1_NVDEC_HWACCEL=yes\n!CONFIG_AV1_VAAPI_HWACCEL=yes\n!CONFIG_AV1_VDPAU_HWACCEL=yes\n!CONFIG_AV1_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_AV1_VULKAN_HWACCEL=yes\n!CONFIG_DPX_VULKAN_HWACCEL=yes\n!CONFIG_FFV1_VULKAN_HWACCEL=yes\n!CONFIG_H263_VAAPI_HWACCEL=yes\n!CONFIG_H263_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_H264_D3D11VA_HWACCEL=yes\n!CONFIG_H264_D3D11VA2_HWACCEL=yes\n!CONFIG_H264_D3D12VA_HWACCEL=yes\n!CONFIG_H264_DXVA2_HWACCEL=yes\n!CONFIG_H264_NVDEC_HWACCEL=yes\n!CONFIG_H264_VAAPI_HWACCEL=yes\n!CONFIG_H264_VDPAU_HWACCEL=yes\n!CONFIG_H264_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_H264_VULKAN_HWACCEL=yes\n!CONFIG_HEVC_D3D11VA_HWACCEL=yes\n!CONFIG_HEVC_D3D11VA2_HWACCEL=yes\n!CONFIG_HEVC_D3D12VA_HWACCEL=yes\n!CONFIG_HEVC_DXVA2_HWACCEL=yes\n!CONFIG_HEVC_NVDEC_HWACCEL=yes\n!CONFIG_HEVC_VAAPI_HWACCEL=yes\n!CONFIG_HEVC_VDPAU_HWACCEL=yes\n!CONFIG_HEVC_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_HEVC_VULKAN_HWACCEL=yes\n!CONFIG_MJPEG_NVDEC_HWACCEL=yes\n!CONFIG_MJPEG_VAAPI_HWACCEL=yes\n!CONFIG_MPEG1_NVDEC_HWACCEL=yes\n!CONFIG_MPEG1_VDPAU_HWACCEL=yes\n!CONFIG_MPEG1_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_MPEG2_D3D11VA_HWACCEL=yes\n!CONFIG_MPEG2_D3D11VA2_HWACCEL=yes\n!CONFIG_MPEG2_D3D12VA_HWACCEL=yes\n!CONFIG_MPEG2_DXVA2_HWACCEL=yes\n!CONFIG_MPEG2_NVDEC_HWACCEL=yes\n!CONFIG_MPEG2_VAAPI_HWACCEL=yes\n!CONFIG_MPEG2_VDPAU_HWACCEL=yes\n!CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_MPEG4_NVDEC_HWACCEL=yes\n!CONFIG_MPEG4_VAAPI_HWACCEL=yes\n!CONFIG_MPEG4_VDPAU_HWACCEL=yes\n!CONFIG_MPEG4_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_PRORES_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_PRORES_VULKAN_HWACCEL=yes\n!CONFIG_PRORES_RAW_VULKAN_HWACCEL=yes\n!CONFIG_VC1_D3D11VA_HWACCEL=yes\n!CONFIG_VC1_D3D11VA2_HWACCEL=yes\n!CONFIG_VC1_D3D12VA_HWACCEL=yes\n!CONFIG_VC1_DXVA2_HWACCEL=yes\n!CONFIG_VC1_NVDEC_HWACCEL=yes\n!CONFIG_VC1_VAAPI_HWACCEL=yes\n!CONFIG_VC1_VDPAU_HWACCEL=yes\n!CONFIG_VP8_NVDEC_HWACCEL=yes\n!CONFIG_VP8_VAAPI_HWACCEL=yes\n!CONFIG_VP9_D3D11VA_HWACCEL=yes\n!CONFIG_VP9_D3D11VA2_HWACCEL=yes\n!CONFIG_VP9_D3D12VA_HWACCEL=yes\n!CONFIG_VP9_DXVA2_HWACCEL=yes\n!CONFIG_VP9_NVDEC_HWACCEL=yes\n!CONFIG_VP9_VAAPI_HWACCEL=yes\n!CONFIG_VP9_VDPAU_HWACCEL=yes\n!CONFIG_VP9_VIDEOTOOLBOX_HWACCEL=yes\n!CONFIG_VP9_VULKAN_HWACCEL=yes\n!CONFIG_VVC_VAAPI_HWACCEL=yes\n!CONFIG_WMV3_D3D11VA_HWACCEL=yes\n!CONFIG_WMV3_D3D11VA2_HWACCEL=yes\n!CONFIG_WMV3_D3D12VA_HWACCEL=yes\n!CONFIG_WMV3_DXVA2_HWACCEL=yes\n!CONFIG_WMV3_NVDEC_HWACCEL=yes\n!CONFIG_WMV3_VAAPI_HWACCEL=yes\n!CONFIG_WMV3_VDPAU_HWACCEL=yes\nCONFIG_AAC_PARSER=yes\nCONFIG_AAC_LATM_PARSER=yes\nCONFIG_AC3_PARSER=yes\nCONFIG_ADX_PARSER=yes\n!CONFIG_AHX_PARSER=yes\nCONFIG_AMR_PARSER=yes\nCONFIG_APV_PARSER=yes\nCONFIG_AV1_PARSER=yes\nCONFIG_AVS2_PARSER=yes\nCONFIG_AVS3_PARSER=yes\nCONFIG_BMP_PARSER=yes\nCONFIG_CAVSVIDEO_PARSER=yes\nCONFIG_COOK_PARSER=yes\nCONFIG_CRI_PARSER=yes\nCONFIG_DCA_PARSER=yes\nCONFIG_DIRAC_PARSER=yes\nCONFIG_DNXHD_PARSER=yes\nCONFIG_DNXUC_PARSER=yes\nCONFIG_DOLBY_E_PARSER=yes\nCONFIG_DPX_PARSER=yes\nCONFIG_DVAUDIO_PARSER=yes\nCONFIG_DVBSUB_PARSER=yes\nCONFIG_DVDSUB_PARSER=yes\nCONFIG_DVD_NAV_PARSER=yes\nCONFIG_EVC_PARSER=yes\nCONFIG_FLAC_PARSER=yes\nCONFIG_FTR_PARSER=yes\nCONFIG_FFV1_PARSER=yes\nCONFIG_G723_1_PARSER=yes\nCONFIG_G729_PARSER=yes\nCONFIG_GIF_PARSER=yes\nCONFIG_GSM_PARSER=yes\nCONFIG_H261_PARSER=yes\nCONFIG_H263_PARSER=yes\nCONFIG_H264_PARSER=yes\nCONFIG_HEVC_PARSER=yes\nCONFIG_HDR_PARSER=yes\nCONFIG_IPU_PARSER=yes\nCONFIG_JPEG2000_PARSER=yes\nCONFIG_JPEGXL_PARSER=yes\nCONFIG_JPEGXS_PARSER=yes\nCONFIG_LCEVC_PARSER=yes\nCONFIG_MISC4_PARSER=yes\nCONFIG_MJPEG_PARSER=yes\nCONFIG_MLP_PARSER=yes\nCONFIG_MPEG4VIDEO_PARSER=yes\nCONFIG_MPEGAUDIO_PARSER=yes\nCONFIG_MPEGVIDEO_PARSER=yes\nCONFIG_OPUS_PARSER=yes\nCONFIG_PRORES_PARSER=yes\nCONFIG_PNG_PARSER=yes\nCONFIG_PNM_PARSER=yes\nCONFIG_PRORES_RAW_PARSER=yes\nCONFIG_QOI_PARSER=yes\nCONFIG_RV34_PARSER=yes\nCONFIG_SBC_PARSER=yes\nCONFIG_SIPR_PARSER=yes\nCONFIG_TAK_PARSER=yes\nCONFIG_VC1_PARSER=yes\nCONFIG_VORBIS_PARSER=yes\nCONFIG_VP3_PARSER=yes\nCONFIG_VP8_PARSER=yes\nCONFIG_VP9_PARSER=yes\nCONFIG_VVC_PARSER=yes\nCONFIG_WEBP_PARSER=yes\nCONFIG_XBM_PARSER=yes\nCONFIG_XMA_PARSER=yes\nCONFIG_XWD_PARSER=yes\n!CONFIG_ALSA_INDEV=yes\n!CONFIG_ANDROID_CAMERA_INDEV=yes\n!CONFIG_AVFOUNDATION_INDEV=yes\n!CONFIG_DECKLINK_INDEV=yes\n!CONFIG_DSHOW_INDEV=yes\n!CONFIG_FBDEV_INDEV=yes\n!CONFIG_GDIGRAB_INDEV=yes\n!CONFIG_IEC61883_INDEV=yes\n!CONFIG_JACK_INDEV=yes\n!CONFIG_KMSGRAB_INDEV=yes\n!CONFIG_LAVFI_INDEV=yes\n!CONFIG_OPENAL_INDEV=yes\n!CONFIG_OSS_INDEV=yes\n!CONFIG_PULSE_INDEV=yes\n!CONFIG_SNDIO_INDEV=yes\n!CONFIG_V4L2_INDEV=yes\n!CONFIG_VFWCAP_INDEV=yes\n!CONFIG_XCBGRAB_INDEV=yes\n!CONFIG_LIBCDIO_INDEV=yes\n!CONFIG_LIBDC1394_INDEV=yes\n!CONFIG_ALSA_OUTDEV=yes\n!CONFIG_AUDIOTOOLBOX_OUTDEV=yes\n!CONFIG_CACA_OUTDEV=yes\n!CONFIG_DECKLINK_OUTDEV=yes\n!CONFIG_FBDEV_OUTDEV=yes\n!CONFIG_OSS_OUTDEV=yes\n!CONFIG_PULSE_OUTDEV=yes\n!CONFIG_SNDIO_OUTDEV=yes\n!CONFIG_V4L2_OUTDEV=yes\n!CONFIG_XV_OUTDEV=yes\n!CONFIG_AAP_FILTER=yes\n!CONFIG_ABENCH_FILTER=yes\n!CONFIG_ACOMPRESSOR_FILTER=yes\n!CONFIG_ACONTRAST_FILTER=yes\n!CONFIG_ACOPY_FILTER=yes\n!CONFIG_ACUE_FILTER=yes\n!CONFIG_ACROSSFADE_FILTER=yes\n!CONFIG_ACROSSOVER_FILTER=yes\n!CONFIG_ACRUSHER_FILTER=yes\n!CONFIG_ADECLICK_FILTER=yes\n!CONFIG_ADECLIP_FILTER=yes\n!CONFIG_ADECORRELATE_FILTER=yes\n!CONFIG_ADELAY_FILTER=yes\n!CONFIG_ADENORM_FILTER=yes\n!CONFIG_ADERIVATIVE_FILTER=yes\n!CONFIG_ADRC_FILTER=yes\n!CONFIG_ADYNAMICEQUALIZER_FILTER=yes\n!CONFIG_ADYNAMICSMOOTH_FILTER=yes\n!CONFIG_AECHO_FILTER=yes\n!CONFIG_AEMPHASIS_FILTER=yes\n!CONFIG_AEVAL_FILTER=yes\n!CONFIG_AEXCITER_FILTER=yes\n!CONFIG_AFADE_FILTER=yes\n!CONFIG_AFFTDN_FILTER=yes\n!CONFIG_AFFTFILT_FILTER=yes\n!CONFIG_AFIR_FILTER=yes\n!CONFIG_AFORMAT_FILTER=yes\n!CONFIG_AFREQSHIFT_FILTER=yes\n!CONFIG_AFWTDN_FILTER=yes\n!CONFIG_AGATE_FILTER=yes\n!CONFIG_AIIR_FILTER=yes\n!CONFIG_AINTEGRAL_FILTER=yes\n!CONFIG_AINTERLEAVE_FILTER=yes\n!CONFIG_ALATENCY_FILTER=yes\n!CONFIG_ALIMITER_FILTER=yes\n!CONFIG_ALLPASS_FILTER=yes\n!CONFIG_ALOOP_FILTER=yes\n!CONFIG_AMERGE_FILTER=yes\n!CONFIG_AMETADATA_FILTER=yes\n!CONFIG_AMIX_FILTER=yes\n!CONFIG_AMULTIPLY_FILTER=yes\n!CONFIG_ANEQUALIZER_FILTER=yes\n!CONFIG_ANLMDN_FILTER=yes\n!CONFIG_ANLMF_FILTER=yes\n!CONFIG_ANLMS_FILTER=yes\n!CONFIG_ANULL_FILTER=yes\n!CONFIG_APAD_FILTER=yes\n!CONFIG_APERMS_FILTER=yes\n!CONFIG_APHASER_FILTER=yes\n!CONFIG_APHASESHIFT_FILTER=yes\n!CONFIG_APSNR_FILTER=yes\n!CONFIG_APSYCLIP_FILTER=yes\n!CONFIG_APULSATOR_FILTER=yes\n!CONFIG_AREALTIME_FILTER=yes\n!CONFIG_ARESAMPLE_FILTER=yes\n!CONFIG_AREVERSE_FILTER=yes\n!CONFIG_ARLS_FILTER=yes\n!CONFIG_ARNNDN_FILTER=yes\n!CONFIG_ASDR_FILTER=yes\n!CONFIG_ASEGMENT_FILTER=yes\n!CONFIG_ASELECT_FILTER=yes\n!CONFIG_ASENDCMD_FILTER=yes\n!CONFIG_ASETNSAMPLES_FILTER=yes\n!CONFIG_ASETPTS_FILTER=yes\n!CONFIG_ASETRATE_FILTER=yes\n!CONFIG_ASETTB_FILTER=yes\n!CONFIG_ASHOWINFO_FILTER=yes\n!CONFIG_ASIDEDATA_FILTER=yes\n!CONFIG_ASISDR_FILTER=yes\n!CONFIG_ASOFTCLIP_FILTER=yes\n!CONFIG_ASPECTRALSTATS_FILTER=yes\n!CONFIG_ASPLIT_FILTER=yes\n!CONFIG_ASR_FILTER=yes\n!CONFIG_ASTATS_FILTER=yes\n!CONFIG_ASTREAMSELECT_FILTER=yes\n!CONFIG_ASUBBOOST_FILTER=yes\n!CONFIG_ASUBCUT_FILTER=yes\n!CONFIG_ASUPERCUT_FILTER=yes\n!CONFIG_ASUPERPASS_FILTER=yes\n!CONFIG_ASUPERSTOP_FILTER=yes\n!CONFIG_ATEMPO_FILTER=yes\n!CONFIG_ATILT_FILTER=yes\n!CONFIG_ATRIM_FILTER=yes\n!CONFIG_AXCORRELATE_FILTER=yes\n!CONFIG_AZMQ_FILTER=yes\n!CONFIG_BANDPASS_FILTER=yes\n!CONFIG_BANDREJECT_FILTER=yes\n!CONFIG_BASS_FILTER=yes\n!CONFIG_BIQUAD_FILTER=yes\n!CONFIG_BS2B_FILTER=yes\n!CONFIG_CHANNELMAP_FILTER=yes\n!CONFIG_CHANNELSPLIT_FILTER=yes\n!CONFIG_CHORUS_FILTER=yes\n!CONFIG_COMPAND_FILTER=yes\n!CONFIG_COMPENSATIONDELAY_FILTER=yes\n!CONFIG_CROSSFEED_FILTER=yes\n!CONFIG_CRYSTALIZER_FILTER=yes\n!CONFIG_DCSHIFT_FILTER=yes\n!CONFIG_DEESSER_FILTER=yes\n!CONFIG_DIALOGUENHANCE_FILTER=yes\n!CONFIG_DRMETER_FILTER=yes\n!CONFIG_DYNAUDNORM_FILTER=yes\n!CONFIG_EARWAX_FILTER=yes\n!CONFIG_EBUR128_FILTER=yes\n!CONFIG_EQUALIZER_FILTER=yes\n!CONFIG_EXTRASTEREO_FILTER=yes\n!CONFIG_FIREQUALIZER_FILTER=yes\n!CONFIG_FLANGER_FILTER=yes\n!CONFIG_HAAS_FILTER=yes\n!CONFIG_HDCD_FILTER=yes\n!CONFIG_HEADPHONE_FILTER=yes\n!CONFIG_HIGHPASS_FILTER=yes\n!CONFIG_HIGHSHELF_FILTER=yes\n!CONFIG_JOIN_FILTER=yes\n!CONFIG_LADSPA_FILTER=yes\n!CONFIG_LOUDNORM_FILTER=yes\n!CONFIG_LOWPASS_FILTER=yes\n!CONFIG_LOWSHELF_FILTER=yes\n!CONFIG_LV2_FILTER=yes\n!CONFIG_MCOMPAND_FILTER=yes\n!CONFIG_PAN_FILTER=yes\n!CONFIG_REPLAYGAIN_FILTER=yes\n!CONFIG_RUBBERBAND_FILTER=yes\n!CONFIG_SIDECHAINCOMPRESS_FILTER=yes\n!CONFIG_SIDECHAINGATE_FILTER=yes\n!CONFIG_SILENCEDETECT_FILTER=yes\n!CONFIG_SILENCEREMOVE_FILTER=yes\n!CONFIG_SOFALIZER_FILTER=yes\n!CONFIG_SPEECHNORM_FILTER=yes\n!CONFIG_STEREOTOOLS_FILTER=yes\n!CONFIG_STEREOWIDEN_FILTER=yes\n!CONFIG_SUPEREQUALIZER_FILTER=yes\n!CONFIG_SURROUND_FILTER=yes\n!CONFIG_TILTSHELF_FILTER=yes\n!CONFIG_TREBLE_FILTER=yes\n!CONFIG_TREMOLO_FILTER=yes\n!CONFIG_VIBRATO_FILTER=yes\n!CONFIG_VIRTUALBASS_FILTER=yes\n!CONFIG_VOLUME_FILTER=yes\n!CONFIG_VOLUMEDETECT_FILTER=yes\n!CONFIG_WHISPER_FILTER=yes\n!CONFIG_AEVALSRC_FILTER=yes\n!CONFIG_AFDELAYSRC_FILTER=yes\n!CONFIG_AFIREQSRC_FILTER=yes\n!CONFIG_AFIRSRC_FILTER=yes\n!CONFIG_ANOISESRC_FILTER=yes\n!CONFIG_ANULLSRC_FILTER=yes\n!CONFIG_FLITE_FILTER=yes\n!CONFIG_HILBERT_FILTER=yes\n!CONFIG_SINC_FILTER=yes\n!CONFIG_SINE_FILTER=yes\n!CONFIG_ANULLSINK_FILTER=yes\n!CONFIG_ADDROI_FILTER=yes\n!CONFIG_ALPHAEXTRACT_FILTER=yes\n!CONFIG_ALPHAMERGE_FILTER=yes\n!CONFIG_AMPLIFY_FILTER=yes\n!CONFIG_ASS_FILTER=yes\n!CONFIG_ATADENOISE_FILTER=yes\n!CONFIG_AVGBLUR_FILTER=yes\n!CONFIG_AVGBLUR_OPENCL_FILTER=yes\n!CONFIG_AVGBLUR_VULKAN_FILTER=yes\n!CONFIG_BACKGROUNDKEY_FILTER=yes\n!CONFIG_BBOX_FILTER=yes\n!CONFIG_BENCH_FILTER=yes\n!CONFIG_BILATERAL_FILTER=yes\n!CONFIG_BILATERAL_CUDA_FILTER=yes\n!CONFIG_BITPLANENOISE_FILTER=yes\n!CONFIG_BLACKDETECT_FILTER=yes\n!CONFIG_BLACKDETECT_VULKAN_FILTER=yes\n!CONFIG_BLACKFRAME_FILTER=yes\n!CONFIG_BLEND_FILTER=yes\n!CONFIG_BLEND_VULKAN_FILTER=yes\n!CONFIG_BLOCKDETECT_FILTER=yes\n!CONFIG_BLURDETECT_FILTER=yes\n!CONFIG_BM3D_FILTER=yes\n!CONFIG_BOXBLUR_FILTER=yes\n!CONFIG_BOXBLUR_OPENCL_FILTER=yes\n!CONFIG_BWDIF_FILTER=yes\n!CONFIG_BWDIF_CUDA_FILTER=yes\n!CONFIG_BWDIF_VULKAN_FILTER=yes\n!CONFIG_CAS_FILTER=yes\n!CONFIG_CCREPACK_FILTER=yes\n!CONFIG_CHROMABER_VULKAN_FILTER=yes\n!CONFIG_CHROMAHOLD_FILTER=yes\n!CONFIG_CHROMAKEY_FILTER=yes\n!CONFIG_CHROMAKEY_CUDA_FILTER=yes\n!CONFIG_CHROMANR_FILTER=yes\n!CONFIG_CHROMASHIFT_FILTER=yes\n!CONFIG_CIESCOPE_FILTER=yes\n!CONFIG_CODECVIEW_FILTER=yes\n!CONFIG_COLORBALANCE_FILTER=yes\n!CONFIG_COLORCHANNELMIXER_FILTER=yes\n!CONFIG_COLORCONTRAST_FILTER=yes\n!CONFIG_COLORCORRECT_FILTER=yes\n!CONFIG_COLORDETECT_FILTER=yes\n!CONFIG_COLORIZE_FILTER=yes\n!CONFIG_COLORKEY_FILTER=yes\n!CONFIG_COLORKEY_OPENCL_FILTER=yes\n!CONFIG_COLORHOLD_FILTER=yes\n!CONFIG_COLORLEVELS_FILTER=yes\n!CONFIG_COLORMAP_FILTER=yes\n!CONFIG_COLORMATRIX_FILTER=yes\n!CONFIG_COLORSPACE_FILTER=yes\n!CONFIG_COLORSPACE_CUDA_FILTER=yes\n!CONFIG_COLORTEMPERATURE_FILTER=yes\n!CONFIG_CONVOLUTION_FILTER=yes\n!CONFIG_CONVOLUTION_OPENCL_FILTER=yes\n!CONFIG_CONVOLVE_FILTER=yes\n!CONFIG_COPY_FILTER=yes\n!CONFIG_COREIMAGE_FILTER=yes\n!CONFIG_CORR_FILTER=yes\n!CONFIG_COVER_RECT_FILTER=yes\n!CONFIG_CROP_FILTER=yes\n!CONFIG_CROPDETECT_FILTER=yes\n!CONFIG_CUE_FILTER=yes\n!CONFIG_CURVES_FILTER=yes\n!CONFIG_DATASCOPE_FILTER=yes\n!CONFIG_DBLUR_FILTER=yes\n!CONFIG_DCTDNOIZ_FILTER=yes\n!CONFIG_DEBAND_FILTER=yes\n!CONFIG_DEBLOCK_FILTER=yes\n!CONFIG_DECIMATE_FILTER=yes\n!CONFIG_DECONVOLVE_FILTER=yes\n!CONFIG_DEDOT_FILTER=yes\n!CONFIG_DEFLATE_FILTER=yes\n!CONFIG_DEFLICKER_FILTER=yes\n!CONFIG_DEINTERLACE_QSV_FILTER=yes\n!CONFIG_DEINTERLACE_D3D12_FILTER=yes\n!CONFIG_DEINTERLACE_VAAPI_FILTER=yes\n!CONFIG_DEJUDDER_FILTER=yes\n!CONFIG_DELOGO_FILTER=yes\n!CONFIG_DENOISE_VAAPI_FILTER=yes\n!CONFIG_DERAIN_FILTER=yes\n!CONFIG_DESHAKE_FILTER=yes\n!CONFIG_DESHAKE_OPENCL_FILTER=yes\n!CONFIG_DESPILL_FILTER=yes\n!CONFIG_DETELECINE_FILTER=yes\n!CONFIG_DILATION_FILTER=yes\n!CONFIG_DILATION_OPENCL_FILTER=yes\n!CONFIG_DISPLACE_FILTER=yes\n!CONFIG_DNN_CLASSIFY_FILTER=yes\n!CONFIG_DNN_DETECT_FILTER=yes\n!CONFIG_DNN_PROCESSING_FILTER=yes\n!CONFIG_DOUBLEWEAVE_FILTER=yes\n!CONFIG_DRAWBOX_FILTER=yes\n!CONFIG_DRAWGRAPH_FILTER=yes\n!CONFIG_DRAWGRID_FILTER=yes\n!CONFIG_DRAWTEXT_FILTER=yes\n!CONFIG_DRAWVG_FILTER=yes\n!CONFIG_EDGEDETECT_FILTER=yes\n!CONFIG_ELBG_FILTER=yes\n!CONFIG_ENTROPY_FILTER=yes\n!CONFIG_EPX_FILTER=yes\n!CONFIG_EQ_FILTER=yes\n!CONFIG_EROSION_FILTER=yes\n!CONFIG_EROSION_OPENCL_FILTER=yes\n!CONFIG_ESTDIF_FILTER=yes\n!CONFIG_EXPOSURE_FILTER=yes\n!CONFIG_EXTRACTPLANES_FILTER=yes\n!CONFIG_FADE_FILTER=yes\n!CONFIG_FEEDBACK_FILTER=yes\n!CONFIG_FFTDNOIZ_FILTER=yes\n!CONFIG_FFTFILT_FILTER=yes\n!CONFIG_FIELD_FILTER=yes\n!CONFIG_FIELDHINT_FILTER=yes\n!CONFIG_FIELDMATCH_FILTER=yes\n!CONFIG_FIELDORDER_FILTER=yes\n!CONFIG_FILLBORDERS_FILTER=yes\n!CONFIG_FIND_RECT_FILTER=yes\n!CONFIG_FLIP_VULKAN_FILTER=yes\n!CONFIG_FLOODFILL_FILTER=yes\n!CONFIG_FORMAT_FILTER=yes\n!CONFIG_FPS_FILTER=yes\n!CONFIG_FRAMEPACK_FILTER=yes\n!CONFIG_FRAMERATE_FILTER=yes\n!CONFIG_FRAMESTEP_FILTER=yes\n!CONFIG_FREEZEDETECT_FILTER=yes\n!CONFIG_FREEZEFRAMES_FILTER=yes\n!CONFIG_FREI0R_FILTER=yes\n!CONFIG_FSPP_FILTER=yes\n!CONFIG_FSYNC_FILTER=yes\n!CONFIG_GBLUR_FILTER=yes\n!CONFIG_GBLUR_VULKAN_FILTER=yes\n!CONFIG_GEQ_FILTER=yes\n!CONFIG_GRADFUN_FILTER=yes\n!CONFIG_GRAPHMONITOR_FILTER=yes\n!CONFIG_GRAYWORLD_FILTER=yes\n!CONFIG_GREYEDGE_FILTER=yes\n!CONFIG_GUIDED_FILTER=yes\n!CONFIG_HALDCLUT_FILTER=yes\n!CONFIG_HFLIP_FILTER=yes\n!CONFIG_HFLIP_VULKAN_FILTER=yes\n!CONFIG_HISTEQ_FILTER=yes\n!CONFIG_HISTOGRAM_FILTER=yes\n!CONFIG_HQDN3D_FILTER=yes\n!CONFIG_HQX_FILTER=yes\n!CONFIG_HSTACK_FILTER=yes\n!CONFIG_HSVHOLD_FILTER=yes\n!CONFIG_HSVKEY_FILTER=yes\n!CONFIG_HUE_FILTER=yes\n!CONFIG_HUESATURATION_FILTER=yes\n!CONFIG_HWDOWNLOAD_FILTER=yes\n!CONFIG_HWMAP_FILTER=yes\n!CONFIG_HWUPLOAD_FILTER=yes\n!CONFIG_HWUPLOAD_CUDA_FILTER=yes\n!CONFIG_HYSTERESIS_FILTER=yes\n!CONFIG_ICCDETECT_FILTER=yes\n!CONFIG_ICCGEN_FILTER=yes\n!CONFIG_IDENTITY_FILTER=yes\n!CONFIG_IDET_FILTER=yes\n!CONFIG_IL_FILTER=yes\n!CONFIG_INFLATE_FILTER=yes\n!CONFIG_INTERLACE_FILTER=yes\n!CONFIG_INTERLACE_VULKAN_FILTER=yes\n!CONFIG_INTERLEAVE_FILTER=yes\n!CONFIG_KERNDEINT_FILTER=yes\n!CONFIG_KIRSCH_FILTER=yes\n!CONFIG_LAGFUN_FILTER=yes\n!CONFIG_LATENCY_FILTER=yes\n!CONFIG_LCEVC_FILTER=yes\n!CONFIG_LENSCORRECTION_FILTER=yes\n!CONFIG_LENSFUN_FILTER=yes\n!CONFIG_LIBPLACEBO_FILTER=yes\n!CONFIG_LIBVMAF_FILTER=yes\n!CONFIG_LIBVMAF_CUDA_FILTER=yes\n!CONFIG_LIMITDIFF_FILTER=yes\n!CONFIG_LIMITER_FILTER=yes\n!CONFIG_LOOP_FILTER=yes\n!CONFIG_LUMAKEY_FILTER=yes\n!CONFIG_LUT_FILTER=yes\n!CONFIG_LUT1D_FILTER=yes\n!CONFIG_LUT2_FILTER=yes\n!CONFIG_LUT3D_FILTER=yes\n!CONFIG_LUTRGB_FILTER=yes\n!CONFIG_LUTYUV_FILTER=yes\n!CONFIG_MASKEDCLAMP_FILTER=yes\n!CONFIG_MASKEDMAX_FILTER=yes\n!CONFIG_MASKEDMERGE_FILTER=yes\n!CONFIG_MASKEDMIN_FILTER=yes\n!CONFIG_MASKEDTHRESHOLD_FILTER=yes\n!CONFIG_MASKFUN_FILTER=yes\n!CONFIG_MCDEINT_FILTER=yes\n!CONFIG_MEDIAN_FILTER=yes\n!CONFIG_MERGEPLANES_FILTER=yes\n!CONFIG_MESTIMATE_FILTER=yes\n!CONFIG_MESTIMATE_D3D12_FILTER=yes\n!CONFIG_METADATA_FILTER=yes\n!CONFIG_MIDEQUALIZER_FILTER=yes\n!CONFIG_MINTERPOLATE_FILTER=yes\n!CONFIG_MIX_FILTER=yes\n!CONFIG_MONOCHROME_FILTER=yes\n!CONFIG_MORPHO_FILTER=yes\n!CONFIG_MPDECIMATE_FILTER=yes\n!CONFIG_MSAD_FILTER=yes\n!CONFIG_MULTIPLY_FILTER=yes\n!CONFIG_NEGATE_FILTER=yes\n!CONFIG_NLMEANS_FILTER=yes\n!CONFIG_NLMEANS_OPENCL_FILTER=yes\n!CONFIG_NLMEANS_VULKAN_FILTER=yes\n!CONFIG_NNEDI_FILTER=yes\n!CONFIG_NOFORMAT_FILTER=yes\n!CONFIG_NOISE_FILTER=yes\n!CONFIG_NORMALIZE_FILTER=yes\n!CONFIG_NULL_FILTER=yes\n!CONFIG_OCR_FILTER=yes\n!CONFIG_OCV_FILTER=yes\n!CONFIG_OSCILLOSCOPE_FILTER=yes\n!CONFIG_OCIO_FILTER=yes\n!CONFIG_OVERLAY_FILTER=yes\n!CONFIG_OVERLAY_OPENCL_FILTER=yes\n!CONFIG_OVERLAY_QSV_FILTER=yes\n!CONFIG_OVERLAY_VAAPI_FILTER=yes\n!CONFIG_OVERLAY_VULKAN_FILTER=yes\n!CONFIG_OVERLAY_CUDA_FILTER=yes\n!CONFIG_OWDENOISE_FILTER=yes\n!CONFIG_PAD_FILTER=yes\n!CONFIG_PAD_CUDA_FILTER=yes\n!CONFIG_PAD_OPENCL_FILTER=yes\n!CONFIG_PALETTEGEN_FILTER=yes\n!CONFIG_PALETTEUSE_FILTER=yes\n!CONFIG_PERMS_FILTER=yes\n!CONFIG_PERSPECTIVE_FILTER=yes\n!CONFIG_PHASE_FILTER=yes\n!CONFIG_PHOTOSENSITIVITY_FILTER=yes\n!CONFIG_PIXDESCTEST_FILTER=yes\n!CONFIG_PIXELIZE_FILTER=yes\n!CONFIG_PIXSCOPE_FILTER=yes\n!CONFIG_PP7_FILTER=yes\n!CONFIG_PREMULTIPLY_FILTER=yes\n!CONFIG_PREMULTIPLY_DYNAMIC_FILTER=yes\n!CONFIG_PREWITT_FILTER=yes\n!CONFIG_PREWITT_OPENCL_FILTER=yes\n!CONFIG_PROCAMP_VAAPI_FILTER=yes\n!CONFIG_PROGRAM_OPENCL_FILTER=yes\n!CONFIG_PSEUDOCOLOR_FILTER=yes\n!CONFIG_PSNR_FILTER=yes\n!CONFIG_PULLUP_FILTER=yes\n!CONFIG_QP_FILTER=yes\n!CONFIG_QRENCODE_FILTER=yes\n!CONFIG_QUIRC_FILTER=yes\n!CONFIG_RANDOM_FILTER=yes\n!CONFIG_READEIA608_FILTER=yes\n!CONFIG_READVITC_FILTER=yes\n!CONFIG_REALTIME_FILTER=yes\n!CONFIG_REMAP_FILTER=yes\n!CONFIG_REMAP_OPENCL_FILTER=yes\n!CONFIG_REMOVEGRAIN_FILTER=yes\n!CONFIG_REMOVELOGO_FILTER=yes\n!CONFIG_REPEATFIELDS_FILTER=yes\n!CONFIG_REVERSE_FILTER=yes\n!CONFIG_RGBASHIFT_FILTER=yes\n!CONFIG_ROBERTS_FILTER=yes\n!CONFIG_ROBERTS_OPENCL_FILTER=yes\n!CONFIG_ROTATE_FILTER=yes\n!CONFIG_SAB_FILTER=yes\n!CONFIG_SCALE_FILTER=yes\n!CONFIG_VPP_AMF_FILTER=yes\n!CONFIG_SR_AMF_FILTER=yes\n!CONFIG_SCALE_CUDA_FILTER=yes\n!CONFIG_SCALE_D3D11_FILTER=yes\n!CONFIG_SCALE_D3D12_FILTER=yes\n!CONFIG_SCALE_NPP_FILTER=yes\n!CONFIG_SCALE_QSV_FILTER=yes\n!CONFIG_SCALE_VAAPI_FILTER=yes\n!CONFIG_SCALE_VT_FILTER=yes\n!CONFIG_SCALE_VULKAN_FILTER=yes\n!CONFIG_SCALE2REF_FILTER=yes\n!CONFIG_SCALE2REF_NPP_FILTER=yes\n!CONFIG_SCDET_FILTER=yes\n!CONFIG_SCDET_VULKAN_FILTER=yes\n!CONFIG_SCHARR_FILTER=yes\n!CONFIG_SCROLL_FILTER=yes\n!CONFIG_SEGMENT_FILTER=yes\n!CONFIG_SELECT_FILTER=yes\n!CONFIG_SELECTIVECOLOR_FILTER=yes\n!CONFIG_SENDCMD_FILTER=yes\n!CONFIG_SEPARATEFIELDS_FILTER=yes\n!CONFIG_SETDAR_FILTER=yes\n!CONFIG_SETFIELD_FILTER=yes\n!CONFIG_SETPARAMS_FILTER=yes\n!CONFIG_SETPTS_FILTER=yes\n!CONFIG_SETRANGE_FILTER=yes\n!CONFIG_SETSAR_FILTER=yes\n!CONFIG_SETTB_FILTER=yes\n!CONFIG_SHARPEN_NPP_FILTER=yes\n!CONFIG_SHARPNESS_VAAPI_FILTER=yes\n!CONFIG_SHEAR_FILTER=yes\n!CONFIG_SHOWINFO_FILTER=yes\n!CONFIG_SHOWPALETTE_FILTER=yes\n!CONFIG_SHUFFLEFRAMES_FILTER=yes\n!CONFIG_SHUFFLEPIXELS_FILTER=yes\n!CONFIG_SHUFFLEPLANES_FILTER=yes\n!CONFIG_SIDEDATA_FILTER=yes\n!CONFIG_SIGNALSTATS_FILTER=yes\n!CONFIG_SIGNATURE_FILTER=yes\n!CONFIG_SITI_FILTER=yes\n!CONFIG_SMARTBLUR_FILTER=yes\n!CONFIG_SOBEL_FILTER=yes\n!CONFIG_SOBEL_OPENCL_FILTER=yes\n!CONFIG_SPLIT_FILTER=yes\n!CONFIG_SPP_FILTER=yes\n!CONFIG_SR_FILTER=yes\n!CONFIG_SSIM_FILTER=yes\n!CONFIG_SSIM360_FILTER=yes\n!CONFIG_STEREO3D_FILTER=yes\n!CONFIG_STREAMSELECT_FILTER=yes\n!CONFIG_SUBTITLES_FILTER=yes\n!CONFIG_SUPER2XSAI_FILTER=yes\n!CONFIG_SWAPRECT_FILTER=yes\n!CONFIG_SWAPUV_FILTER=yes\n!CONFIG_TBLEND_FILTER=yes\n!CONFIG_TELECINE_FILTER=yes\n!CONFIG_THISTOGRAM_FILTER=yes\n!CONFIG_THRESHOLD_FILTER=yes\n!CONFIG_THUMBNAIL_FILTER=yes\n!CONFIG_THUMBNAIL_CUDA_FILTER=yes\n!CONFIG_TILE_FILTER=yes\n!CONFIG_TILTANDSHIFT_FILTER=yes\n!CONFIG_TINTERLACE_FILTER=yes\n!CONFIG_TLUT2_FILTER=yes\n!CONFIG_TMEDIAN_FILTER=yes\n!CONFIG_TMIDEQUALIZER_FILTER=yes\n!CONFIG_TMIX_FILTER=yes\n!CONFIG_TONEMAP_FILTER=yes\n!CONFIG_TONEMAP_OPENCL_FILTER=yes\n!CONFIG_TONEMAP_VAAPI_FILTER=yes\n!CONFIG_TPAD_FILTER=yes\n!CONFIG_TRANSPOSE_FILTER=yes\n!CONFIG_TRANSPOSE_NPP_FILTER=yes\n!CONFIG_TRANSPOSE_OPENCL_FILTER=yes\n!CONFIG_TRANSPOSE_VAAPI_FILTER=yes\n!CONFIG_TRANSPOSE_VT_FILTER=yes\n!CONFIG_TRANSPOSE_VULKAN_FILTER=yes\n!CONFIG_TRIM_FILTER=yes\n!CONFIG_UNPREMULTIPLY_FILTER=yes\n!CONFIG_UNSHARP_FILTER=yes\n!CONFIG_UNSHARP_OPENCL_FILTER=yes\n!CONFIG_UNTILE_FILTER=yes\n!CONFIG_USPP_FILTER=yes\n!CONFIG_V360_FILTER=yes\n!CONFIG_VAGUEDENOISER_FILTER=yes\n!CONFIG_VARBLUR_FILTER=yes\n!CONFIG_VECTORSCOPE_FILTER=yes\n!CONFIG_VFLIP_FILTER=yes\n!CONFIG_VFLIP_VULKAN_FILTER=yes\n!CONFIG_VFRDET_FILTER=yes\n!CONFIG_VIBRANCE_FILTER=yes\n!CONFIG_VIDSTABDETECT_FILTER=yes\n!CONFIG_VIDSTABTRANSFORM_FILTER=yes\n!CONFIG_VIF_FILTER=yes\n!CONFIG_VIGNETTE_FILTER=yes\n!CONFIG_VMAFMOTION_FILTER=yes\n!CONFIG_VPP_QSV_FILTER=yes\n!CONFIG_VSTACK_FILTER=yes\n!CONFIG_W3FDIF_FILTER=yes\n!CONFIG_WAVEFORM_FILTER=yes\n!CONFIG_WEAVE_FILTER=yes\n!CONFIG_XBR_FILTER=yes\n!CONFIG_XCORRELATE_FILTER=yes\n!CONFIG_XFADE_FILTER=yes\n!CONFIG_XFADE_OPENCL_FILTER=yes\n!CONFIG_XFADE_VULKAN_FILTER=yes\n!CONFIG_XMEDIAN_FILTER=yes\n!CONFIG_XPSNR_FILTER=yes\n!CONFIG_XSTACK_FILTER=yes\n!CONFIG_YADIF_FILTER=yes\n!CONFIG_YADIF_CUDA_FILTER=yes\n!CONFIG_YADIF_VIDEOTOOLBOX_FILTER=yes\n!CONFIG_YAEPBLUR_FILTER=yes\n!CONFIG_ZMQ_FILTER=yes\n!CONFIG_ZOOMPAN_FILTER=yes\n!CONFIG_ZSCALE_FILTER=yes\n!CONFIG_HSTACK_VAAPI_FILTER=yes\n!CONFIG_VSTACK_VAAPI_FILTER=yes\n!CONFIG_XSTACK_VAAPI_FILTER=yes\n!CONFIG_HSTACK_QSV_FILTER=yes\n!CONFIG_VSTACK_QSV_FILTER=yes\n!CONFIG_XSTACK_QSV_FILTER=yes\n!CONFIG_PAD_VAAPI_FILTER=yes\n!CONFIG_DRAWBOX_VAAPI_FILTER=yes\n!CONFIG_ALLRGB_FILTER=yes\n!CONFIG_ALLYUV_FILTER=yes\n!CONFIG_AMF_CAPTURE_FILTER=yes\n!CONFIG_CELLAUTO_FILTER=yes\n!CONFIG_COLOR_FILTER=yes\n!CONFIG_COLOR_VULKAN_FILTER=yes\n!CONFIG_COLORCHART_FILTER=yes\n!CONFIG_COLORSPECTRUM_FILTER=yes\n!CONFIG_COREIMAGESRC_FILTER=yes\n!CONFIG_DDAGRAB_FILTER=yes\n!CONFIG_FREI0R_SRC_FILTER=yes\n!CONFIG_GFXCAPTURE_FILTER=yes\n!CONFIG_GRADIENTS_FILTER=yes\n!CONFIG_HALDCLUTSRC_FILTER=yes\n!CONFIG_LIFE_FILTER=yes\n!CONFIG_MANDELBROT_FILTER=yes\n!CONFIG_MPTESTSRC_FILTER=yes\n!CONFIG_NULLSRC_FILTER=yes\n!CONFIG_OPENCLSRC_FILTER=yes\n!CONFIG_QRENCODESRC_FILTER=yes\n!CONFIG_PAL75BARS_FILTER=yes\n!CONFIG_PAL100BARS_FILTER=yes\n!CONFIG_PERLIN_FILTER=yes\n!CONFIG_RGBTESTSRC_FILTER=yes\n!CONFIG_SIERPINSKI_FILTER=yes\n!CONFIG_SMPTEBARS_FILTER=yes\n!CONFIG_SMPTEHDBARS_FILTER=yes\n!CONFIG_TESTSRC_FILTER=yes\n!CONFIG_TESTSRC2_FILTER=yes\n!CONFIG_YUVTESTSRC_FILTER=yes\n!CONFIG_ZONEPLATE_FILTER=yes\n!CONFIG_NULLSINK_FILTER=yes\n!CONFIG_A3DSCOPE_FILTER=yes\n!CONFIG_ABITSCOPE_FILTER=yes\n!CONFIG_ADRAWGRAPH_FILTER=yes\n!CONFIG_AGRAPHMONITOR_FILTER=yes\n!CONFIG_AHISTOGRAM_FILTER=yes\n!CONFIG_APHASEMETER_FILTER=yes\n!CONFIG_AVECTORSCOPE_FILTER=yes\n!CONFIG_CONCAT_FILTER=yes\n!CONFIG_SHOWCQT_FILTER=yes\n!CONFIG_SHOWCWT_FILTER=yes\n!CONFIG_SHOWFREQS_FILTER=yes\n!CONFIG_SHOWSPATIAL_FILTER=yes\n!CONFIG_SHOWSPECTRUM_FILTER=yes\n!CONFIG_SHOWSPECTRUMPIC_FILTER=yes\n!CONFIG_SHOWVOLUME_FILTER=yes\n!CONFIG_SHOWWAVES_FILTER=yes\n!CONFIG_SHOWWAVESPIC_FILTER=yes\n!CONFIG_SPECTRUMSYNTH_FILTER=yes\n!CONFIG_AVSYNCTEST_FILTER=yes\n!CONFIG_AMOVIE_FILTER=yes\n!CONFIG_MOVIE_FILTER=yes\nCONFIG_AA_DEMUXER=yes\nCONFIG_AAC_DEMUXER=yes\nCONFIG_AAX_DEMUXER=yes\nCONFIG_AC3_DEMUXER=yes\nCONFIG_AC4_DEMUXER=yes\nCONFIG_ACE_DEMUXER=yes\nCONFIG_ACM_DEMUXER=yes\nCONFIG_ACT_DEMUXER=yes\nCONFIG_ADF_DEMUXER=yes\nCONFIG_ADP_DEMUXER=yes\nCONFIG_ADS_DEMUXER=yes\nCONFIG_ADX_DEMUXER=yes\nCONFIG_AEA_DEMUXER=yes\nCONFIG_AFC_DEMUXER=yes\nCONFIG_AIFF_DEMUXER=yes\nCONFIG_AIX_DEMUXER=yes\nCONFIG_ALP_DEMUXER=yes\nCONFIG_AMR_DEMUXER=yes\nCONFIG_AMRNB_DEMUXER=yes\nCONFIG_AMRWB_DEMUXER=yes\nCONFIG_ANM_DEMUXER=yes\nCONFIG_APAC_DEMUXER=yes\nCONFIG_APC_DEMUXER=yes\nCONFIG_APE_DEMUXER=yes\nCONFIG_APM_DEMUXER=yes\nCONFIG_APNG_DEMUXER=yes\nCONFIG_APTX_DEMUXER=yes\nCONFIG_APTX_HD_DEMUXER=yes\nCONFIG_APV_DEMUXER=yes\nCONFIG_AQTITLE_DEMUXER=yes\nCONFIG_ARGO_ASF_DEMUXER=yes\nCONFIG_ARGO_BRP_DEMUXER=yes\nCONFIG_ARGO_CVG_DEMUXER=yes\nCONFIG_ASF_DEMUXER=yes\nCONFIG_ASF_O_DEMUXER=yes\nCONFIG_ASS_DEMUXER=yes\nCONFIG_AST_DEMUXER=yes\nCONFIG_AU_DEMUXER=yes\nCONFIG_AV1_DEMUXER=yes\nCONFIG_AVI_DEMUXER=yes\nCONFIG_AVR_DEMUXER=yes\nCONFIG_AVS_DEMUXER=yes\nCONFIG_AVS2_DEMUXER=yes\nCONFIG_AVS3_DEMUXER=yes\nCONFIG_BETHSOFTVID_DEMUXER=yes\nCONFIG_BFI_DEMUXER=yes\nCONFIG_BINTEXT_DEMUXER=yes\nCONFIG_BINK_DEMUXER=yes\nCONFIG_BINKA_DEMUXER=yes\nCONFIG_BIT_DEMUXER=yes\nCONFIG_BITPACKED_DEMUXER=yes\nCONFIG_BMV_DEMUXER=yes\nCONFIG_BFSTM_DEMUXER=yes\nCONFIG_BRSTM_DEMUXER=yes\nCONFIG_BOA_DEMUXER=yes\nCONFIG_BONK_DEMUXER=yes\nCONFIG_C93_DEMUXER=yes\nCONFIG_CAF_DEMUXER=yes\nCONFIG_CAVSVIDEO_DEMUXER=yes\nCONFIG_CDG_DEMUXER=yes\nCONFIG_CDXL_DEMUXER=yes\nCONFIG_CINE_DEMUXER=yes\nCONFIG_CODEC2_DEMUXER=yes\nCONFIG_CODEC2RAW_DEMUXER=yes\nCONFIG_CONCAT_DEMUXER=yes\n!CONFIG_DASH_DEMUXER=yes\nCONFIG_DATA_DEMUXER=yes\nCONFIG_DAUD_DEMUXER=yes\nCONFIG_DCSTR_DEMUXER=yes\nCONFIG_DERF_DEMUXER=yes\nCONFIG_DFA_DEMUXER=yes\nCONFIG_DFPWM_DEMUXER=yes\nCONFIG_DHAV_DEMUXER=yes\nCONFIG_DIRAC_DEMUXER=yes\nCONFIG_DNXHD_DEMUXER=yes\nCONFIG_DSF_DEMUXER=yes\nCONFIG_DSICIN_DEMUXER=yes\nCONFIG_DSS_DEMUXER=yes\nCONFIG_DTS_DEMUXER=yes\nCONFIG_DTSHD_DEMUXER=yes\nCONFIG_DV_DEMUXER=yes\nCONFIG_DVBSUB_DEMUXER=yes\nCONFIG_DVBTXT_DEMUXER=yes\nCONFIG_DXA_DEMUXER=yes\nCONFIG_EA_DEMUXER=yes\nCONFIG_EA_CDATA_DEMUXER=yes\nCONFIG_EAC3_DEMUXER=yes\nCONFIG_EPAF_DEMUXER=yes\nCONFIG_EVC_DEMUXER=yes\nCONFIG_FFMETADATA_DEMUXER=yes\nCONFIG_FILMSTRIP_DEMUXER=yes\nCONFIG_FITS_DEMUXER=yes\nCONFIG_FLAC_DEMUXER=yes\nCONFIG_FLIC_DEMUXER=yes\nCONFIG_FLV_DEMUXER=yes\nCONFIG_LIVE_FLV_DEMUXER=yes\nCONFIG_FOURXM_DEMUXER=yes\nCONFIG_FRM_DEMUXER=yes\nCONFIG_FSB_DEMUXER=yes\nCONFIG_FWSE_DEMUXER=yes\nCONFIG_G722_DEMUXER=yes\nCONFIG_G723_1_DEMUXER=yes\nCONFIG_G726_DEMUXER=yes\nCONFIG_G726LE_DEMUXER=yes\nCONFIG_G728_DEMUXER=yes\nCONFIG_G729_DEMUXER=yes\nCONFIG_GDV_DEMUXER=yes\nCONFIG_GENH_DEMUXER=yes\nCONFIG_GIF_DEMUXER=yes\nCONFIG_GSM_DEMUXER=yes\nCONFIG_GXF_DEMUXER=yes\nCONFIG_H261_DEMUXER=yes\nCONFIG_H263_DEMUXER=yes\nCONFIG_H264_DEMUXER=yes\nCONFIG_HCA_DEMUXER=yes\nCONFIG_HCOM_DEMUXER=yes\nCONFIG_HEVC_DEMUXER=yes\nCONFIG_HLS_DEMUXER=yes\nCONFIG_HNM_DEMUXER=yes\nCONFIG_HXVS_DEMUXER=yes\nCONFIG_IAMF_DEMUXER=yes\nCONFIG_ICO_DEMUXER=yes\nCONFIG_IDCIN_DEMUXER=yes\nCONFIG_IDF_DEMUXER=yes\nCONFIG_IFF_DEMUXER=yes\nCONFIG_IFV_DEMUXER=yes\nCONFIG_ILBC_DEMUXER=yes\nCONFIG_IMAGE2_DEMUXER=yes\nCONFIG_IMAGE2PIPE_DEMUXER=yes\nCONFIG_IMAGE2_ALIAS_PIX_DEMUXER=yes\nCONFIG_IMAGE2_BRENDER_PIX_DEMUXER=yes\n!CONFIG_IMF_DEMUXER=yes\nCONFIG_INGENIENT_DEMUXER=yes\nCONFIG_IPMOVIE_DEMUXER=yes\nCONFIG_IPU_DEMUXER=yes\nCONFIG_IRCAM_DEMUXER=yes\nCONFIG_ISS_DEMUXER=yes\nCONFIG_IV8_DEMUXER=yes\nCONFIG_IVF_DEMUXER=yes\nCONFIG_IVR_DEMUXER=yes\nCONFIG_JACOSUB_DEMUXER=yes\nCONFIG_JV_DEMUXER=yes\nCONFIG_JPEGXL_ANIM_DEMUXER=yes\nCONFIG_KUX_DEMUXER=yes\nCONFIG_KVAG_DEMUXER=yes\nCONFIG_LAF_DEMUXER=yes\nCONFIG_LC3_DEMUXER=yes\nCONFIG_LMLM4_DEMUXER=yes\nCONFIG_LOAS_DEMUXER=yes\nCONFIG_LUODAT_DEMUXER=yes\nCONFIG_LRC_DEMUXER=yes\nCONFIG_LVF_DEMUXER=yes\nCONFIG_LXF_DEMUXER=yes\nCONFIG_M4V_DEMUXER=yes\nCONFIG_MCA_DEMUXER=yes\nCONFIG_MCC_DEMUXER=yes\nCONFIG_MATROSKA_DEMUXER=yes\nCONFIG_MGSTS_DEMUXER=yes\nCONFIG_MICRODVD_DEMUXER=yes\nCONFIG_MJPEG_DEMUXER=yes\nCONFIG_MJPEG_2000_DEMUXER=yes\nCONFIG_MLP_DEMUXER=yes\nCONFIG_MLV_DEMUXER=yes\nCONFIG_MM_DEMUXER=yes\nCONFIG_MMF_DEMUXER=yes\nCONFIG_MODS_DEMUXER=yes\nCONFIG_MOFLEX_DEMUXER=yes\nCONFIG_MOV_DEMUXER=yes\nCONFIG_MP3_DEMUXER=yes\nCONFIG_MPC_DEMUXER=yes\nCONFIG_MPC8_DEMUXER=yes\nCONFIG_MPEGPS_DEMUXER=yes\nCONFIG_MPEGTS_DEMUXER=yes\nCONFIG_MPEGTSRAW_DEMUXER=yes\nCONFIG_MPEGVIDEO_DEMUXER=yes\nCONFIG_MPJPEG_DEMUXER=yes\nCONFIG_MPL2_DEMUXER=yes\nCONFIG_MPSUB_DEMUXER=yes\nCONFIG_MSF_DEMUXER=yes\nCONFIG_MSNWC_TCP_DEMUXER=yes\nCONFIG_MSP_DEMUXER=yes\nCONFIG_MTAF_DEMUXER=yes\nCONFIG_MTV_DEMUXER=yes\nCONFIG_MUSX_DEMUXER=yes\nCONFIG_MV_DEMUXER=yes\nCONFIG_MVI_DEMUXER=yes\nCONFIG_MXF_DEMUXER=yes\nCONFIG_MXG_DEMUXER=yes\nCONFIG_NC_DEMUXER=yes\nCONFIG_NISTSPHERE_DEMUXER=yes\nCONFIG_NSP_DEMUXER=yes\nCONFIG_NSV_DEMUXER=yes\nCONFIG_NUT_DEMUXER=yes\nCONFIG_NUV_DEMUXER=yes\nCONFIG_OBU_DEMUXER=yes\nCONFIG_OGG_DEMUXER=yes\nCONFIG_OMA_DEMUXER=yes\nCONFIG_OSQ_DEMUXER=yes\nCONFIG_PAF_DEMUXER=yes\nCONFIG_PCM_ALAW_DEMUXER=yes\nCONFIG_PCM_MULAW_DEMUXER=yes\nCONFIG_PCM_VIDC_DEMUXER=yes\nCONFIG_PCM_F64BE_DEMUXER=yes\nCONFIG_PCM_F64LE_DEMUXER=yes\nCONFIG_PCM_F32BE_DEMUXER=yes\nCONFIG_PCM_F32LE_DEMUXER=yes\nCONFIG_PCM_S32BE_DEMUXER=yes\nCONFIG_PCM_S32LE_DEMUXER=yes\nCONFIG_PCM_S24BE_DEMUXER=yes\nCONFIG_PCM_S24LE_DEMUXER=yes\nCONFIG_PCM_S16BE_DEMUXER=yes\nCONFIG_PCM_S16LE_DEMUXER=yes\nCONFIG_PCM_S8_DEMUXER=yes\nCONFIG_PCM_U32BE_DEMUXER=yes\nCONFIG_PCM_U32LE_DEMUXER=yes\nCONFIG_PCM_U24BE_DEMUXER=yes\nCONFIG_PCM_U24LE_DEMUXER=yes\nCONFIG_PCM_U16BE_DEMUXER=yes\nCONFIG_PCM_U16LE_DEMUXER=yes\nCONFIG_PCM_U8_DEMUXER=yes\nCONFIG_PDV_DEMUXER=yes\nCONFIG_PJS_DEMUXER=yes\nCONFIG_PMP_DEMUXER=yes\nCONFIG_PP_BNK_DEMUXER=yes\nCONFIG_PVA_DEMUXER=yes\nCONFIG_PVF_DEMUXER=yes\nCONFIG_QCP_DEMUXER=yes\nCONFIG_QOA_DEMUXER=yes\nCONFIG_R3D_DEMUXER=yes\nCONFIG_RAWVIDEO_DEMUXER=yes\nCONFIG_RCWT_DEMUXER=yes\nCONFIG_REALTEXT_DEMUXER=yes\nCONFIG_REDSPARK_DEMUXER=yes\nCONFIG_RKA_DEMUXER=yes\nCONFIG_RL2_DEMUXER=yes\nCONFIG_RM_DEMUXER=yes\nCONFIG_ROQ_DEMUXER=yes\nCONFIG_RPL_DEMUXER=yes\nCONFIG_RSD_DEMUXER=yes\nCONFIG_RSO_DEMUXER=yes\n!CONFIG_RTP_DEMUXER=yes\n!CONFIG_RTSP_DEMUXER=yes\nCONFIG_S337M_DEMUXER=yes\nCONFIG_SAMI_DEMUXER=yes\n!CONFIG_SAP_DEMUXER=yes\nCONFIG_SBC_DEMUXER=yes\nCONFIG_SBG_DEMUXER=yes\nCONFIG_SCC_DEMUXER=yes\nCONFIG_SCD_DEMUXER=yes\nCONFIG_SDNS_DEMUXER=yes\n!CONFIG_SDP_DEMUXER=yes\nCONFIG_SDR2_DEMUXER=yes\nCONFIG_SDS_DEMUXER=yes\nCONFIG_SDX_DEMUXER=yes\nCONFIG_SEGAFILM_DEMUXER=yes\nCONFIG_SER_DEMUXER=yes\nCONFIG_SGA_DEMUXER=yes\nCONFIG_SHORTEN_DEMUXER=yes\nCONFIG_SIFF_DEMUXER=yes\nCONFIG_SIMBIOSIS_IMX_DEMUXER=yes\nCONFIG_SLN_DEMUXER=yes\nCONFIG_SMACKER_DEMUXER=yes\nCONFIG_SMJPEG_DEMUXER=yes\nCONFIG_SMUSH_DEMUXER=yes\nCONFIG_SOL_DEMUXER=yes\nCONFIG_SOX_DEMUXER=yes\nCONFIG_SPDIF_DEMUXER=yes\nCONFIG_SRT_DEMUXER=yes\nCONFIG_STR_DEMUXER=yes\nCONFIG_STL_DEMUXER=yes\nCONFIG_SUBVIEWER1_DEMUXER=yes\nCONFIG_SUBVIEWER_DEMUXER=yes\nCONFIG_SUP_DEMUXER=yes\nCONFIG_SVAG_DEMUXER=yes\nCONFIG_SVS_DEMUXER=yes\nCONFIG_SWF_DEMUXER=yes\nCONFIG_TAK_DEMUXER=yes\nCONFIG_TEDCAPTIONS_DEMUXER=yes\nCONFIG_THP_DEMUXER=yes\nCONFIG_THREEDOSTR_DEMUXER=yes\nCONFIG_TIERTEXSEQ_DEMUXER=yes\nCONFIG_TMV_DEMUXER=yes\nCONFIG_TRUEHD_DEMUXER=yes\nCONFIG_TTA_DEMUXER=yes\nCONFIG_TXD_DEMUXER=yes\nCONFIG_TTY_DEMUXER=yes\nCONFIG_TY_DEMUXER=yes\nCONFIG_USM_DEMUXER=yes\nCONFIG_V210_DEMUXER=yes\nCONFIG_V210X_DEMUXER=yes\nCONFIG_VAG_DEMUXER=yes\nCONFIG_VC1_DEMUXER=yes\nCONFIG_VC1T_DEMUXER=yes\nCONFIG_VIVIDAS_DEMUXER=yes\nCONFIG_VIVO_DEMUXER=yes\nCONFIG_VMD_DEMUXER=yes\nCONFIG_VOBSUB_DEMUXER=yes\nCONFIG_VOC_DEMUXER=yes\nCONFIG_VPK_DEMUXER=yes\nCONFIG_VPLAYER_DEMUXER=yes\nCONFIG_VQF_DEMUXER=yes\nCONFIG_VVC_DEMUXER=yes\nCONFIG_W64_DEMUXER=yes\nCONFIG_WADY_DEMUXER=yes\nCONFIG_WAVARC_DEMUXER=yes\nCONFIG_WAV_DEMUXER=yes\nCONFIG_WC3_DEMUXER=yes\nCONFIG_WEBM_DASH_MANIFEST_DEMUXER=yes\nCONFIG_WEBVTT_DEMUXER=yes\nCONFIG_WSAUD_DEMUXER=yes\nCONFIG_WSD_DEMUXER=yes\nCONFIG_WSVQA_DEMUXER=yes\nCONFIG_WTV_DEMUXER=yes\nCONFIG_WVE_DEMUXER=yes\nCONFIG_WV_DEMUXER=yes\nCONFIG_XA_DEMUXER=yes\nCONFIG_XBIN_DEMUXER=yes\nCONFIG_XMD_DEMUXER=yes\nCONFIG_XMV_DEMUXER=yes\nCONFIG_XVAG_DEMUXER=yes\nCONFIG_XWMA_DEMUXER=yes\nCONFIG_YOP_DEMUXER=yes\nCONFIG_YUV4MPEGPIPE_DEMUXER=yes\nCONFIG_IMAGE_BMP_PIPE_DEMUXER=yes\nCONFIG_IMAGE_CRI_PIPE_DEMUXER=yes\nCONFIG_IMAGE_DDS_PIPE_DEMUXER=yes\nCONFIG_IMAGE_DPX_PIPE_DEMUXER=yes\nCONFIG_IMAGE_EXR_PIPE_DEMUXER=yes\nCONFIG_IMAGE_GEM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_GIF_PIPE_DEMUXER=yes\nCONFIG_IMAGE_HDR_PIPE_DEMUXER=yes\nCONFIG_IMAGE_J2K_PIPE_DEMUXER=yes\nCONFIG_IMAGE_JPEG_PIPE_DEMUXER=yes\nCONFIG_IMAGE_JPEGLS_PIPE_DEMUXER=yes\nCONFIG_IMAGE_JPEGXL_PIPE_DEMUXER=yes\nCONFIG_IMAGE_JPEGXS_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PAM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PBM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PCX_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PFM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PGMYUV_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PGM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PGX_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PHM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PHOTOCD_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PICTOR_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PNG_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PPM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_PSD_PIPE_DEMUXER=yes\nCONFIG_IMAGE_QDRAW_PIPE_DEMUXER=yes\nCONFIG_IMAGE_QOI_PIPE_DEMUXER=yes\nCONFIG_IMAGE_SGI_PIPE_DEMUXER=yes\nCONFIG_IMAGE_SVG_PIPE_DEMUXER=yes\nCONFIG_IMAGE_SUNRAST_PIPE_DEMUXER=yes\nCONFIG_IMAGE_TIFF_PIPE_DEMUXER=yes\nCONFIG_IMAGE_VBN_PIPE_DEMUXER=yes\nCONFIG_IMAGE_WEBP_PIPE_DEMUXER=yes\nCONFIG_IMAGE_XBM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_XPM_PIPE_DEMUXER=yes\nCONFIG_IMAGE_XWD_PIPE_DEMUXER=yes\n!CONFIG_AVISYNTH_DEMUXER=yes\n!CONFIG_DVDVIDEO_DEMUXER=yes\n!CONFIG_LIBGME_DEMUXER=yes\n!CONFIG_LIBMODPLUG_DEMUXER=yes\n!CONFIG_LIBOPENMPT_DEMUXER=yes\n!CONFIG_VAPOURSYNTH_DEMUXER=yes\n!CONFIG_A64_MUXER=yes\n!CONFIG_AC3_MUXER=yes\n!CONFIG_AC4_MUXER=yes\n!CONFIG_ADTS_MUXER=yes\n!CONFIG_ADX_MUXER=yes\n!CONFIG_AEA_MUXER=yes\n!CONFIG_AIFF_MUXER=yes\n!CONFIG_ALP_MUXER=yes\n!CONFIG_AMR_MUXER=yes\n!CONFIG_AMV_MUXER=yes\n!CONFIG_APM_MUXER=yes\n!CONFIG_APNG_MUXER=yes\n!CONFIG_APTX_MUXER=yes\n!CONFIG_APTX_HD_MUXER=yes\n!CONFIG_APV_MUXER=yes\n!CONFIG_ARGO_ASF_MUXER=yes\n!CONFIG_ARGO_CVG_MUXER=yes\n!CONFIG_ASF_MUXER=yes\n!CONFIG_ASS_MUXER=yes\n!CONFIG_AST_MUXER=yes\n!CONFIG_ASF_STREAM_MUXER=yes\n!CONFIG_AU_MUXER=yes\n!CONFIG_AVI_MUXER=yes\n!CONFIG_AVIF_MUXER=yes\n!CONFIG_AVM2_MUXER=yes\n!CONFIG_AVS2_MUXER=yes\n!CONFIG_AVS3_MUXER=yes\n!CONFIG_BIT_MUXER=yes\n!CONFIG_CAF_MUXER=yes\n!CONFIG_CAVSVIDEO_MUXER=yes\n!CONFIG_CODEC2_MUXER=yes\n!CONFIG_CODEC2RAW_MUXER=yes\n!CONFIG_CRC_MUXER=yes\n!CONFIG_DASH_MUXER=yes\n!CONFIG_DATA_MUXER=yes\n!CONFIG_DAUD_MUXER=yes\n!CONFIG_DFPWM_MUXER=yes\n!CONFIG_DIRAC_MUXER=yes\n!CONFIG_DNXHD_MUXER=yes\n!CONFIG_DTS_MUXER=yes\n!CONFIG_DV_MUXER=yes\n!CONFIG_EAC3_MUXER=yes\n!CONFIG_EVC_MUXER=yes\n!CONFIG_F4V_MUXER=yes\n!CONFIG_FFMETADATA_MUXER=yes\n!CONFIG_FIFO_MUXER=yes\n!CONFIG_FILMSTRIP_MUXER=yes\n!CONFIG_FITS_MUXER=yes\n!CONFIG_FLAC_MUXER=yes\n!CONFIG_FLV_MUXER=yes\n!CONFIG_FRAMECRC_MUXER=yes\n!CONFIG_FRAMEHASH_MUXER=yes\n!CONFIG_FRAMEMD5_MUXER=yes\n!CONFIG_G722_MUXER=yes\n!CONFIG_G723_1_MUXER=yes\n!CONFIG_G726_MUXER=yes\n!CONFIG_G726LE_MUXER=yes\n!CONFIG_GIF_MUXER=yes\n!CONFIG_GSM_MUXER=yes\n!CONFIG_GXF_MUXER=yes\n!CONFIG_H261_MUXER=yes\n!CONFIG_H263_MUXER=yes\n!CONFIG_H264_MUXER=yes\n!CONFIG_HASH_MUXER=yes\n!CONFIG_HDS_MUXER=yes\n!CONFIG_HEVC_MUXER=yes\n!CONFIG_HLS_MUXER=yes\n!CONFIG_IAMF_MUXER=yes\n!CONFIG_ICO_MUXER=yes\n!CONFIG_ILBC_MUXER=yes\n!CONFIG_IMAGE2_MUXER=yes\n!CONFIG_IMAGE2PIPE_MUXER=yes\n!CONFIG_IPOD_MUXER=yes\n!CONFIG_IRCAM_MUXER=yes\n!CONFIG_ISMV_MUXER=yes\n!CONFIG_IVF_MUXER=yes\n!CONFIG_JACOSUB_MUXER=yes\n!CONFIG_KVAG_MUXER=yes\n!CONFIG_LATM_MUXER=yes\n!CONFIG_LC3_MUXER=yes\n!CONFIG_LRC_MUXER=yes\n!CONFIG_M4V_MUXER=yes\n!CONFIG_MCC_MUXER=yes\n!CONFIG_MD5_MUXER=yes\n!CONFIG_MATROSKA_MUXER=yes\n!CONFIG_MATROSKA_AUDIO_MUXER=yes\n!CONFIG_MICRODVD_MUXER=yes\n!CONFIG_MJPEG_MUXER=yes\n!CONFIG_MLP_MUXER=yes\n!CONFIG_MMF_MUXER=yes\n!CONFIG_MOV_MUXER=yes\n!CONFIG_MP2_MUXER=yes\n!CONFIG_MP3_MUXER=yes\n!CONFIG_MP4_MUXER=yes\n!CONFIG_MPEG1SYSTEM_MUXER=yes\n!CONFIG_MPEG1VCD_MUXER=yes\n!CONFIG_MPEG1VIDEO_MUXER=yes\n!CONFIG_MPEG2DVD_MUXER=yes\n!CONFIG_MPEG2SVCD_MUXER=yes\n!CONFIG_MPEG2VIDEO_MUXER=yes\n!CONFIG_MPEG2VOB_MUXER=yes\n!CONFIG_MPEGTS_MUXER=yes\n!CONFIG_MPJPEG_MUXER=yes\n!CONFIG_MXF_MUXER=yes\n!CONFIG_MXF_D10_MUXER=yes\n!CONFIG_MXF_OPATOM_MUXER=yes\n!CONFIG_NULL_MUXER=yes\n!CONFIG_NUT_MUXER=yes\n!CONFIG_OBU_MUXER=yes\n!CONFIG_OGA_MUXER=yes\n!CONFIG_OGG_MUXER=yes\n!CONFIG_OGV_MUXER=yes\n!CONFIG_OMA_MUXER=yes\n!CONFIG_OPUS_MUXER=yes\n!CONFIG_PCM_ALAW_MUXER=yes\n!CONFIG_PCM_MULAW_MUXER=yes\n!CONFIG_PCM_VIDC_MUXER=yes\n!CONFIG_PCM_F64BE_MUXER=yes\n!CONFIG_PCM_F64LE_MUXER=yes\n!CONFIG_PCM_F32BE_MUXER=yes\n!CONFIG_PCM_F32LE_MUXER=yes\n!CONFIG_PCM_S32BE_MUXER=yes\n!CONFIG_PCM_S32LE_MUXER=yes\n!CONFIG_PCM_S24BE_MUXER=yes\n!CONFIG_PCM_S24LE_MUXER=yes\n!CONFIG_PCM_S16BE_MUXER=yes\n!CONFIG_PCM_S16LE_MUXER=yes\n!CONFIG_PCM_S8_MUXER=yes\n!CONFIG_PCM_U32BE_MUXER=yes\n!CONFIG_PCM_U32LE_MUXER=yes\n!CONFIG_PCM_U24BE_MUXER=yes\n!CONFIG_PCM_U24LE_MUXER=yes\n!CONFIG_PCM_U16BE_MUXER=yes\n!CONFIG_PCM_U16LE_MUXER=yes\n!CONFIG_PCM_U8_MUXER=yes\n!CONFIG_PSP_MUXER=yes\n!CONFIG_RAWVIDEO_MUXER=yes\n!CONFIG_RCWT_MUXER=yes\n!CONFIG_RM_MUXER=yes\n!CONFIG_ROQ_MUXER=yes\n!CONFIG_RSO_MUXER=yes\n!CONFIG_RTP_MUXER=yes\n!CONFIG_RTP_MPEGTS_MUXER=yes\n!CONFIG_RTSP_MUXER=yes\n!CONFIG_SAP_MUXER=yes\n!CONFIG_SBC_MUXER=yes\n!CONFIG_SCC_MUXER=yes\n!CONFIG_SEGAFILM_MUXER=yes\n!CONFIG_SEGMENT_MUXER=yes\n!CONFIG_STREAM_SEGMENT_MUXER=yes\n!CONFIG_SMJPEG_MUXER=yes\n!CONFIG_SMOOTHSTREAMING_MUXER=yes\n!CONFIG_SOX_MUXER=yes\n!CONFIG_SPX_MUXER=yes\n!CONFIG_SPDIF_MUXER=yes\n!CONFIG_SRT_MUXER=yes\n!CONFIG_STREAMHASH_MUXER=yes\n!CONFIG_SUP_MUXER=yes\n!CONFIG_SWF_MUXER=yes\n!CONFIG_TEE_MUXER=yes\n!CONFIG_TG2_MUXER=yes\n!CONFIG_TGP_MUXER=yes\n!CONFIG_MKVTIMESTAMP_V2_MUXER=yes\n!CONFIG_TRUEHD_MUXER=yes\n!CONFIG_TTA_MUXER=yes\n!CONFIG_TTML_MUXER=yes\n!CONFIG_UNCODEDFRAMECRC_MUXER=yes\n!CONFIG_VC1_MUXER=yes\n!CONFIG_VC1T_MUXER=yes\n!CONFIG_VOC_MUXER=yes\n!CONFIG_VVC_MUXER=yes\n!CONFIG_W64_MUXER=yes\n!CONFIG_WAV_MUXER=yes\n!CONFIG_WEBM_MUXER=yes\n!CONFIG_WEBM_DASH_MANIFEST_MUXER=yes\n!CONFIG_WEBM_CHUNK_MUXER=yes\n!CONFIG_WEBP_MUXER=yes\n!CONFIG_WEBVTT_MUXER=yes\n!CONFIG_WHIP_MUXER=yes\n!CONFIG_WSAUD_MUXER=yes\n!CONFIG_WTV_MUXER=yes\n!CONFIG_WV_MUXER=yes\n!CONFIG_YUV4MPEGPIPE_MUXER=yes\n!CONFIG_CHROMAPRINT_MUXER=yes\n!CONFIG_ANDROID_CONTENT_PROTOCOL=yes\nCONFIG_ASYNC_PROTOCOL=yes\n!CONFIG_BLURAY_PROTOCOL=yes\nCONFIG_CACHE_PROTOCOL=yes\nCONFIG_CONCAT_PROTOCOL=yes\nCONFIG_CONCATF_PROTOCOL=yes\nCONFIG_CRYPTO_PROTOCOL=yes\nCONFIG_DATA_PROTOCOL=yes\nCONFIG_FD_PROTOCOL=yes\n!CONFIG_FFRTMPCRYPT_PROTOCOL=yes\n!CONFIG_FFRTMPHTTP_PROTOCOL=yes\nCONFIG_FILE_PROTOCOL=yes\n!CONFIG_FTP_PROTOCOL=yes\n!CONFIG_GOPHER_PROTOCOL=yes\n!CONFIG_GOPHERS_PROTOCOL=yes\n!CONFIG_HTTP_PROTOCOL=yes\n!CONFIG_HTTPPROXY_PROTOCOL=yes\n!CONFIG_HTTPS_PROTOCOL=yes\n!CONFIG_ICECAST_PROTOCOL=yes\n!CONFIG_MMSH_PROTOCOL=yes\n!CONFIG_MMST_PROTOCOL=yes\nCONFIG_MD5_PROTOCOL=yes\nCONFIG_PIPE_PROTOCOL=yes\nCONFIG_PROMPEG_PROTOCOL=yes\n!CONFIG_RTMP_PROTOCOL=yes\n!CONFIG_RTMPE_PROTOCOL=yes\n!CONFIG_RTMPS_PROTOCOL=yes\n!CONFIG_RTMPT_PROTOCOL=yes\n!CONFIG_RTMPTE_PROTOCOL=yes\n!CONFIG_RTMPTS_PROTOCOL=yes\n!CONFIG_RTP_PROTOCOL=yes\n!CONFIG_SCTP_PROTOCOL=yes\n!CONFIG_SRTP_PROTOCOL=yes\nCONFIG_SUBFILE_PROTOCOL=yes\nCONFIG_TEE_PROTOCOL=yes\n!CONFIG_TCP_PROTOCOL=yes\n!CONFIG_TLS_PROTOCOL=yes\n!CONFIG_DTLS_PROTOCOL=yes\n!CONFIG_UDP_PROTOCOL=yes\n!CONFIG_UDPLITE_PROTOCOL=yes\n!CONFIG_UNIX_PROTOCOL=yes\n!CONFIG_LIBAMQP_PROTOCOL=yes\n!CONFIG_LIBRIST_PROTOCOL=yes\n!CONFIG_LIBRTMP_PROTOCOL=yes\n!CONFIG_LIBRTMPE_PROTOCOL=yes\n!CONFIG_LIBRTMPS_PROTOCOL=yes\n!CONFIG_LIBRTMPT_PROTOCOL=yes\n!CONFIG_LIBRTMPTE_PROTOCOL=yes\n!CONFIG_LIBSRT_PROTOCOL=yes\n!CONFIG_LIBSSH_PROTOCOL=yes\n!CONFIG_LIBSMBCLIENT_PROTOCOL=yes\n!CONFIG_LIBZMQ_PROTOCOL=yes\n!CONFIG_IPFS_GATEWAY_PROTOCOL=yes\n!CONFIG_IPNS_GATEWAY_PROTOCOL=yes\nendif # FFMPEG_CONFIG_MAK\n"
+}

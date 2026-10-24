@@ -1,0 +1,71 @@
+--- a/src/player_vlc.cpp
++++ b/src/player_vlc.cpp
+@@ -250,6 +250,8 @@
+     std::vector<std::shared_ptr<Session>> sessions;
+     std::shared_ptr<Session> current_session;
+     VideoFrame next_format;
++    unsigned next_coded_width = 0, next_coded_height = 0;
++    bool next_visible_origin_zero = false;
+     video_format_t subtitle_format{};
+ 
+     mutable std::mutex time_mutex;
+@@ -355,6 +357,10 @@
+         frame.full_range = format->b_color_range_full;
+         const unsigned width = format->i_visible_width ? format->i_visible_width : format->i_width;
+         const unsigned height = format->i_visible_height ? format->i_visible_height : format->i_height;
++        self.next_coded_width = format->i_width;
++        self.next_coded_height = format->i_height;
++        self.next_visible_origin_zero = format->i_x_offset == 0 && format->i_y_offset == 0 &&
++            format->i_visible_width > 0 && format->i_visible_height > 0;
+         frame.w = int(width);
+         frame.h = int(height);
+         frame.display_aspect = height ? double(width) / height : 16.0 / 9.0;
+@@ -385,15 +391,28 @@
+             const bool interleaved = nv12 || p010;
+             std::memcpy(chroma, interleaved ? (ten ? "P010" : "NV12") : (ten ? "I0AL" : "I420"), 4);
+             VideoFrame frame;
+-            { std::lock_guard lock(self.frames_mutex); frame = self.next_format; }
+-            // VLC supplies coded dimensions here (for example 3840x2176).
+-            // Request the visible source rectangle, preserving its 4K image
+-            // without exposing codec padding or stretching the picture.
+-            if (frame.w > 0 && frame.h > 0 && frame.w <= int(*width) && frame.h <= int(*height)) {
+-                *width = unsigned(frame.w);
+-                *height = unsigned(frame.h);
+-            }
+-            frame.w = int(*width); frame.h = int(*height);
++            bool keep_coded_size = false;
++            {
++                std::lock_guard lock(self.frames_mutex);
++                frame = self.next_format;
++                keep_coded_size = self.next_visible_origin_zero &&
++                    self.next_coded_width == *width && self.next_coded_height == *height &&
++                    frame.w > 0 && frame.h > 0 && frame.w <= int(*width) && frame.h <= int(*height);
++            }
++            // Keep the decoder's padded allocation when its visible rectangle
++            // starts at zero. Patch 0025 preserves that rectangle in vmem, so
++            // VLC needs no intermediate format-conversion picture just to
++            // remove padding. The renderer already uploads only frame.w/h
++            // visible pixels using the coded planes' pitches and offsets.
++            // Cropped origins or missing/mismatched metadata retain the old
++            // normalization path instead of exposing an incorrect rectangle.
++            if (!keep_coded_size) {
++                if (frame.w > 0 && frame.h > 0 && frame.w <= int(*width) && frame.h <= int(*height)) {
++                    *width = unsigned(frame.w);
++                    *height = unsigned(frame.h);
++                }
++                frame.w = int(*width); frame.h = int(*height);
++            }
+             frame.layout = interleaved ? VideoFrame::Layout::Nv12 : VideoFrame::Layout::Planar420;
+             frame.wide = ten; frame.shift = p010 ? 6 : 0;
+             frame.full_range = frame.full_range || full;
+@@ -445,8 +464,8 @@
+             }
+             { std::lock_guard lock(self.frames_mutex); self.sessions.push_back(session); self.current_session = session; }
+             *opaque = session.get();
+-            dlog("player/vlc: %.4s %ux%u, %d aligned slots of %zu KiB, GPU color conversion",
+-                chroma, *width, *height, kSlots, size / 1024);
++            dlog("player/vlc: %.4s coded %ux%u, visible %dx%d, %d aligned slots of %zu KiB, GPU color conversion",
++                chroma, *width, *height, frame.w, frame.h, kSlots, size / 1024);
+             return kSlots;
+         } catch (...) {
+             dlog("player/vlc: video output setup failed with an allocation exception");

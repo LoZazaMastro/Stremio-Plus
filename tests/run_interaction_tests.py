@@ -25,7 +25,7 @@ names = [line.split()[0] for line in subprocess.check_output(
     ["nm", "-g", "--defined-only", "--format=posix", str(build / "stremio")], text=True).splitlines()]
 readable = subprocess.check_output(["c++filt"], input="\n".join(names) + "\n", text=True).splitlines()
 boundaries = {"WRAP_LIBRARY_PUT": "api_library_put", "WRAP_LIBRARY_GET": "api_library_get",
-              "WRAP_FETCH_JSON": "fetch_json", "WRAP_ART_GET": "ArtCache::get", "WRAP_ART_PEEK": "ArtCache::peek"}
+              "WRAP_FETCH_JSON": "fetch_json", "WRAP_ART_GET": "ArtCache::get_async", "WRAP_ART_PEEK": "ArtCache::peek_cached"}
 symbols = {}
 for macro, prefix in boundaries.items():
     matches = [name for name, description in zip(names, readable)

@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "scope": "Production timestamped PCM queue and padded/10-bit/concurrent YUV plane copies",
+  "sanitizers": [
+    "AddressSanitizer",
+    "UndefinedBehaviorSanitizer"
+  ],
+  "results": {
+    "result": "PASS",
+    "checks": 21
+  },
+  "sha256": {
+    "src/player_vlc_audio.h": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+    "src/playback_volume.h": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+    "src/player_vlc_copy.cpp": "844a82078b739762375ac2319567cc8e75f4cc2df4a54ad3df873312e349c96a",
+    "tests/test_vlc_output.cpp": "68cae4263d89275b9f9f970026e714c58036b7f57b9201b48180ff59ef107d12",
+    "tests/run_vlc_output_tests.py": "7d27a79c9bf7dde7222c3403b8d574ef52ff26b496ad9e804576da855d3b1f73"
+  }
+}

@@ -115,6 +115,7 @@ InputFrame InputTracker::update(std::span<const PadSample> samples, std::uint64_
     frame.held = held_;
     frame.connected = connected_;
     frame.focus_lost = lost;
+    frame.intercepted = connected_ && !usable_;
 
     // Analog sticks for pointer and dial modes (radial deadzone, rescaled to 0..1).
     if (connected_ && have_state_ && usable_)

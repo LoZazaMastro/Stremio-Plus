@@ -1,0 +1,12 @@
+[
+  {
+    "path": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/host-vlc/CMakeFiles/stremio.dir/src/player_vlc.cpp.o",
+    "saved": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/baseline/player_vlc.cpp.o",
+    "sha256": "4099683db5b43b00bccd2a98ccd5e337137481b89f83956feece9f7e3f6c130a"
+  },
+  {
+    "path": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/build-vlc-host/modules/.libs/libvmem_plugin.a",
+    "saved": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/baseline/libvmem_plugin.a",
+    "sha256": "f7c5848f4581eda3599d29cdd44dee9bdc994c18fa21960879bc48397bddaa52"
+  }
+]

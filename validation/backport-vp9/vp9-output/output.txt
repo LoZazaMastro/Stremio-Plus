@@ -1,0 +1,18 @@
+PASS	immediate visible and hidden output	3
+PASS	delayed output retains the output's show flag	7
+PASS	multiple hidden frames and unknown timestamps	3
+PASS	FIFO association is independent of PTS sort order	3
+PASS	errored native picture consumes its tag	4
+PASS	EAGAIN does not submit or consume a tag	9
+PASS	native rejection never adds an input tag	6
+PASS	frame-buffer acceptance is not AU acceptance	4
+PASS	bounded pending metadata fails before another submission	18
+PASS	ring wrap preserves visibility and timestamps	131
+PASS	seek flush clears pending visibility before decoder renewal	6
+PASS	failed decoder renewal cannot reuse old metadata	3
+PASS	orphan output is rejected without a fabricated timestamp	2
+PASS	real FFmpeg VP9 filter and no-packet EAGAIN	7
+PASS	real VP9 superframe splits hidden and shown AUs	8
+PASS	AVC retains its existing timestamp reorder policy	4
+PASS	invalid input length never enters native decode	2
+{"result":"PASS","cases":17,"checks":220,"hardware_boundary":"mocked","real_ffmpeg_bitstream_filter":true,"ps5_tested":false}

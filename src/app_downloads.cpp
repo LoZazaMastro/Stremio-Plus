@@ -622,21 +622,16 @@ void App::play_download(const std::string& id, bool progressive) {
                 progressive_resume_proven(*saved, entry->id, entry->source_identity, entry->done, entry->total))))
             resume = saved->time;
     }
-    if (resume > 0) {
-        const bool it = settings_.ui_language == "it";
-        const auto generation = account_generation_;
-        open_dropdown(entry->title + (entry->subtitle.empty() ? "" : " · " + entry->subtitle),
-            {it ? "Riproduci dall'inizio" : "Play from beginning",
-             (it ? "Riproduci da " : "Resume from ") + format_time(resume)}, 1,
-            [this, id, resume, generation, progressive](int choice) {
-                if (generation != account_generation_ || choice < 0 || choice > 1) return;
-                start_download_playback(id, progressive, choice == 0 ? 0 : resume);
-            });
+    if (!entry || entry->recovery_only) {
+        // Keep the existing availability/error handling before offering a
+        // playback action for a missing or unreadable entry.
+        start_download_playback(id, progressive, 0);
         return;
     }
     // A byte percentage cannot prove a timestamp. An incomplete download may
     // resume only an actually viewed position whose saved prefix is present.
-    start_download_playback(id, progressive, 0);
+    choose_playback_start(entry->title + (entry->subtitle.empty() ? "" : " · " + entry->subtitle), resume,
+        [this, id, progressive](double start) { start_download_playback(id, progressive, start); });
 }
 
 void App::start_download_playback(const std::string& id, bool progressive, double start) {
@@ -673,7 +668,10 @@ void App::start_download_playback(const std::string& id, bool progressive, doubl
             prefix.generation != growing->generation || prefix.total != growing->total ||
             !progressive_resume_proven(*saved, entry->id, entry->source_identity, prefix.available, prefix.total)) {
             dlog("download playback: saved position waits for its verified prefix");
-            start = 0;
+            show_toast(settings_.ui_language == "it" ?
+                "La posizione salvata non è ancora disponibile. Scegli di nuovo come iniziare." :
+                "The saved position is not available yet. Choose how to start again.", 5);
+            return;
         }
     }
     if (!entry || (!progressive && (entry->state != DownloadState::Complete || entry->local_path.empty() || !file_exists(entry->local_path)))) {

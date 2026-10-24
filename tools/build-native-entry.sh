@@ -166,7 +166,8 @@ if root.is_dir():
             if names:
                 (folder / 'index.txt').write_text('\n'.join(names) + '\n')
 PY
-# Keep the folder ZIP and filesystem image readable with identical app modes.
+# Preserve folder ZIP modes: executable eboot/modules and readable data.
+# The PFS packer applies its own read/execute-only inode policy to the image.
 find "$APP" -type d -exec chmod 0755 {} +
 find "$APP" -type f -exec chmod 0644 {} +
 chmod 0755 "$APP/eboot.bin" "$APP/sce_module/libc.prx"

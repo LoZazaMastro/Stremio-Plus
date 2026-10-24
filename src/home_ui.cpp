@@ -595,6 +595,10 @@ struct HomeUi::Impl {
     ui::TabBar nav;
     ui::PushButton search;
     std::vector<ui::Carousel> shelves;
+    std::vector<std::string> shelf_keys;
+    std::string focused_shelf_key;
+    int focused_shelf_index = 0;
+    bool startup_was_visible = false;
     bool search_shelves = false;
     ui::GridView grid;
     ui::GridView addon_grid;
@@ -1648,14 +1652,33 @@ struct HomeUi::Impl {
     void sync_shelves(const App& app, bool is_search) {
         const auto& rows = is_search ? app.search_rows : app.home_rows;
         const float top = is_search ? 330.0f : 506.0f;
-        const bool rebuild = shelves.size() != rows.size() || search_shelves != is_search;
-        if (rebuild) {
-            shelves.clear();
-            shelves.resize(rows.size());
-            search_shelves = is_search;
-            row_scroll.snap(static_cast<float>(is_search ? app.search_row : app.home_row) * kRowPitch);
-            for (std::size_t r = 0; r < shelves.size(); ++r) {
-                auto& shelf = shelves[r];
+        const bool changed_page = search_shelves != is_search;
+        std::vector<std::string> keys;
+        keys.reserve(rows.size());
+        for (const auto& source : rows) keys.push_back(source.dom_id);
+        const int row = bounded(is_search ? app.search_row : app.home_row, rows.size());
+        const std::string focus_key = row >= 0 && row < static_cast<int>(keys.size()) ? keys[row] : std::string();
+        if (changed_page) {
+            shelves.clear(); shelf_keys.clear(); focused_shelf_key.clear();
+            row_scroll.snap(static_cast<float>(row) * kRowPitch);
+        } else if (!focus_key.empty() && focused_shelf_key == focus_key && row != focused_shelf_index) {
+            // Preserve the actual viewport, including a navigation animation
+            // in progress, when a late catalog or account row inserts above it.
+            const float shift = static_cast<float>(row - focused_shelf_index) * kRowPitch;
+            row_scroll.value += shift;
+            row_scroll.target += shift;
+        }
+        if (changed_page || keys != shelf_keys) {
+            std::vector<ui::Carousel> retained;
+            retained.reserve(rows.size());
+            for (std::size_t r = 0; r < rows.size(); ++r) {
+                const auto found = std::find(shelf_keys.begin(), shelf_keys.end(), keys[r]);
+                if (found != shelf_keys.end()) {
+                    retained.push_back(std::move(shelves[static_cast<std::size_t>(found - shelf_keys.begin())]));
+                    continue;
+                }
+                retained.emplace_back();
+                auto& shelf = retained.back();
                 component_theme(shelf, app.ui_reduced_motion);
                 shelf.style.mode = ui::CarouselMode::leading;
                 shelf.style.item_width = 212;
@@ -1675,28 +1698,35 @@ struct HomeUi::Impl {
                 shelf.style.dots = false;
                 shelf.style.exits.left = shelf.style.exits.right = true;
                 shelf.style.entrance_step = .018f;
-                // Leave room on both sides for the enlarged focused poster
-                // and its ring, inside the television's safe area.
-                shelf.set_bounds({kLeft + 12, top + static_cast<float>(r) * kRowPitch,
-                                  kWidth - 24, 424});
-                shelf.art = [this, r](Canvas& c, const Rect& box, float radius,
-                                     const ui::CardItem& item, float) {
-                    if (!model) return;
-                    const auto& source = search_shelves ? model->search_rows : model->home_rows;
-                    if (r >= source.size() || item.tag < 0 ||
-                        item.tag >= static_cast<int>(source[r].cards.size())) return;
-                    paint_art(c, box, radius, source[r].cards[static_cast<std::size_t>(item.tag)]);
-                };
-                shelf.enter();
+                // Home rows are revealed together after staging. A late row
+                // must not replay entrances in already visible catalogs.
+                if (is_search) shelf.enter();
             }
+            shelves = std::move(retained);
+            shelf_keys = std::move(keys);
         }
+        search_shelves = is_search;
+        focused_shelf_key = focus_key;
+        focused_shelf_index = row;
         shelf_top = top;
-        const int row = bounded(is_search ? app.search_row : app.home_row, rows.size());
         const int col = is_search ? app.search_col : app.home_col;
         row_scroll.target = static_cast<float>(row) * kRowPitch;
         for (std::size_t r = 0; r < rows.size(); ++r) {
             auto& shelf = shelves[r];
             const auto& source = rows[r];
+            const Rect bounds{kLeft + 12, top + static_cast<float>(r) * kRowPitch, kWidth - 24, 424};
+            const auto& old = shelf.bounds();
+            if (old.x != bounds.x || old.y != bounds.y || old.w != bounds.w || old.h != bounds.h)
+                shelf.set_bounds(bounds, false);
+            // A retained carousel can move to a different vector index.
+            // Rebind its artwork to the new row instead of capturing old r.
+            shelf.art = [this, r](Canvas& c, const Rect& box, float radius,
+                                 const ui::CardItem& item, float) {
+                if (!model) return;
+                const auto& source = search_shelves ? model->search_rows : model->home_rows;
+                if (r >= source.size() || item.tag < 0 || item.tag >= static_cast<int>(source[r].cards.size())) return;
+                paint_art(c, box, radius, source[r].cards[static_cast<std::size_t>(item.tag)]);
+            };
             shelf.title = translated(source.title);
             const int selected = bounded(col, source.cards.size());
             const bool changed = shelf.items().size() != source.cards.size();
@@ -1706,7 +1736,7 @@ struct HomeUi::Impl {
                 std::vector<ui::CardItem> items(source.cards.size());
                 for (std::size_t i = 0; i < items.size(); ++i) items[i].tag = static_cast<int>(i);
                 shelf.set_items(std::move(items));
-                shelf.enter();
+                if (is_search) shelf.enter();
             }
             for (std::size_t i = 0; i < source.cards.size(); ++i) {
                 auto& item = shelf.item(static_cast<int>(i));
@@ -1722,7 +1752,7 @@ struct HomeUi::Impl {
     }
 
     bool modal(const App& app) const {
-        return app.download_directory_notice || app.directory_picker_visible || app.dd_visible || app.login_visible || app.input_visible_ || app.launch_visible || app.watching() ||
+        return app.home_startup_visible() || app.download_directory_notice || app.directory_picker_visible || app.dd_visible || app.login_visible || app.input_visible_ || app.launch_visible || app.watching() ||
                source_info.is_open();
     }
     void sync_settings(const App& app) {
@@ -2019,6 +2049,9 @@ struct HomeUi::Impl {
 
     void update(const App& app, float dt) {
         model = &app;
+        const bool startup_visible = app.home_startup_visible();
+        const bool startup_revealed = startup_was_visible && !startup_visible && app.view == "home";
+        startup_was_visible = startup_visible;
         dt = std::clamp(std::isfinite(dt) ? dt : 0.0f, 0.0f, .05f);
         time += dt;
         delay_focus = std::max(0.0f, delay_focus - dt);
@@ -2106,6 +2139,13 @@ struct HomeUi::Impl {
             hero_desc = plain_text(app.home_preview_description); hero_meta = app.home_preview_meta;
         }
         hero_mix = std::min(1.0f, hero_mix + dt / (app.ui_reduced_motion ? .10f : .28f));
+        if (startup_revealed) {
+            page_enter.snap(1);
+            row_scroll.snap(static_cast<float>(app.home_row) * kRowPitch);
+            hero_mix = 1;
+            for (std::size_t r = 0; r < shelves.size(); ++r)
+                if (static_cast<int>(r) == app.home_row) shelves[r].set_focus(app.home_col, true);
+        }
 
         // Downloads use the full viewport, so their empty state is centered at x=960.
         empty.set_bounds(app.view == "downloads" ? Rect{(1920.0f - 1120.0f) * .5f, 398, 1120, 440}
@@ -2221,9 +2261,12 @@ struct HomeUi::Impl {
         feedback.cues.insert(feedback.cues.end(), pending.cues.begin(), pending.cues.end());
         if (pending.rumble_strength > 0) feedback.rumble(pending.rumble_strength, pending.rumble_seconds);
         pending.clear();
+        app.on_playback_stick(input_frame.stick2_x, input_frame.stick2_y,
+                              input_frame.connected && !input_frame.focus_lost && !input_frame.intercepted);
         if (input_frame.focus_lost) return;
         const std::size_t before = feedback.cues.size();
 
+        if (app.home_startup_visible()) return;
         if (app.login_visible) {
             const auto event = login_retry.handle(input_frame, feedback);
             if (event == Event::activated) app.on_button(Btn::Cross);
@@ -3111,9 +3154,35 @@ struct HomeUi::Impl {
         hint_row(c, theme, {{ui::Button::cross, app.w_paused ? tr("Riprendi", "Resume") : tr("Pausa", "Pause")},
                             {ui::Button::dpad, seek.c_str()},
                             {ui::Button::options, tr("Audio / sottotitoli", "Audio / subtitles")},
+                            {ui::Button::right_stick, tr("Volume ↑ / ↓", "Volume ↑ / ↓")},
                             {ui::Button::circle, tr("Nascondi", "Hide")},
                             {ui::Button::l1, shoulder.c_str(), ui::Button::r1}}, 1011, 126, 1668);
         c.list.pop_opacity();
+    }
+
+    void paint_playback_volume(Canvas& c, const App& app) const {
+        if (!app.watching() || !app.w_volume_visible || app.launch_visible || app.next_episode_visible) return;
+        constexpr Rect panel{1296, 72, 528, 156};
+        // A small opaque overlay needs no extra video readback or blur pass.
+        c.list.rounded_rect(panel, 18, Color::rgb(0x0b0912, .90f));
+        icon(c, {1320, 94, 32, 32}, 6, theme.text);
+        if (app.audio_passthrough_active()) {
+            text(c, c.fonts.semibold, "Audio passthrough", 1366, 119, 25, theme.text, 426);
+            ui::paragraph(c.list, c.fonts.regular,
+                tr("Regola il volume sulla TV o sul ricevitore.", "Adjust the volume on your TV or receiver."),
+                1324, 165, 23, 472, 30, theme.text_muted, 2);
+            return;
+        }
+        const int percent = playback_volume::clamp_percent(app.settings().media_volume);
+        text(c, c.fonts.semibold, tr("Volume video", "Video volume"), 1366, 119, 25, theme.text, 294);
+        text(c, c.fonts.semibold, std::to_string(percent) + "%", 1796, 119, 28,
+             theme.text, 128, gfx::Align::right);
+        constexpr Rect track{1324, 161, 472, 9};
+        c.list.rounded_rect(track, 4.5f, theme.text.with_alpha(.18f));
+        if (percent > 0)
+            c.list.rounded_rect({track.x, track.y, track.w * float(percent) / 100.0f, track.h}, 4.5f, theme.accent);
+        text(c, c.fonts.regular, tr("Levetta destra ↑ / ↓", "Right stick ↑ / ↓"),
+             1324, 207, 19, theme.text_muted, 472);
     }
 
     void paint_launch(Canvas& c, const App& app) const {
@@ -3310,8 +3379,21 @@ struct HomeUi::Impl {
                                      {ui::Button::l1, tr("Sezioni", "Sections"), ui::Button::r1}});
         }
     }
+    void paint_home_startup(Canvas& c) const {
+        c.list.rounded_rect({0, 0, 1920, 1080}, 0, theme.page);
+        const auto mark = texture("assets/icons/logo.png");
+        if (mark) c.list.image(mark, {880, 325, 160, 160}, gfx::kFullUv, Color::rgb(0xffffff));
+        else {
+            c.list.circle(960, 405, 65, theme.primary);
+            c.list.triangle({940, 374, 46, 62}, Color::rgb(0xffffff), 0, kPi * .5f);
+        }
+        c.list.arc(960, 565, 23, 3, time * 2, kPi * 1.45f, theme.primary);
+        text(c, c.fonts.semibold, tr("Caricamento dei tuoi cataloghi", "Loading your catalogs"),
+             960, 647, 31, theme.text, 1400, gfx::Align::center);
+    }
     void draw_base(const App& app, Canvas& c) const {
         if (app.login_visible) { paint_login(c, app); return; }
+        if (app.home_startup_visible()) { paint_home_startup(c); return; }
         if (app.directory_picker_visible) {
             paint_background(c, app);
             paint_directories(c, app);
@@ -3344,6 +3426,7 @@ struct HomeUi::Impl {
     }
     void draw_overlays(const App& app, Canvas& c) const {
         if (app.login_visible) { toasts.draw(c); paint_footer(c, app); return; }
+        if (app.home_startup_visible()) return;
         paint_download_panel(c, app);
         if (app.watching()) paint_playback_bar(c, app);
         if (dropdown.visible()) dropdown.draw(c);
@@ -3353,6 +3436,7 @@ struct HomeUi::Impl {
         if (dialog.visible()) dialog.draw(c);
         if (loader.visible()) paint_launch(c, app);
         paint_next_episode(c, app);
+        paint_playback_volume(c, app);
         if (directory_notice.visible()) directory_notice.draw(c);
         toasts.draw(c);
         paint_footer(c, app);
@@ -3385,7 +3469,7 @@ void HomeUi::draw(const App& app, hui::ui::Canvas& canvas) const { impl_->draw(a
 void HomeUi::draw_base(const App& app, hui::ui::Canvas& canvas) const { impl_->draw_base(app, canvas); }
 void HomeUi::draw_overlays(const App& app, hui::ui::Canvas& canvas) const { impl_->draw_overlays(app, canvas); }
 bool HomeUi::wants_glass() const {
-    if (impl_->model && impl_->model->login_visible) return false;
+    if (impl_->model && (impl_->model->login_visible || impl_->model->home_startup_visible())) return false;
     return (impl_->model && impl_->model->watching() && impl_->watch_alpha.value > .001f &&
             !impl_->model->menu_visible && !impl_->model->launch_visible) ||
            (impl_->model && impl_->model->next_episode_visible) ||

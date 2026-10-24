@@ -10,7 +10,7 @@
   "conceptId": "74126",
   "contentBadgeType": 2,
   "contentId": "UP9000-PPSA74126_00-STREMIOPS5000001",
-  "contentVersion": "00.068.000",
+  "contentVersion": "00.070.000",
   "downloadDataSize": 0,
   "localizedParameters": {
     "defaultLanguage": "en-US",
@@ -28,5 +28,5 @@
   "sdkVersion": "0x0000000000000000",
   "titleId": "PPSA74126",
   "versionFileUri": "",
-  "creationDate": "2026-10-19"
+  "creationDate": "2026-10-23"
 }

@@ -1,0 +1,479 @@
+{
+  "result": "PASS",
+  "files_compared": 89,
+  "byte_identical_original_files": 86,
+  "scope": "Rechecked against attached main after selected VLC 0.6.0 backports and patch reentry correction. Native allocation/ownership modules and decoder startup remain byte-identical. Changed entries are the audited VP9 metadata association, attribution notice and patch 0014 hunk context; the latter generates identical C and makes the complete 25-patch series idempotent. This is not hardware validation.",
+  "preserved_decoder_options": [
+    "--no-skip-frames",
+    "--avcodec-skip-frame=0",
+    "--no-avcodec-hurry-up",
+    "--no-avcodec-corrupted"
+  ],
+  "files": {
+    "native/build.sh": {
+      "input_sha256": "8cac49011ed93273010059f02b1eba73c1cf5ad696570ea3d9d76a3ffc1bdf89",
+      "sha256": "8cac49011ed93273010059f02b1eba73c1cf5ad696570ea3d9d76a3ffc1bdf89",
+      "unchanged": true
+    },
+    "native/check_imports.py": {
+      "input_sha256": "fd6987e305ae5182ce3205afa7bc9aae899435e7631ceb8c67859cf66f8afab0",
+      "sha256": "fd6987e305ae5182ce3205afa7bc9aae899435e7631ceb8c67859cf66f8afab0",
+      "unchanged": true
+    },
+    "native/console_curl.c": {
+      "input_sha256": "0ed555f55206c8516e3d27202c9580a8f5cbb8d63b1f274625a708f8d6cf9971",
+      "sha256": "0ed555f55206c8516e3d27202c9580a8f5cbb8d63b1f274625a708f8d6cf9971",
+      "unchanged": true
+    },
+    "native/console_curl.h": {
+      "input_sha256": "0e149054d6784333b94766fec44590ef1bd8f0739524f0d2e3a2d41af25f355b",
+      "sha256": "0e149054d6784333b94766fec44590ef1bd8f0739524f0d2e3a2d41af25f355b",
+      "unchanged": true
+    },
+    "native/dlmalloc.c": {
+      "input_sha256": "be7be56b40b4b31417e74e77687f9b96127ea6cae534cf236aee40a4c739508d",
+      "sha256": "be7be56b40b4b31417e74e77687f9b96127ea6cae534cf236aee40a4c739508d",
+      "unchanged": true
+    },
+    "native/download_writer/client.cpp": {
+      "input_sha256": "54a7629541050fecfbd7eb91f5337e79f63fa888c3064e845f937b3dd096c191",
+      "sha256": "54a7629541050fecfbd7eb91f5337e79f63fa888c3064e845f937b3dd096c191",
+      "unchanged": true
+    },
+    "native/download_writer/client.hpp": {
+      "input_sha256": "e7e8015eabab097ddbb6a605b55eb31e95f846a1c8b053a5908678002755c48c",
+      "sha256": "e7e8015eabab097ddbb6a605b55eb31e95f846a1c8b053a5908678002755c48c",
+      "unchanged": true
+    },
+    "native/download_writer/helper/Makefile": {
+      "input_sha256": "d61bdf92d0dc2ada5c87fd76df5bc52a94d7361175bfcf2526ddbbbc61a599a3",
+      "sha256": "d61bdf92d0dc2ada5c87fd76df5bc52a94d7361175bfcf2526ddbbbc61a599a3",
+      "unchanged": true
+    },
+    "native/download_writer/helper/main.cpp": {
+      "input_sha256": "0715a11ea07f766ddf6e70377985ab54e075c1aebff8ab6aae561bfa227ce0ef",
+      "sha256": "0715a11ea07f766ddf6e70377985ab54e075c1aebff8ab6aae561bfa227ce0ef",
+      "unchanged": true
+    },
+    "native/download_writer/posix_at.hpp": {
+      "input_sha256": "b251bf09b9e8bce25ff5ba12f596466d74af197e3d10914a5f4a816aba44778d",
+      "sha256": "b251bf09b9e8bce25ff5ba12f596466d74af197e3d10914a5f4a816aba44778d",
+      "unchanged": true
+    },
+    "native/download_writer/protocol.hpp": {
+      "input_sha256": "d913969273ab8a5e716cfb30cc481187def98d54274ab648c1165146aeb35fb8",
+      "sha256": "d913969273ab8a5e716cfb30cc481187def98d54274ab648c1165146aeb35fb8",
+      "unchanged": true
+    },
+    "native/filesystem/README.md": {
+      "input_sha256": "b707043673d5db22c43b10b78f79c8e2947ba2fad2721b229efe8f2a67e1250e",
+      "sha256": "b707043673d5db22c43b10b78f79c8e2947ba2fad2721b229efe8f2a67e1250e",
+      "unchanged": true
+    },
+    "native/filesystem/elevation.cpp": {
+      "input_sha256": "037e43b4b2db3d862af54377a5d25a14251ad6bba9c5199cb442bb99043ae79b",
+      "sha256": "037e43b4b2db3d862af54377a5d25a14251ad6bba9c5199cb442bb99043ae79b",
+      "unchanged": true
+    },
+    "native/filesystem/elevation.hpp": {
+      "input_sha256": "7e262c5f5be6e933a2c9303236d836e3a66e309bc506ae156a26ef5e93043755",
+      "sha256": "7e262c5f5be6e933a2c9303236d836e3a66e309bc506ae156a26ef5e93043755",
+      "unchanged": true
+    },
+    "native/filesystem/helper/Makefile": {
+      "input_sha256": "c3a0f14a19f51a48d654b3609f18e459395cafdf7076cc2c05675760bd32f8e1",
+      "sha256": "c3a0f14a19f51a48d654b3609f18e459395cafdf7076cc2c05675760bd32f8e1",
+      "unchanged": true
+    },
+    "native/filesystem/helper/main.cpp": {
+      "input_sha256": "ee661f6be75f74ead24918a8b7fe700c27231be421cd499e0c818d62914bd36a",
+      "sha256": "ee661f6be75f74ead24918a8b7fe700c27231be421cd499e0c818d62914bd36a",
+      "unchanged": true
+    },
+    "native/filesystem/protocol.hpp": {
+      "input_sha256": "2bd83e0b78df89d429b5ffc39208b8a175ef977f63744ce300ffeda497827f69",
+      "sha256": "2bd83e0b78df89d429b5ffc39208b8a175ef977f63744ce300ffeda497827f69",
+      "unchanged": true
+    },
+    "native/filesystem/validate-helper.py": {
+      "input_sha256": "770827f77c6bc1d856cdea54bb87842cd1f055523c1b24dd41b14a400d219c55",
+      "sha256": "770827f77c6bc1d856cdea54bb87842cd1f055523c1b24dd41b14a400d219c55",
+      "unchanged": true
+    },
+    "native/heap.c": {
+      "input_sha256": "c3c4e4f9023d48b11cf60885917af1a489383c3661cb3451f803fa6dce1e9b70",
+      "sha256": "c3c4e4f9023d48b11cf60885917af1a489383c3661cb3451f803fa6dce1e9b70",
+      "unchanged": true
+    },
+    "native/opengl_shims.c": {
+      "input_sha256": "ef02062203e777aded2307c6b96c6c059c0242986c7856d68b14ea932b22810c",
+      "sha256": "ef02062203e777aded2307c6b96c6c059c0242986c7856d68b14ea932b22810c",
+      "unchanged": true
+    },
+    "native/pack.sh": {
+      "input_sha256": "543d3812af1cf139b2ab2663fe73c9aef65cff698627ba98e5a07e6e09b0c3fa",
+      "sha256": "543d3812af1cf139b2ab2663fe73c9aef65cff698627ba98e5a07e6e09b0c3fa",
+      "unchanged": true
+    },
+    "native/posix_fixes.c": {
+      "input_sha256": "7967c2a9a8e0505eff55d2da8a80730359fe8e3da9d3a774a587f6ec794ece26",
+      "sha256": "7967c2a9a8e0505eff55d2da8a80730359fe8e3da9d3a774a587f6ec794ece26",
+      "unchanged": true
+    },
+    "native/ps5-app.ld": {
+      "input_sha256": "07255a52e7ad31ae97d55841b388aacc482b7a3b6c26c8f4ab4fd588b17cacfd",
+      "sha256": "07255a52e7ad31ae97d55841b388aacc482b7a3b6c26c8f4ab4fd588b17cacfd",
+      "unchanged": true
+    },
+    "native/ps5_modules.c": {
+      "input_sha256": "16e25a67ffe1ccf5370e7cc3faebfd079a33d0ae8aef558dc4fe2b2285662738",
+      "sha256": "16e25a67ffe1ccf5370e7cc3faebfd079a33d0ae8aef558dc4fe2b2285662738",
+      "unchanged": true
+    },
+    "native/ps5_storage.cpp": {
+      "input_sha256": "1b3d343aa337d5daf8a18ebae3b51b401007a8c4622126097d1ecf284f89bb8b",
+      "sha256": "1b3d343aa337d5daf8a18ebae3b51b401007a8c4622126097d1ecf284f89bb8b",
+      "unchanged": true
+    },
+    "native/ps5_storage.h": {
+      "input_sha256": "2da00c758a424aaa50cd4a6b828d6a3997234e0e8aeb9c6f653856009c162bfe",
+      "sha256": "2da00c758a424aaa50cd4a6b828d6a3997234e0e8aeb9c6f653856009c162bfe",
+      "unchanged": true
+    },
+    "native/shims.c": {
+      "input_sha256": "9428768f898abcca5629d63a7cc54e1fdd8b3a85b73350738b0e26b4ba1d592f",
+      "sha256": "9428768f898abcca5629d63a7cc54e1fdd8b3a85b73350738b0e26b4ba1d592f",
+      "unchanged": true
+    },
+    "native/stubs/videodec2.c": {
+      "input_sha256": "1febe2ac7338f8e8aa831ded04c0c5a7a9eac36e6447449a7bbfdd5da7bbd52f",
+      "sha256": "1febe2ac7338f8e8aa831ded04c0c5a7a9eac36e6447449a7bbfdd5da7bbd52f",
+      "unchanged": true
+    },
+    "native/videoout_capture.c": {
+      "input_sha256": "4b91e5c4e56f1f2b8a4703962d13c954f13570f48ec052c85021af614dd76359",
+      "sha256": "4b91e5c4e56f1f2b8a4703962d13c954f13570f48ec052c85021af614dd76359",
+      "unchanged": true
+    },
+    "native/vlc_memory.c": {
+      "input_sha256": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+      "sha256": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+      "unchanged": true
+    },
+    "src/hwdec_ps5.cpp": {
+      "input_sha256": "3791ec4397aea5ba38dc9a203fbbba7e4f38d3e50229ae52982c207426f7cbd1",
+      "sha256": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+      "unchanged": false
+    },
+    "src/native_memory.h": {
+      "input_sha256": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+      "sha256": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+      "unchanged": true
+    },
+    "src/player_iec61937.cpp": {
+      "input_sha256": "1596601b438e3a4d06991ca2db563429e89ae4e98eb30f14083151cc4d2c691d",
+      "sha256": "1596601b438e3a4d06991ca2db563429e89ae4e98eb30f14083151cc4d2c691d",
+      "unchanged": true
+    },
+    "src/player_iec61937.h": {
+      "input_sha256": "043a5e9877680d4ce8de31f0ad2da9ba0b68c3d01a7d36ae1e6246cbd82b8753",
+      "sha256": "043a5e9877680d4ce8de31f0ad2da9ba0b68c3d01a7d36ae1e6246cbd82b8753",
+      "unchanged": true
+    },
+    "src/player_vlc_copy.cpp": {
+      "input_sha256": "844a82078b739762375ac2319567cc8e75f4cc2df4a54ad3df873312e349c96a",
+      "sha256": "844a82078b739762375ac2319567cc8e75f4cc2df4a54ad3df873312e349c96a",
+      "unchanged": true
+    },
+    "src/player_vlc_passthrough.cpp": {
+      "input_sha256": "6e4d76d4183aa9d386f890ab53a11713549f183f9a2c2473443c6c376fc924a7",
+      "sha256": "6e4d76d4183aa9d386f890ab53a11713549f183f9a2c2473443c6c376fc924a7",
+      "unchanged": true
+    },
+    "src/texture_cache.cpp": {
+      "input_sha256": "b2463420ed51424acbd6fa9440f00a18cc9fd4a1087756cfe6702ffbd3d4a6d6",
+      "sha256": "b2463420ed51424acbd6fa9440f00a18cc9fd4a1087756cfe6702ffbd3d4a6d6",
+      "unchanged": true
+    },
+    "src/texture_cache.h": {
+      "input_sha256": "61cc789351a8c35397a5ae29f733aa56e1b964ef41c461023aa8f0f1e0f13101",
+      "sha256": "61cc789351a8c35397a5ae29f733aa56e1b964ef41c461023aa8f0f1e0f13101",
+      "unchanged": true
+    },
+    "src/video_gl.cpp": {
+      "input_sha256": "ecdefaab33da0acba1beecd4d953fe5b5b669c98a3cdb7a5f3d0f8917abe4704",
+      "sha256": "ecdefaab33da0acba1beecd4d953fe5b5b669c98a3cdb7a5f3d0f8917abe4704",
+      "unchanged": true
+    },
+    "src/video_gl.h": {
+      "input_sha256": "3a5adc703db74a136ee0e3e5638f31f7f4b88bc7759e3256639cdd564b87b34c",
+      "sha256": "3a5adc703db74a136ee0e3e5638f31f7f4b88bc7759e3256639cdd564b87b34c",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/LICENSE": {
+      "input_sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/NOTICE.md": {
+      "input_sha256": "48a41b43267d21f0978795a2b4b8a38dfc13f6ea5016d1ccaabe286e8f990281",
+      "sha256": "6ddd27e64297595e888228eab79d76f8cfcde1ec5cd86b264d3b8a297a346819",
+      "unchanged": false
+    },
+    "vendor/vlc-ps5/UPSTREAM_README.md": {
+      "input_sha256": "efbcd3617f577889be0fdcaebcdffdad053cf9f59e1228b17e3100e6f1aa0c9b",
+      "sha256": "efbcd3617f577889be0fdcaebcdffdad053cf9f59e1228b17e3100e6f1aa0c9b",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/compat/libc_missing.c": {
+      "input_sha256": "1f8c215783b6ae31c36428705db7b7e05e2e5edfacd10d6e8ef11ec695b005ed",
+      "sha256": "1f8c215783b6ae31c36428705db7b7e05e2e5edfacd10d6e8ef11ec695b005ed",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/compat/libc_stubs.c": {
+      "input_sha256": "cddb7370450ea87e587bb7c49c140084c9ec05be5983304e20ed944c72a0e23f",
+      "sha256": "cddb7370450ea87e587bb7c49c140084c9ec05be5983304e20ed944c72a0e23f",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/compat/mmap.c": {
+      "input_sha256": "ec787013176cf83b78c39b4a9fd6468ab4009a8ccd3dfa25a6c9519cb2177226",
+      "sha256": "ec787013176cf83b78c39b4a9fd6468ab4009a8ccd3dfa25a6c9519cb2177226",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/compat/resolv_stub.c": {
+      "input_sha256": "0a06ce92b82e80272863e20d7fef3f1cf30c60c073979a2020ad81729f470567",
+      "sha256": "0a06ce92b82e80272863e20d7fef3f1cf30c60c073979a2020ad81729f470567",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/compat/vlc_missing.c": {
+      "input_sha256": "79fd3bbf0d6c95124784e0eabdb3c166b877f5fd5706c17b8124e16431a3b885",
+      "sha256": "79fd3bbf0d6c95124784e0eabdb3c166b877f5fd5706c17b8124e16431a3b885",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/compat/vlc_resolver.c": {
+      "input_sha256": "9ca6d3e169ce3fd8f60024f6868f989827e35aee5353063c3818dc04b481ab20",
+      "sha256": "9ca6d3e169ce3fd8f60024f6868f989827e35aee5353063c3818dc04b481ab20",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/compat/vlc_search.c": {
+      "input_sha256": "66919eae5710298ed152ddbc4751ca6521f8f9e34493a68512bfa5a29c5a4134",
+      "sha256": "66919eae5710298ed152ddbc4751ca6521f8f9e34493a68512bfa5a29c5a4134",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/configure-vlc.sh": {
+      "input_sha256": "647b475d99e898bf4154514eb9e01cd7e49f724064c2bc859f5ab9244169b450",
+      "sha256": "647b475d99e898bf4154514eb9e01cd7e49f724064c2bc859f5ab9244169b450",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/deps/build-deps.sh": {
+      "input_sha256": "badb25d23f46e9460e5026b43b9b5f733560e5fc37dafa5d4cc19efe928ca5d6",
+      "sha256": "badb25d23f46e9460e5026b43b9b5f733560e5fc37dafa5d4cc19efe928ca5d6",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/gen-static-modules.sh": {
+      "input_sha256": "41758ad2da3327a5647da60ef2c1ce9c3a42371afaedafa3f3ca3766a28fceaa",
+      "sha256": "41758ad2da3327a5647da60ef2c1ce9c3a42371afaedafa3f3ca3766a28fceaa",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/modules/ps5http.c": {
+      "input_sha256": "56d9177993446b949c0c2408ccfdfd6ec0740509195783a47a05c28f68e6a5d1",
+      "sha256": "56d9177993446b949c0c2408ccfdfd6ec0740509195783a47a05c28f68e6a5d1",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/modules/ps5vdec.c": {
+      "input_sha256": "12dafd115056d02be87bf984e99403b55f73813e4ab6dcdee72542b7868c6bee",
+      "sha256": "12dafd115056d02be87bf984e99403b55f73813e4ab6dcdee72542b7868c6bee",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0001-freetype-ps5-default-fonts.patch": {
+      "input_sha256": "dac7605901f1413c58c041b10609458f536ea233317aed1178767f903381b19e",
+      "sha256": "dac7605901f1413c58c041b10609458f536ea233317aed1178767f903381b19e",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0002-posix-error-ps5-no-strerror_l.patch": {
+      "input_sha256": "54a2bccff4967765ac673bc491db730796bc8f9ff39bd6729b6db2bcfb32d2cf",
+      "sha256": "54a2bccff4967765ac673bc491db730796bc8f9ff39bd6729b6db2bcfb32d2cf",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0003-interrupt-ps5-sliced-poll.patch": {
+      "input_sha256": "dd3ad19a6839dd17042c78ea5fe2943c8f4ed2510e622ed9347d2f02f0eb19ff",
+      "sha256": "dd3ad19a6839dd17042c78ea5fe2943c8f4ed2510e622ed9347d2f02f0eb19ff",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0004-thread-ps5-cpu-count.patch": {
+      "input_sha256": "b1588b151a54024ba7ab302ceaf945bf2b87955c9fd0992166d94f2c23e80bdd",
+      "sha256": "b1588b151a54024ba7ab302ceaf945bf2b87955c9fd0992166d94f2c23e80bdd",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0005-freetype-ps5-fallback-fonts.patch": {
+      "input_sha256": "d236815ab4b2af3bb58ffa07ee408f94bb98a763fc30abf788c345f47ec3793a",
+      "sha256": "d236815ab4b2af3bb58ffa07ee408f94bb98a763fc30abf788c345f47ec3793a",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0006-netconf-ps5-no-proxy-helper.patch": {
+      "input_sha256": "bd495438362b11c5138599039c30109e183687981f430d29ba4ab6cdb0e770df",
+      "sha256": "bd495438362b11c5138599039c30109e183687981f430d29ba4ab6cdb0e770df",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0007-no-named-locales-ps5.patch": {
+      "input_sha256": "07bd10c786c144ec98cc2c1d8a81541ee9df408314ded0646f7338ccf711ef12",
+      "sha256": "07bd10c786c144ec98cc2c1d8a81541ee9df408314ded0646f7338ccf711ef12",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0008-libass-ps5-default-font.patch": {
+      "input_sha256": "eb5ca0e8eb62a37ecbba2e5aedc333e61d12e4259eba3532725f0277b1445cfa",
+      "sha256": "eb5ca0e8eb62a37ecbba2e5aedc333e61d12e4259eba3532725f0277b1445cfa",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0009-dvdnav-ps5-stream-demux.patch": {
+      "input_sha256": "aba70016c03bcf178f9c8645465f8781636bc393a556860e877efd8a2e38a7da",
+      "sha256": "aba70016c03bcf178f9c8645465f8781636bc393a556860e877efd8a2e38a7da",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0010-bluray-ps5-menu-state.patch": {
+      "input_sha256": "9d12e8ef167af62286411d2dda18e4a06b70e35364b210a0c3401e5ba380382d",
+      "sha256": "9d12e8ef167af62286411d2dda18e4a06b70e35364b210a0c3401e5ba380382d",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0011-freetype-ps5-utf8-without-iconv.patch": {
+      "input_sha256": "06b1be96da9e5db56c26ef5ab3e37bb3b729583f429396053eb4ad101302008a",
+      "sha256": "06b1be96da9e5db56c26ef5ab3e37bb3b729583f429396053eb4ad101302008a",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0012-adaptive-ps5-http-res-malloc.patch": {
+      "input_sha256": "fb2b555cb224f0edeccdc887ef9ca6f37db3230e94ea3f3b5017a4c929202423",
+      "sha256": "fb2b555cb224f0edeccdc887ef9ca6f37db3230e94ea3f3b5017a4c929202423",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0013-avcodec-opus-bare-header.patch": {
+      "input_sha256": "01892d88705d1a3ff9e92dee3fc275858c7164250ba81fbdb0ea145c20e22375",
+      "sha256": "01892d88705d1a3ff9e92dee3fc275858c7164250ba81fbdb0ea145c20e22375",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0014-vmem-ps5-colour-info.patch": {
+      "input_sha256": "5ec6d7da78fb1c5aab57663a1e481135b22302bb8dcd23c2cb954317bc0f7009",
+      "sha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53",
+      "unchanged": false
+    },
+    "vendor/vlc-ps5/patches/0015-picture-ps5-big-pictures-direct-memory.patch": {
+      "input_sha256": "d9a241931bc790badf6df768a11f809f1719f415b98dcf06b4ee5f364b28594f",
+      "sha256": "d9a241931bc790badf6df768a11f809f1719f415b98dcf06b4ee5f364b28594f",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0016-vmem-ps5-parallel-copy.patch": {
+      "input_sha256": "4f93747f50a7416b1e7616afaf02ca1945d35ee26e00e52e10314940242c16e8",
+      "sha256": "4f93747f50a7416b1e7616afaf02ca1945d35ee26e00e52e10314940242c16e8",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0017-smb2-ps5-bigger-reads.patch": {
+      "input_sha256": "a4ae4582c64f099564dff7f502b5e950834ad92eac6dd81bdf6376cbbb4b1b03",
+      "sha256": "a4ae4582c64f099564dff7f502b5e950834ad92eac6dd81bdf6376cbbb4b1b03",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0018-stremio-subtitle-callback.patch": {
+      "input_sha256": "88c60c7754af30846592cdc48c30ecc1cd2e348c693151e16fc9afcae5a5f14e",
+      "sha256": "88c60c7754af30846592cdc48c30ecc1cd2e348c693151e16fc9afcae5a5f14e",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0019-static-vc1-module-name.patch": {
+      "input_sha256": "d80b472254cde3f22a98cdf2634a283d0777f1b35043aba8292fd97bbb89f5a2",
+      "sha256": "d80b472254cde3f22a98cdf2634a283d0777f1b35043aba8292fd97bbb89f5a2",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0020-growing-input-direct-access.patch": {
+      "input_sha256": "52743cdc815f91f1e0224badb51a206fd318191556585c86ef94d3a58d7ead51",
+      "sha256": "52743cdc815f91f1e0224badb51a206fd318191556585c86ef94d3a58d7ead51",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0021-reference-safe-rebuffering.patch": {
+      "input_sha256": "a3776f52aab38c56ac4c68c004d047990c78ed78415c65e21f633fa7111013a7",
+      "sha256": "a3776f52aab38c56ac4c68c004d047990c78ed78415c65e21f633fa7111013a7",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0022-stremio-video-metadata.patch": {
+      "input_sha256": "c5eaf8ba4c778b628aff089081f2c918ef4e4b05fd664755acc358665a6ec5fe",
+      "sha256": "c5eaf8ba4c778b628aff089081f2c918ef4e4b05fd664755acc358665a6ec5fe",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0023-stremio-decoder-error.patch": {
+      "input_sha256": "f11ac02f13ca12560badef4e2114736239ab0dfaa636fddf115075077568e90d",
+      "sha256": "f11ac02f13ca12560badef4e2114736239ab0dfaa636fddf115075077568e90d",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/0024-reset-frame-discard-after-preroll.patch": {
+      "input_sha256": "2b83e3a35c644e4a6b4a4223436b7ad2ce12484e59bb106d214600f323a971ec",
+      "sha256": "2b83e3a35c644e4a6b4a4223436b7ad2ce12484e59bb106d214600f323a971ec",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/dvdread/0001-plain-input-reads-streams.patch": {
+      "input_sha256": "2010d672d0175d9f562e028f43543b17f9a116a42770a7a53daf256be90bba15",
+      "sha256": "2010d672d0175d9f562e028f43543b17f9a116a42770a7a53daf256be90bba15",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/ffmpeg/0001-opus-ps5-recording-header.patch": {
+      "input_sha256": "813b977e8c2b4608e8d5c547ffdb0e49f03df4aeaf776b87d2e5aade56d7df19",
+      "sha256": "813b977e8c2b4608e8d5c547ffdb0e49f03df4aeaf776b87d2e5aade56d7df19",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/mesa/0001-videoout-hdr10.patch": {
+      "input_sha256": "e300f1713295c0c151cb08aea39715d50d80ed629c68878d6e62656112f272b9",
+      "sha256": "e300f1713295c0c151cb08aea39715d50d80ed629c68878d6e62656112f272b9",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/smb2/0001-socket-big-buffers.patch": {
+      "input_sha256": "ca7e5c01424143e3f39ed928985c391961fa26b6a137869f23acdbd636302c50",
+      "sha256": "ca7e5c01424143e3f39ed928985c391961fa26b6a137869f23acdbd636302c50",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/patches/upnp/0001-ssdp-listener-optional.patch": {
+      "input_sha256": "00bdb29b8892fff20dc2c61fd31d842f7673f3e2386b5508d6d78be55a44ce6b",
+      "sha256": "00bdb29b8892fff20dc2c61fd31d842f7673f3e2386b5508d6d78be55a44ce6b",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/pkg-config": {
+      "input_sha256": "4b24425b042cdeabf4e157150d4ba45bb0a26d62ec4715b79320a80ef34c3a26",
+      "sha256": "4b24425b042cdeabf4e157150d4ba45bb0a26d62ec4715b79320a80ef34c3a26",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/plugins.txt": {
+      "input_sha256": "21800d65d60e42a7dfd762145770c493bf8470063dcfe57197cf341714c3cec7",
+      "sha256": "21800d65d60e42a7dfd762145770c493bf8470063dcfe57197cf341714c3cec7",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/ps5-cross.ini": {
+      "input_sha256": "78f0ae6c1fa272ba6752d2ee1a23ad087624c9b73bf844216d7a1cf13720321b",
+      "sha256": "78f0ae6c1fa272ba6752d2ee1a23ad087624c9b73bf844216d7a1cf13720321b",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/sources.json": {
+      "input_sha256": "2d2fffcab6a094fc99a89bd731a01dc100b97598150b5d838ba68d3a3d5aea40",
+      "sha256": "2d2fffcab6a094fc99a89bd731a01dc100b97598150b5d838ba68d3a3d5aea40",
+      "unchanged": true
+    },
+    "vendor/vlc-ps5/sources.sha256": {
+      "input_sha256": "f87a7e0c8a4d998a541586c2a49a52aa9a6bdc706e4568cad0a739e7f1c9d201",
+      "sha256": "f87a7e0c8a4d998a541586c2a49a52aa9a6bdc706e4568cad0a739e7f1c9d201",
+      "unchanged": true
+    }
+  },
+  "hardware_regions": {
+    "native_api_and_resident_slot_implementation": {
+      "unchanged": true,
+      "sha256": "9c6650f1bac5c0c46a9e566afaba52973683f8e1d600093ee5ab9109d12becea"
+    },
+    "hardware_open_policy": {
+      "unchanged": true,
+      "sha256": "e0cd4bed8af012f4c8e8b46cfd86b74133651d16b9891b3ebd90f081ea46ddc4"
+    },
+    "resident_decoder_destructor": {
+      "unchanged": true,
+      "sha256": "06e745243fbfc950638fc6ea166f41c60047117f46f569c882c966a592673ad2"
+    }
+  },
+  "reviewed_changes": {
+    "src/hwdec_ps5.cpp": "Bounded VP9 PTS/visibility FIFO for accepted access units and delayed output, reset on flush; unchanged native API/resident slot/open/destructor policy. Regression: 17 cases / 220 checks ASan+UBSan.",
+    "vendor/vlc-ps5/NOTICE.md": "Attribution and exact upstream revision for selective backports.",
+    "vendor/vlc-ps5/patches/0025-vmem-ps5-keep-visible.patch": "New upstream patch for coded/visible output geometry; no change to decoder skip, reference-picture or memory-ownership policies.",
+    "vendor/vlc-ps5/patches/0014-vmem-ps5-colour-info.patch": "Hunk context only: generated C identical across all 4383 source files; complete 25-patch second pass changes no files. Proof: patch-reentry-proof/result.json."
+  }
+}

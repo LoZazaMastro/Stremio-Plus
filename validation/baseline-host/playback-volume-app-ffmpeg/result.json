@@ -1,0 +1,25 @@
+{
+  "result": "PASS",
+  "backend": "ffmpeg",
+  "scope": "Real App/UI input, settings round trip and decoded PCM observed at SDL output; mocked HDMI route decision",
+  "results": {
+    "result": "PASS",
+    "checks": 71,
+    "actual_pcm_capture": true,
+    "mocked_bitstream_route": true
+  },
+  "sha256": {
+    "src/playback_volume.h": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+    "src/player_vlc_audio.h": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+    "src/player.h": "af453a36044027d8934ec1275a406b87a2064fd9990233aa301c902b3cc30a49",
+    "src/player.cpp": "bb24639ebafba1ab66061dbcfea9cfd754051da9d0e7df365d2bebd64ef210dd",
+    "src/app.h": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+    "src/app.cpp": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+    "src/app_watch.cpp": "a3544e5185b253788254ba4ce7dc5f26ac258c763070299b170dc395c8cb16b2",
+    "src/home_ui.cpp": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+    "vendor/ps5-homebrew-ui/src/core/input.hpp": "2d6ce7f8cebb9b86121d6677a379f765c772e305217deed9cd56c2d289bdc6ce",
+    "vendor/ps5-homebrew-ui/src/core/input.cpp": "59ac34483f2c363a15f1a409ee4b0f4ba38fd391a747d5b47bd62b05b8da3140",
+    "tests/test_playback_volume_app.cpp": "125ab86add7e2574ccafa1d93c1590216377b6e7a604ddcf5d74cb160b65e20b",
+    "tests/run_playback_volume_app_tests.py": "2b03b09e686e94b8d1e6df5fa73fa208509e7794545de36caecd55463772b9fa"
+  }
+}

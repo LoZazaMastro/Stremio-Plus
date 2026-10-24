@@ -104,6 +104,10 @@ struct InputFrame
     float trigger_r = 0.0f;
     bool connected = false;
     bool focus_lost = false; // disconnected or the system took the input
+    // Stays true while a system overlay owns the connected pad. focus_lost
+    // is only an edge; analog controls must not treat intercepted zeroes as
+    // a physical return to neutral.
+    bool intercepted = false;
 
     bool is_pressed(Action action) const
     {

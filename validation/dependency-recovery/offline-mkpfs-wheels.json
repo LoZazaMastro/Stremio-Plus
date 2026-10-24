@@ -1,0 +1,52 @@
+{
+  "scope": "Isolated CPython3.12/Linux x86_64 MkPFS installation using only cached wheels",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "-m",
+        "venv",
+        "/tmp/stremio-offline-mkpfs-mtdlz06v/venv"
+      ],
+      "exit": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "/tmp/stremio-offline-mkpfs-mtdlz06v/venv/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "--disable-pip-version-check",
+        "--no-index",
+        "--find-links",
+        "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels",
+        "-r",
+        "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt"
+      ],
+      "exit": 0,
+      "output": "Looking in links: /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels\nProcessing ./.deps/downloads/mkpfs-python-wheels/mkpfs-1.0.0-py3-none-any.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 1))\nProcessing ./.deps/downloads/mkpfs-python-wheels/cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 2))\nProcessing ./.deps/downloads/mkpfs-python-wheels/cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 3))\nProcessing ./.deps/downloads/mkpfs-python-wheels/customtkinter-6.0.0-py3-none-any.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 4))\nProcessing ./.deps/downloads/mkpfs-python-wheels/darkdetect-0.8.0-py3-none-any.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 5))\nProcessing ./.deps/downloads/mkpfs-python-wheels/isal-1.8.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 6))\nProcessing ./.deps/downloads/mkpfs-python-wheels/packaging-26.3-py3-none-any.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 7))\nProcessing ./.deps/downloads/mkpfs-python-wheels/pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 8))\nProcessing ./.deps/downloads/mkpfs-python-wheels/pycparser-3.12-py3-none-any.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 9))\nProcessing ./.deps/downloads/mkpfs-python-wheels/zlib_ng-1.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (from -r /workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/downloads/mkpfs-python-wheels/requirements-offline.txt (line 10))\nInstalling collected packages: zlib-ng, pycparser, pillow, packaging, isal, darkdetect, customtkinter, cffi, cryptography, mkpfs\nSuccessfully installed cffi-2.1.1 cryptography-50.0.2 customtkinter-6.0.0 darkdetect-0.8.0 isal-1.8.0 mkpfs-1.0.0 packaging-26.3 pillow-13.0.0 pycparser-3.12 zlib-ng-1.0.0\n"
+    },
+    {
+      "command": [
+        "/tmp/stremio-offline-mkpfs-mtdlz06v/venv/bin/python",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "exit": 0,
+      "output": "No broken requirements found.\n"
+    },
+    {
+      "command": [
+        "/tmp/stremio-offline-mkpfs-mtdlz06v/venv/bin/python",
+        "-m",
+        "mkpfs",
+        "--help"
+      ],
+      "exit": 0,
+      "output": "MkPFS 1.0.0 - https://github.com/PSBrew/MkPFS\n\nUsage:\n   mkpfs [-h] [-V] {pack,verify,inspect,tree,unpack,batch} ...\n\nCLI for pack folder/file, verify, inspect, tree, and unpack PFS operations\n\npositional arguments:\n  {pack,verify,inspect,tree,unpack,batch}\n    pack                Pack a folder or file into an image\n    verify              Validate image structure and payload checksums\n    inspect             Inspect image metadata and integrity summary\n    tree                Print image tree representation\n    unpack              Extract files from image to destination directory\n    batch               Batch convert multiple items in a directory into\n                        .ffpfsc images\n\noptions:\n  -h, --help            show this help message and exit\n  -V                    Show version and exit\n\nExample: mkpfs pack file './BREW1234.exfat' './BREW1234.exfat.ffpfsc'"
+    }
+  ],
+  "result": "PASS"
+}

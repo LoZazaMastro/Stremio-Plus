@@ -22,7 +22,7 @@ names = [line.split()[0] for line in subprocess.check_output(
 readable = subprocess.check_output(["c++filt"], input="\n".join(names) + "\n", text=True).splitlines()
 boundaries = {"WRAP_NOW": "now_seconds", "WRAP_PLAYER_CLOSE": "Player::close",
               "WRAP_SAVE_PROGRESS": "App::save_progress", "WRAP_DETAIL_STREAMS": "App::detail_load_streams",
-              "WRAP_LOCAL_START": "App::start_download_playback",
+              "WRAP_PLAYER_OPEN": "Player::open",
               "WRAP_DOWNLOAD_SNAPSHOT": "DownloadManager::snapshot", "WRAP_DOWNLOAD_FIND": "DownloadManager::find", "WRAP_ART_GET": "ArtCache::get",
               "WRAP_ART_PEEK": "ArtCache::peek", "WRAP_ART_ASYNC": "ArtCache::get_async",
               "WRAP_ART_CACHED": "ArtCache::peek_cached"}

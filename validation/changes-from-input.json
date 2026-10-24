@@ -1,0 +1,499 @@
+{
+  "input_archive": "Stremio-Plus-main.zip",
+  "input_sha256": "9d45a702a6da9a0dcdff43dad1d186b3f92425f1abcff3844df4918b451a1e17",
+  "input_files": 818,
+  "candidate_source_files": 840,
+  "byte_identical_files": 786,
+  "modified_files": 32,
+  "added_files": 22,
+  "removed_files": 0,
+  "scope": "Application source and assets, build scripts, tests and docs. Generated validation evidence and dependencies/build outputs are excluded from this comparison. No Git branch or commit was created.",
+  "changes": [
+    {
+      "path": "BUILDING.md",
+      "change": "modified",
+      "input_sha256": "f1cf37b58cd8b5a697bb3e64736d2e58be265d754bff071ae96126936fda0cc1",
+      "candidate_sha256": "79d28e4733c0a504d3a0d042f1d9a61ddfc998312a320e6c30f86595301baef2",
+      "input_bytes": 15528,
+      "candidate_bytes": 18234,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "CHANGELOG.md",
+      "change": "modified",
+      "input_sha256": "484e7c1fe1e269132e22d0019baa3e79eb7a99022244e4742bc44d666c0a885f",
+      "candidate_sha256": "c7c5ce222590074ed63798e1eb985877772288b765fc78289426b522c9929101",
+      "input_bytes": 24741,
+      "candidate_bytes": 26906,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "CMakeLists.txt",
+      "change": "modified",
+      "input_sha256": "75e953104d0ff1b09dd08028e2db111c9f6016b516370bf373e4f2c169f01fab",
+      "candidate_sha256": "d5fc140abbec14499fb119acc9ad0c99a5ab45cd1679a6a27c7e5504f58cb0a6",
+      "input_bytes": 5759,
+      "candidate_bytes": 5759,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "README.md",
+      "change": "modified",
+      "input_sha256": "90df64cadc8f7157dafc543286627bc916dc70573ebe5f94ff212c6e0cc69eaa",
+      "candidate_sha256": "f82f04fbb63832dc70aaa029d608cb6a11ae17a37167d6a8b087df5066db3ec6",
+      "input_bytes": 25400,
+      "candidate_bytes": 25767,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "THIRD_PARTY.md",
+      "change": "modified",
+      "input_sha256": "1c721f79367c763fb26439864aab3d6b6a634d396a9ea7573dd19704d1ef7866",
+      "candidate_sha256": "43b5c7ca36f5d88792b8963bb5caa8b0c2ebe579eadbf1a9491835a66b4710bf",
+      "input_bytes": 13339,
+      "candidate_bytes": 13508,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "app/sce_sys/param.json",
+      "change": "modified",
+      "input_sha256": "c7915e037c51a34d735b0bcf9d9b1d016b2f7819b047326928c6dcdeaa074cb0",
+      "candidate_sha256": "648a5aa89a5f292f7b037c51211f55c55efc675356d75277e346c56f968cb415",
+      "input_bytes": 772,
+      "candidate_bytes": 772,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "docs/DEPENDENCY_SOURCES.md",
+      "change": "modified",
+      "input_sha256": "e1714616697b360574ee93422a9a1d79e201ce71d3a73fa09f511fafa751b5b0",
+      "candidate_sha256": "00061cafb5ce0490e353eb0a33bb9721a5c5bfd1918379c8feb2f0ddfef05347",
+      "input_bytes": 12280,
+      "candidate_bytes": 13891,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "docs/LOCAL_0_5_19_VALIDATION.md",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "89fc952774109d35198525db4fd048f5bc01194e2cff9707fe33b03cd5fa9b41",
+      "input_bytes": null,
+      "candidate_bytes": 24701,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "docs/POST_0_5_18_WORK_IN_PROGRESS.md",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "035ed697c9955cede54e75a286ae8ddcc8760d27bc8e01447cba00ce68e00d39",
+      "input_bytes": null,
+      "candidate_bytes": 4584,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "docs/PROVA_PS5_IT.md",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "044af99285bb6f1f9fc162ab04ed883849086467f4a00cd69a18dc4ebc9e6127",
+      "input_bytes": null,
+      "candidate_bytes": 6832,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/account_link_session.h",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "6b2df58d854fc8408ff5e6ae208eba0e71d8a2b4e4b59b5fb605fbb7f80ad55f",
+      "input_bytes": null,
+      "candidate_bytes": 1362,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/app.cpp",
+      "change": "modified",
+      "input_sha256": "3a10bbcb921699af12838d38dd25e99859d48e8c4ef53c6933a396c4534d9f28",
+      "candidate_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+      "input_bytes": 34678,
+      "candidate_bytes": 35329,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/app.h",
+      "change": "modified",
+      "input_sha256": "65d3aab60934ba09b800c3d05e333b3e5aa72f3ca0698052a25e3ad9682e6c9b",
+      "candidate_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+      "input_bytes": 23559,
+      "candidate_bytes": 24349,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/app_board.cpp",
+      "change": "modified",
+      "input_sha256": "0b57d702685804ab3a0186798b940ca63cacc7820e57d42c1299ea0886adbb7e",
+      "candidate_sha256": "685ff7e72301ac7e4fb2a54756ec4f5699abd2b876ed0f3f6e7c500267a12ee7",
+      "input_bytes": 22903,
+      "candidate_bytes": 27374,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/app_settings.cpp",
+      "change": "modified",
+      "input_sha256": "32a79e87c5c0353be53c9b0c1d30bac6f09b6a04cb08d2c361d296106e4fa375",
+      "candidate_sha256": "e407b4a518a3a3f5e80471c8573f4385af05d2cf1c67e97fff84cb6fe4fd40b6",
+      "input_bytes": 8186,
+      "candidate_bytes": 9573,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/app_watch.cpp",
+      "change": "modified",
+      "input_sha256": "ae67b791f3bf3f4c7f7402a4fad998c147f55a4742847025fb66ab19d9fbe098",
+      "candidate_sha256": "a3544e5185b253788254ba4ce7dc5f26ac258c763070299b170dc395c8cb16b2",
+      "input_bytes": 41601,
+      "candidate_bytes": 43162,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/home_startup.h",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "e14d452bf2f9ae0f6ef48b33e977eaf14d31caa0068c4b2c68cb17b888acae1b",
+      "input_bytes": null,
+      "candidate_bytes": 2757,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/home_ui.cpp",
+      "change": "modified",
+      "input_sha256": "e3905b5765e383e3108b348c875968b39557b01037e5f869c6a341f7545be0f0",
+      "candidate_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+      "input_bytes": 193170,
+      "candidate_bytes": 198239,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/hwdec_ps5.cpp",
+      "change": "modified",
+      "input_sha256": "3791ec4397aea5ba38dc9a203fbbba7e4f38d3e50229ae52982c207426f7cbd1",
+      "candidate_sha256": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+      "input_bytes": 32179,
+      "candidate_bytes": 33533,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/main.cpp",
+      "change": "modified",
+      "input_sha256": "a5c221b95f4d5ef83c3b3f1cfeb62804a137a3460ba122eb385406c5f250fcc4",
+      "candidate_sha256": "e5b4d4672853149df47ca70686c65ebb2aa0b04e2cfeca76f14e4b7a582e14cf",
+      "input_bytes": 41007,
+      "candidate_bytes": 44010,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/playback_volume.h",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+      "input_bytes": null,
+      "candidate_bytes": 3083,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/player.cpp",
+      "change": "modified",
+      "input_sha256": "6700fa028d2d4aea46b1a9a5b70840998e6d3b5b846d7dc69ab0c1501fd8490b",
+      "candidate_sha256": "bb24639ebafba1ab66061dbcfea9cfd754051da9d0e7df365d2bebd64ef210dd",
+      "input_bytes": 53241,
+      "candidate_bytes": 53487,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/player.h",
+      "change": "modified",
+      "input_sha256": "7565d0cfd37d7ea480e3bf1019fe686edaa56193dad15e1eef87378c039c2eed",
+      "candidate_sha256": "af453a36044027d8934ec1275a406b87a2064fd9990233aa301c902b3cc30a49",
+      "input_bytes": 8808,
+      "candidate_bytes": 9281,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/player_vlc.cpp",
+      "change": "modified",
+      "input_sha256": "462c0ecc62a5e3196847446bbcfa9019236b406343e27e7b6ff06464d22572aa",
+      "candidate_sha256": "83c82c0fd599fd4fcb5e237bbd6b6a4c1e664c64ebfdd762fc9083bdc395372d",
+      "input_bytes": 62401,
+      "candidate_bytes": 67379,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "src/player_vlc_audio.h",
+      "change": "modified",
+      "input_sha256": "0d87fb4dc9db4cb9050d897f74bb0b7c44f24f555e3cdbc8dc5649183d374ae0",
+      "candidate_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+      "input_bytes": 3700,
+      "candidate_bytes": 3633,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/account_session_api.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "bd5df115cde760f7b9397975428eadb0f7ad599a4ecb955a8c7af1a40b0bbe83",
+      "input_bytes": null,
+      "candidate_bytes": 1079,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_account_tests.py",
+      "change": "modified",
+      "input_sha256": "3d79d50855f28f72dcb8a1267b23c25eeec9749d9af01ad78095a62c4747c8d9",
+      "candidate_sha256": "1a1dd820ef65a48cbc31d7bb836871457d78c42b82fdcc8d206ec8acf4536b19",
+      "input_bytes": 3324,
+      "candidate_bytes": 3545,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_home_startup_tests.py",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "28d0ec49ffec4aa8b3daa98e4cbb5e59afcdaddb0499712c5822e7d4bd47f134",
+      "input_bytes": null,
+      "candidate_bytes": 2413,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_interaction_tests.py",
+      "change": "modified",
+      "input_sha256": "3fc4d2fcebf41148e3368bfaea9d7d614216836579192ad833345351efb0532e",
+      "candidate_sha256": "805c19b2cae634dba7410a2578268ac257a2fe8d051e1eb163565144ad8322b0",
+      "input_bytes": 3157,
+      "candidate_bytes": 3170,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_playback_volume_app_tests.py",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "2b03b09e686e94b8d1e6df5fa73fa208509e7794545de36caecd55463772b9fa",
+      "input_bytes": null,
+      "candidate_bytes": 3245,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_playback_volume_tests.py",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "9c188cf7a2d6a637175ce9cc0a0ec60e0568fe6ebd12711298a8a62b0192455a",
+      "input_bytes": null,
+      "candidate_bytes": 1595,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_player_cadence_tests.py",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "13ddcf7687b09bbbc85e462cb07a48f559d49dc4f9bdb2cc9383463ac8944842",
+      "input_bytes": null,
+      "candidate_bytes": 5170,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_player_geometry_tests.py",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "6dc71d6f7b463ca8195dff4a8fe1f6ffe9628eddd40634e6d525bf3886ac9196",
+      "input_bytes": null,
+      "candidate_bytes": 7113,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_vlc_output_tests.py",
+      "change": "modified",
+      "input_sha256": "ff20c47f730274bb8b3af3ec02e9134eab53e8c40981ee16f9b43fb4b81d4fdb",
+      "candidate_sha256": "7d27a79c9bf7dde7222c3403b8d574ef52ff26b496ad9e804576da855d3b1f73",
+      "input_bytes": 1805,
+      "candidate_bytes": 1830,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/run_vp9_output_tests.py",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "7c52ee7bf694a8d43847c2fc63c40f153c9fe04b888ad644a8bccd3d2ec36dfe",
+      "input_bytes": null,
+      "candidate_bytes": 4071,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_account.cpp",
+      "change": "modified",
+      "input_sha256": "35ccc9e2d4f14fb35f43de484af2a685141a8ef7deb2c5f17acd3e10a38c4b67",
+      "candidate_sha256": "5cc356556c52fc65859d9bec83dd94ba31618aa397b38fb787a04dd0ec30af66",
+      "input_bytes": 26655,
+      "candidate_bytes": 31890,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_account_link_session.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "12ad74ab1493693a268d3b9d9fad0f456c70ff0a0c96e9f451c278b7320bef92",
+      "input_bytes": null,
+      "candidate_bytes": 2620,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_home_startup.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "cc9f97a050a9b1f34a92b28ef550893850256bf1a908f36a7af11851814d61ea",
+      "input_bytes": null,
+      "candidate_bytes": 11273,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_playback_volume.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "0e80c6c1b3e004a63e7076ee3e5c501e6b3628a2c3738e5ca9e4a23fa0957b42",
+      "input_bytes": null,
+      "candidate_bytes": 5453,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_playback_volume_app.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "125ab86add7e2574ccafa1d93c1590216377b6e7a604ddcf5d74cb160b65e20b",
+      "input_bytes": null,
+      "candidate_bytes": 18533,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_player_cadence.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "38f0f2cd8a87f26fe12cd878206b987cf033c61ef66c2b9d97193e4e5f4d72d3",
+      "input_bytes": null,
+      "candidate_bytes": 8594,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_player_crop_reference.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "2d70c17ee051f9b1f5a12d8031af94070ee1ff4c5c9007d07c01554d13335a34",
+      "input_bytes": null,
+      "candidate_bytes": 3027,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_player_geometry.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "240057bdf019ae113e6d7961778890af17f8fa734b1ab4336886cf114d35ad9e",
+      "input_bytes": null,
+      "candidate_bytes": 8539,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tests/test_vp9_output.cpp",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "e05c4dab67b81ab082f1202cb187dffa77a8b2f0fecf44d0f332bf5ad8fdbad8",
+      "input_bytes": null,
+      "candidate_bytes": 17478,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tools/build-native-entry.sh",
+      "change": "modified",
+      "input_sha256": "9e597ccd76d1def1cd4ee47889b3be923fc520515502badb20152a895d124b39",
+      "candidate_sha256": "32bd50a3b022816d36a7789a68495fbfe3e65aab97144c4baab1700ecb61ca96",
+      "input_bytes": 9377,
+      "candidate_bytes": 9450,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tools/pack-native-entry.sh",
+      "change": "modified",
+      "input_sha256": "5e9fe50c1bb8a6b99e31c9270098601711286534e8b3be385b48dac625f933a4",
+      "candidate_sha256": "47de168f1dcb80196c34b4f0edc2ce24e7ebb0295ea42832aea5a9cefae657d3",
+      "input_bytes": 1238,
+      "candidate_bytes": 1309,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "tools/setup-toolchain.sh",
+      "change": "modified",
+      "input_sha256": "cf2e883678eee8f44d7020ea12511524c36db7d5343ddb6c30d3e892bf5c2e2a",
+      "candidate_sha256": "da73a1f47db2ff1c85bb3ad21e1e577d9b1f0e411f0190a13d25c51ed5fb9048",
+      "input_bytes": 4592,
+      "candidate_bytes": 5716,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "vendor/ps5-homebrew-ui/src/core/input.cpp",
+      "change": "modified",
+      "input_sha256": "38cd50873fd9eb02bc323fdc2b8fdcfa66eded457c9553025295a7f32b49e9e8",
+      "candidate_sha256": "59ac34483f2c363a15f1a409ee4b0f4ba38fd391a747d5b47bd62b05b8da3140",
+      "input_bytes": 6054,
+      "candidate_bytes": 6102,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "vendor/ps5-homebrew-ui/src/core/input.hpp",
+      "change": "modified",
+      "input_sha256": "06ba0326b07574cb9a9a76a38f524517a9a9f5875715b521990c651b11a7e105",
+      "candidate_sha256": "2d6ce7f8cebb9b86121d6677a379f765c772e305217deed9cd56c2d289bdc6ce",
+      "input_bytes": 4577,
+      "candidate_bytes": 4797,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "vendor/ps5-homebrew-ui/src/ui/components/carousel.cpp",
+      "change": "modified",
+      "input_sha256": "df8e3ed647189adb9fa0f92b77910e20127cdd3a7435a79a5a69e63d5d7e874d",
+      "candidate_sha256": "1b3618658e49cd8182a619b9e962e2c8168b99cd9be932b7d9d8246ddaec5b05",
+      "input_bytes": 17397,
+      "candidate_bytes": 17408,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "vendor/ps5-homebrew-ui/src/ui/components/carousel.hpp",
+      "change": "modified",
+      "input_sha256": "2c8ac815e5911959096f53fda1083ecaad89038d0272ddbc8a1f17e5a01879d9",
+      "candidate_sha256": "85a01b36d5542e634858b2e72995b5de5a6537c0318019df63194df5af30dfe3",
+      "input_bytes": 6422,
+      "candidate_bytes": 6584,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "vendor/vlc-ps5/NOTICE.md",
+      "change": "modified",
+      "input_sha256": "48a41b43267d21f0978795a2b4b8a38dfc13f6ea5016d1ccaabe286e8f990281",
+      "candidate_sha256": "6ddd27e64297595e888228eab79d76f8cfcde1ec5cd86b264d3b8a297a346819",
+      "input_bytes": 2817,
+      "candidate_bytes": 4847,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "vendor/vlc-ps5/patches/0014-vmem-ps5-colour-info.patch",
+      "change": "modified",
+      "input_sha256": "5ec6d7da78fb1c5aab57663a1e481135b22302bb8dcd23c2cb954317bc0f7009",
+      "candidate_sha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53",
+      "input_bytes": 521,
+      "candidate_bytes": 465,
+      "included_in_text_diff": true
+    },
+    {
+      "path": "vendor/vlc-ps5/patches/0025-vmem-ps5-keep-visible.patch",
+      "change": "added",
+      "input_sha256": null,
+      "candidate_sha256": "4bcf85d308566ae899739822103cacce1a9224e7f0d785f1772ef1f222d7a87a",
+      "input_bytes": null,
+      "candidate_bytes": 1600,
+      "included_in_text_diff": true
+    }
+  ]
+}

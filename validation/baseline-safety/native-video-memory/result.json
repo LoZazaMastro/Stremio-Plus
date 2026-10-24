@@ -1,0 +1,97 @@
+{
+  "result": "PASS",
+  "cases": 14,
+  "checks": 93039,
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "kernelCalls": {
+    "availabilityQueries": 1884,
+    "physicalAllocationAttempts": 1862,
+    "mappingAttempts": 1866,
+    "unmapAttempts": 1861,
+    "physicalReleaseAttempts": 1861
+  },
+  "source_sha256": {
+    "native/vlc_memory.c": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+    "src/native_memory.h": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+    "tests/test_native_video_memory.c": "dfcc3202df20387d1c885c89243e299135b7602762f2bee79753152fd5e5d4a9",
+    "tests/run_native_video_memory_tests.py": "17f367589ecc8285db1e16bd92aebf8a23d79dbd037490c76e0a28a7006beb68"
+  },
+  "nativeAllocationOwnership": "Real host mmap/munmap pages plus independent extent and physical-page ledgers verify arbitrary power-of-two alignment, exact usable sizes, retained ownership, cleanup ordering, the 1536 MiB/2048-entry bound, 1536 simultaneous one-MiB allocations, a total 128 MiB reserve across fragmented ranges, retries and four-thread use. Every case ends with zero owned extents and mapped pages.",
+  "heapIsolation": "Link wrappers forbid malloc, calloc, realloc, free, posix_memalign and aligned_alloc while any production mapping hook executes. Unknown heap pointers return to the caller unchanged.",
+  "scenarios": [
+    {
+      "scenario": "real_mapping_alignment_and_heap_ownership",
+      "checks": 4141,
+      "result": "PASS"
+    },
+    {
+      "scenario": "size_overflow_and_pool_cap",
+      "checks": 4139,
+      "result": "PASS"
+    },
+    {
+      "scenario": "one_mib_blocks_reach_pool_bound_without_slot_exhaustion",
+      "checks": 33315,
+      "result": "PASS"
+    },
+    {
+      "scenario": "available_memory_reserve_and_query_failures",
+      "checks": 4142,
+      "result": "PASS"
+    },
+    {
+      "scenario": "generic_alignment_and_exact_usable_size",
+      "checks": 4221,
+      "result": "PASS"
+    },
+    {
+      "scenario": "fragmented_free_extents_preserve_total_reserve",
+      "checks": 4189,
+      "result": "PASS"
+    },
+    {
+      "scenario": "main10_reference_pool_and_render_leases_exceed_old_512_mib_cap",
+      "checks": 4873,
+      "result": "PASS"
+    },
+    {
+      "scenario": "memory_type_and_protection_fallbacks",
+      "checks": 4178,
+      "result": "PASS"
+    },
+    {
+      "scenario": "all_kernel_attempts_fail_without_heap_free",
+      "checks": 4170,
+      "result": "PASS"
+    },
+    {
+      "scenario": "failed_map_physical_release_is_retained_and_retried",
+      "checks": 4148,
+      "result": "PASS"
+    },
+    {
+      "scenario": "failed_unmap_preserves_pages_and_existing_live_picture",
+      "checks": 4154,
+      "result": "PASS"
+    },
+    {
+      "scenario": "failed_release_retries_without_double_unmap",
+      "checks": 4148,
+      "result": "PASS"
+    },
+    {
+      "scenario": "retired_full_pool_remains_bounded_until_kernel_recovers",
+      "checks": 4145,
+      "result": "PASS"
+    },
+    {
+      "scenario": "four_threads_keep_live_pictures_and_reuse_mappings",
+      "checks": 9076,
+      "result": "PASS"
+    }
+  ],
+  "limits": "Host tests simulate the console kernel API and physical-memory availability. They verify the production mapper, not physical PS5 playback, hardware decoder acceptance or sustained console performance. LSan is disabled; the independent ledger verifies native ownership."
+}

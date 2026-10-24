@@ -27,7 +27,7 @@ void main() {
 constexpr const char* fragment_begin = R"GLSL(
 in vec2 uv;
 out vec4 color;
-uniform sampler2D ytex, utex, vtex;
+uniform sampler2DRect ytex, utex, vtex;
 uniform int layout_mode, color_mode, wide, sample_shift, full_range, hlg, dovi_active;
 )GLSL";
 constexpr const char* fragment_end = R"GLSL(
@@ -50,11 +50,17 @@ vec3 transfer709(vec3 v) {
     return mix(1.099 * pow(v, vec3(0.45)) - 0.099, 4.5 * v, lessThan(v, vec3(0.018)));
 }
 void main() {
-    if (layout_mode == 0) { color = vec4(texture(ytex, uv).rgb, 1.0); return; }
+    // Rectangle planes use texel coordinates. Scale each plane independently:
+    // odd 4:2:0 dimensions and interleaved chroma retain their own extents.
+    vec2 yuv = uv * vec2(textureSize(ytex));
+    if (layout_mode == 0) { color = vec4(texture(ytex, yuv).rgb, 1.0); return; }
     vec3 code;
-    code.x = texture(ytex, uv).r;
-    if (layout_mode == 1) code.yz = texture(utex, uv).rg;
-    else { code.y = texture(utex, uv).r; code.z = texture(vtex, uv).r; }
+    code.x = texture(ytex, yuv).r;
+    if (layout_mode == 1) code.yz = texture(utex, uv * vec2(textureSize(utex))).rg;
+    else {
+        code.y = texture(utex, uv * vec2(textureSize(utex))).r;
+        code.z = texture(vtex, uv * vec2(textureSize(vtex))).r;
+    }
     float scale = wide != 0 ? 65535.0 / exp2(float(sample_shift)) : 255.0;
     code *= scale;
     float factor = wide != 0 ? 4.0 : 1.0;
@@ -79,12 +85,18 @@ void main() {
 }
 )GLSL";
 
-void texture_params() {
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+void texture_params(GLenum target) {
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // Rectangle textures have exactly one image level by definition.
+    if (target == GL_TEXTURE_2D) glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 0);
+}
+
+using UploadClock = std::chrono::steady_clock;
+double elapsed_ms(UploadClock::time_point begin) {
+    return std::chrono::duration<double, std::milli>(UploadClock::now() - begin).count();
 }
 
 GLenum consume_gl_errors() {
@@ -145,6 +157,7 @@ void VideoGl::clear() {
     stamp_ = period_ = 0;
     previous_media_pts_ = -1;
     serial_ = -1;
+    upload_timing_ = {};
 }
 void VideoGl::release() {
     clear();
@@ -173,6 +186,7 @@ bool VideoGl::reject(Failure failure, const char* stage, const Player::VideoFram
 
 bool VideoGl::upload(const Player::VideoFrame& f) {
     using Layout = Player::VideoFrame::Layout;
+    upload_timing_ = {};
     failure_ = Failure::None;
     if (!program_ || !framebuffer_ || !vao_ || !dovi_buffer_)
         return reject(Failure::InvalidFrame, "renderer_objects", f);
@@ -198,6 +212,8 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previous_fbo);
     const bool size_changed = width_ != f.w || height_ != f.h;
     if (size_changed || format_ != format) {
+        const auto allocation_started = UploadClock::now();
+        upload_timing_.reconfigured = true;
         const GLenum prior_error = consume_gl_errors();
         if (prior_error != GL_NO_ERROR && prior_gl_notes_++ < 8)
             dlog("video: prior GL error before resource setup gl_error=0x%04x", unsigned(prior_error));
@@ -208,23 +224,24 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
             discard_textures();
             glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo));
             glActiveTexture(GL_TEXTURE0);
+            upload_timing_.allocation_ms = elapsed_ms(allocation_started);
             return reject(failure, stage, f, plane, error, status);
         };
         GLenum allocation_error = GL_NO_ERROR;
-        auto allocate = [&](GLuint& texture, GLenum internal, GLenum external, GLenum type,
+        auto allocate = [&](GLuint& texture, GLenum target, GLenum internal, GLenum external, GLenum type,
                             int width, int height) {
             glGenTextures(1, &texture);
-            glBindTexture(GL_TEXTURE_2D, texture); texture_params();
+            glBindTexture(target, texture); texture_params(target);
             // This pinned Mesa's mutable allocation path flushes and retries
             // once on resource exhaustion. TexStorage returns OOM immediately.
             // MAX_LEVEL and the non-mipmap filter above keep one image level.
-            glTexImage2D(GL_TEXTURE_2D, 0, GLint(internal), width, height, 0, external, type, nullptr);
+            glTexImage2D(target, 0, GLint(internal), width, height, 0, external, type, nullptr);
             allocation_error = consume_gl_errors();
             return texture != 0 && allocation_error == GL_NO_ERROR;
         };
         // The 4K RGBA target needs a contiguous 32 MiB region aligned to 2 MiB.
         // Allocate it before smaller planes fragment the remaining regions.
-        if (!allocate(output_, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, f.w, f.h))
+        if (!allocate(output_, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, f.w, f.h))
             return failed_setup(Failure::Allocation, "output_storage", -1, allocation_error);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output_, 0);
@@ -237,23 +254,32 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
             const GLenum internal = layout == 0 ? GL_RGBA8 : (i == 1 && layout == 1) ? (f.wide ? GL_RG16 : GL_RG8) : (f.wide ? GL_R16 : GL_R8);
             const GLenum external = layout == 0 ? GL_BGRA : (i == 1 && layout == 1) ? GL_RG : GL_RED;
             const GLenum type = f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
-            if (!allocate(planes_[i], internal, external, type, i == 0 ? f.w : cw, i == 0 ? f.h : ch))
+            // The pinned PS5 driver tiles renderable single-level 2D R8/RG8
+            // images during every CPU upload. Rectangle sampled planes retain
+            // linear storage, avoiding that per-pixel CPU tiling loop. Keep the
+            // rendered RGBA output 2D for the UI and never render to a plane.
+            if (!allocate(planes_[i], GL_TEXTURE_RECTANGLE, internal, external, type,
+                          i == 0 ? f.w : cw, i == 0 ? f.h : ch))
                 return failed_setup(Failure::Allocation, "plane_storage", i, allocation_error);
         }
         width_ = f.w; height_ = f.h; format_ = format;
-        dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output SDR", f.w, f.h, layout, f.wide ? 10 : 8);
+        dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output SDR, upload=rectangle", f.w, f.h, layout, f.wide ? 10 : 8);
+        upload_timing_.allocation_ms = elapsed_ms(allocation_started);
     }
+    const auto planes_started = UploadClock::now();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     for (int i = 0; i < count; ++i) {
-        glActiveTexture(GL_TEXTURE0 + i); glBindTexture(GL_TEXTURE_2D, planes_[i]);
+        glActiveTexture(GL_TEXTURE0 + i); glBindTexture(GL_TEXTURE_RECTANGLE, planes_[i]);
         const GLenum external = layout == 0 ? GL_BGRA : (i == 1 && layout == 1) ? GL_RG : GL_RED;
         const size_t pixel_bytes = layout == 0 ? 4 : bytes * ((i == 1 && layout == 1) ? 2 : 1);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, GLint(row_pitches[i] / pixel_bytes));
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, i == 0 ? f.w : cw, i == 0 ? f.h : ch, external,
+        glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, i == 0 ? f.w : cw, i == 0 ? f.h : ch, external,
                        f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE, f.data() + f.offsets[i]);
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    upload_timing_.plane_ms = elapsed_ms(planes_started);
+    const auto draw_started = UploadClock::now();
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); glViewport(0, 0, f.w, f.h);
     glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND); glDisable(GL_FRAMEBUFFER_SRGB);
     glUseProgram(program_); glBindVertexArray(vao_);
@@ -270,6 +296,7 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
     }
     uniform("color_mode", f.colors == YuvColors::Bt601 ? 0 : f.colors == YuvColors::Hdr10 ? 2 : 1);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+    upload_timing_.draw_ms = elapsed_ms(draw_started);
     // Cadence is diagnostic only. Rendering always exposes this source-sized
     // conversion texture, and the UI applies ordinary bilinear scaling.
     const double time = f.presentation_time > 0 ? f.presentation_time :

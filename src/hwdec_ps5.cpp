@@ -584,6 +584,12 @@ struct HwDecoder::Impl {
 
 	int64_t pts_pool[kPtsPool];
 	int pts_n = 0;
+	// VP9 output is in decode order, including hidden reference frames. The
+	// output of Decode may belong to an earlier input, so carry its own show
+	// flag with its PTS instead of using the current input's flag. Adapted
+	// from ZiZc3/VLC v0.6.0; resident decoders and buffer ownership are unchanged.
+	struct Vp9Pending { int64_t pts; bool show; } vp9_pending[kPtsPool];
+	unsigned vp9_head = 0, vp9_count = 0;
 
 	struct Out {
 		bool used = false;
@@ -623,6 +629,19 @@ struct HwDecoder::Impl {
 		return out.height;
 	}
 	void harvest(const SceVideodec2OutputInfo& out) {
+		int64_t vp9_pts = INT64_MIN;
+		if (desc->vp9) {
+			if (!vp9_count) {
+				dlog("hwdec: VP9 output without a pending input");
+				fatal = true;
+				return;
+			}
+			const auto pending = vp9_pending[vp9_head];
+			vp9_head = (vp9_head + 1) % kPtsPool;
+			--vp9_count;
+			if (!pending.show || out.error) return;
+			vp9_pts = pending.pts;
+		}
 		Out* s = nullptr;
 		for (auto& r : ro)
 			if (!r.used) {
@@ -642,7 +661,7 @@ struct HwDecoder::Impl {
 		s->pic.width = int(disp_w && uint32_t(disp_w) < out.width ? uint32_t(disp_w) : out.width);
 		s->pic.height = int(disp_h && uint32_t(disp_h) < out.height ? uint32_t(disp_h) : out.height);
 		s->pic.ten_bit = ten;
-		s->pic.pts_us = pts_take();
+		s->pic.pts_us = desc->vp9 ? vp9_pts : pts_take();
 		s->used = true;
 		ro_count++;
 	}
@@ -650,6 +669,13 @@ struct HwDecoder::Impl {
 	// One access unit to the decoder. present=false: decode for reference only.
 	int decode_one(const uint8_t* au, int size, int64_t pts, bool present) {
 		if (size <= 0 || size_t(size) > kInputSlotBytes) return -1;
+		if (desc->vp9 && vp9_count == kPtsPool) {
+			// Never discard a tag and mislabel a later hardware output. Fail
+			// before submitting another AU; the caller takes its normal fallback.
+			dlog("hwdec: VP9 pending output limit reached");
+			fatal = true;
+			return -1;
+		}
 		// Leading pictures after a random access point (open GOP) reference
 		// what was never decoded: drop them before the decoder sees them.
 		if (desc->codec_type == kCodecHevc && drop_leading) {
@@ -705,15 +731,22 @@ struct HwDecoder::Impl {
 			if (since_flush_out == 0 && ++post_flush_errs <= kPostFlushErrors) return 0;
 			return -1;
 		}
-		if (present) pts_push(pts);
+		if (desc->vp9) {
+			vp9_pending[(vp9_head + vp9_count) % kPtsPool] = {pts, present};
+			++vp9_count;
+		} else if (present) pts_push(pts);
 		if (out.valid && out.picture_count) {
 			since_flush_out++;
-			if (present) {
+			if (desc->vp9) {
+				const int before = ro_count;
+				harvest(out);
+				if (ro_count > before) ++frames;
+			} else if (present) {
 				frames++;
 				harvest(out);
 			}
 		}
-		return 0;
+		return fatal ? -1 : 0;
 	}
 
 	void drain() {
@@ -729,6 +762,7 @@ struct HwDecoder::Impl {
 			if (sceVideodec2Flush(slot->decoder, &fb, &out) != 0) break;
 			if (!(out.valid && out.picture_count)) break;
 			harvest(out);
+			if (fatal) break;
 			if (ro_count >= kReorderSlots - 1) break;
 		}
 	}
@@ -878,7 +912,7 @@ int HwDecoder::send(const uint8_t* data, int size, int64_t pts_us) {
 		}
 		n->drain();
 		n->flushing = true;
-		return 0;
+		return n->fatal ? -1 : 0;
 	}
 	if (n->ro_count > kReorderDepth) return 1;
 	int r;
@@ -919,6 +953,7 @@ void HwDecoder::flush() {
 	for (auto& r : n->ro) r.used = false;
 	n->ro_count = 0;
 	n->pts_n = 0;
+	n->vp9_head = n->vp9_count = 0;
 	n->au_ring = 0;
 	n->flushing = false;
 	n->fatal = false;

@@ -1,0 +1,285 @@
+{
+  "files": [
+    {
+      "path": "1080p-long-analysis.json",
+      "bytes": 6293,
+      "sha256": "f02575593f20df79191e1ce12e0bf1e22b7951944a76df1b5f300994428aefb9"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3100,
+      "sha256": "0cc9594995431544465d5edd2718cf7e2791cd97a8d1d1f2a147988177445587"
+    },
+    {
+      "path": "changes-from-0.5.19.json",
+      "bytes": 8596,
+      "sha256": "4d01741eb724fd71af49961a9c5c94bcb8f73e470cfff894152475c654875ed4"
+    },
+    {
+      "path": "changes-from-0.5.19.patch",
+      "bytes": 132737,
+      "sha256": "2257e64c7360227aadcd614deb3d794f60fd3c9a0c896a2c5bdc3b1575776e16"
+    },
+    {
+      "path": "decoder-and-mesa-findings.md",
+      "bytes": 6110,
+      "sha256": "86f0596bfcfc5bbc5397a11588d61bb6827a6b2f9a140dfebabea931bb45c3ac"
+    },
+    {
+      "path": "diagnostics-review.md",
+      "bytes": 5081,
+      "sha256": "6e7f7acf167f3d8c41d763c2285009aaac27d7894a44b2525a4e4c189cf205dd"
+    },
+    {
+      "path": "diagnostics-tests.log",
+      "bytes": 325,
+      "sha256": "e109c86b2775ef1524b0a03d04adf0e52f968b2879bd9713e2669d2e7897b376"
+    },
+    {
+      "path": "evo-architecture-review.md",
+      "bytes": 5402,
+      "sha256": "23b056fcf2b85408f745f65e6452cf0b10b321f05271c300a038435b537dd85d"
+    },
+    {
+      "path": "final-builds.json",
+      "bytes": 975,
+      "sha256": "11a031a551c04498eaf344418ef2913679cda35c8396bacdbc072038d08a8b43"
+    },
+    {
+      "path": "final-desktop-build.log",
+      "bytes": 1667,
+      "sha256": "b70f020f805e515b9673f5ff0f11287e5b77f42037138d9409e91bc87130e4a3"
+    },
+    {
+      "path": "final-desktop-download-app-test.log",
+      "bytes": 86,
+      "sha256": "2e5dc85323e1757b416e5db2374fad5ec04b7d506b28e5cb0421248c92362bf5"
+    },
+    {
+      "path": "final-desktop-interaction-test.log",
+      "bytes": 51,
+      "sha256": "762a06a9d0ea082b918f5343e4caf539f1a88186f9928f6dc4307ce0b0adb838"
+    },
+    {
+      "path": "final-desktop-next-episode-test.log",
+      "bytes": 31,
+      "sha256": "5694596664e0643ba6e36e3967db41facfb8c00e9cf7d57060164896019fa24d"
+    },
+    {
+      "path": "final-desktop-playback-choice-test.log",
+      "bytes": 86,
+      "sha256": "6783cca746e559c9a63e8de09e05c82f60f7b59fc67a3b80b22c9c94f427a028"
+    },
+    {
+      "path": "final-desktop-preferences-test.log",
+      "bytes": 53,
+      "sha256": "7a95f6a5146600e4f33b5e63effed442616a95952379fe69c20677b91f0832b1"
+    },
+    {
+      "path": "final-host-vlc-build.log",
+      "bytes": 15025,
+      "sha256": "b1655748dd87f38f60b84f6575e6dde701b2e0ad5df578e94971d59cac4a0077"
+    },
+    {
+      "path": "final-native/app-build-receipt.json",
+      "bytes": 236160,
+      "sha256": "b8751710da459f8cef74b7ddc760583344bd6f73ea1aba111a7ec583da199492"
+    },
+    {
+      "path": "final-native/delivery-app.json",
+      "bytes": 617,
+      "sha256": "5e9ecc1bd0a7eb978e781bfa0f1252b59e70743399cbc18d1650522eefc5d511"
+    },
+    {
+      "path": "final-native/delivery-symbols.json",
+      "bytes": 1170,
+      "sha256": "73bf07b532feedeac9bd5f16a215e6b7d88a19e71e1c906d3e57a769c231a3d3"
+    },
+    {
+      "path": "final-native/image-verify.log",
+      "bytes": 2473,
+      "sha256": "5aaa270ca11fe144e2187e4d297aae910d02b177bb41499ac3d15aeb05f5548b"
+    },
+    {
+      "path": "final-native/native-app-cpp-o-dwarf-verify.log",
+      "bytes": 404,
+      "sha256": "672866679d622618d56b68a45a4e59c7148ef57206288f2f1e06b9b8b3546574"
+    },
+    {
+      "path": "final-native/native-app_detail-cpp-o-dwarf-verify.log",
+      "bytes": 418,
+      "sha256": "c8d310d2f218a2319b15b92260eb31f898069b6bed7c4f8957bce0d66b8d53ad"
+    },
+    {
+      "path": "final-native/native-app_watch-cpp-o-dwarf-verify.log",
+      "bytes": 416,
+      "sha256": "21412a8f1cdfc342aa3f0aaf7f7864bf0b3d7867f59d71bfee729f9653111e67"
+    },
+    {
+      "path": "final-native/native-artifact-validation.json",
+      "bytes": 69949,
+      "sha256": "88457d13e7e3250ab204c449b5a03d63d6341b08d4013c7a56760be198c4afd2"
+    },
+    {
+      "path": "final-native/native-artifact-validation.log",
+      "bytes": 1931,
+      "sha256": "5b58054cbfb9a4d3da0f839f82ad49aaad1fc31b68e2a633f1c3b41fa77ce9cc"
+    },
+    {
+      "path": "final-native/native-debug-check.log",
+      "bytes": 3171,
+      "sha256": "9d98ce9f2bbd0c9d685bde287ac6812434b13da32e242d80adbf67017c63af04"
+    },
+    {
+      "path": "final-native/native-debug-info.json",
+      "bytes": 5347,
+      "sha256": "267cfad99494c2a916d47592fb40c96ad7ce33bbd50341640d8cbcd4da936e0a"
+    },
+    {
+      "path": "final-native/native-dwarf-verify.log",
+      "bytes": 40450092,
+      "sha256": "6558bec235d7e13c940d1b11e9553e979d09df74323d9c902bb0326382fdb686"
+    },
+    {
+      "path": "final-native/native-hwdec_ps5-cpp-o-dwarf-verify.log",
+      "bytes": 416,
+      "sha256": "4b56f94870a5be8fc24340ac5b18ab5482b339498239ebffa04052cb9a0414cd"
+    },
+    {
+      "path": "final-native/native-libc.json",
+      "bytes": 273,
+      "sha256": "5cec12b06a01016740b423ed9bf8ee3552872ab8b49cd6084ba22b06f637ccef"
+    },
+    {
+      "path": "final-native/native-pie-sections.log",
+      "bytes": 3598,
+      "sha256": "b99ab396eec59d1ffeb58d71e6f87cba75a63336f4a6545464725c70e6fe2e3c"
+    },
+    {
+      "path": "final-native/native-process.json",
+      "bytes": 202,
+      "sha256": "f19f95e8e4b24eb95840ecedb05855b487e8be5c6c1424a0ed423061a3644185"
+    },
+    {
+      "path": "final-native/native-ps5vdec-c-o-dwarf-verify.log",
+      "bytes": 446,
+      "sha256": "8a01525337b34399a9a55dbb13340c6cd95637c635d8adcd591e30fb06f4f3bd"
+    },
+    {
+      "path": "final-native/native-startup-audit.json",
+      "bytes": 219,
+      "sha256": "f53f2b23636604ef5dbe4a4061756cf14d78a70eb187f9da12aae1299e1b364f"
+    },
+    {
+      "path": "final-native/native-symbol-map.txt",
+      "bytes": 8002476,
+      "sha256": "1ad9798ba6abadf4653889694315dee6e5a7a756bc161723006833f8f2a5992f"
+    },
+    {
+      "path": "final-native/native-symbols-bundle.json",
+      "bytes": 380,
+      "sha256": "91fa1caf7306a9242d87b47be5dd3ab9d3173d9fdb46dd0c3fa89f4cbbf02ea1"
+    },
+    {
+      "path": "final-native/native-video_gl-cpp-o-dwarf-verify.log",
+      "bytes": 414,
+      "sha256": "051f79c83bda265efe34979a4d56337045d5a233eccc9206da5d162e143caed2"
+    },
+    {
+      "path": "final-native/receipt-verify.log",
+      "bytes": 93,
+      "sha256": "abc003716a42f881c72995d600cce43560acad9b418cf5e9aeb015f3910e5153"
+    },
+    {
+      "path": "final-native/symbols-bundle.log",
+      "bytes": 473,
+      "sha256": "4ba18d03a1532a10605adbeaef43067a3b9bd1d6b130660b1a211ea34e04287c"
+    },
+    {
+      "path": "final-native/symbols-checksums.log",
+      "bytes": 283,
+      "sha256": "3caa1413c765b350ba44193785e8029ef17aacf67aee30bbf5841db4d5412adc"
+    },
+    {
+      "path": "final-native/unpack.log",
+      "bytes": 372,
+      "sha256": "57563de372c120eb10c61f46f074b21a2417f944f623096147d48d2cc4c4f5a6"
+    },
+    {
+      "path": "final-native-build-result.json",
+      "bytes": 150,
+      "sha256": "95fa8768ac94e89309ee0d7982a7930e74919839ec33b238a8333f33f4514861"
+    },
+    {
+      "path": "final-native-build.log",
+      "bytes": 475714,
+      "sha256": "42e1c8f986e0811be8b58a1d50893582b7b838892a1f2fcd1fa21baed116986f"
+    },
+    {
+      "path": "final-playback-choice-vlc.log",
+      "bytes": 86,
+      "sha256": "6783cca746e559c9a63e8de09e05c82f60f7b59fc67a3b80b22c9c94f427a028"
+    },
+    {
+      "path": "final-player-cadence.json",
+      "bytes": 1439,
+      "sha256": "0b0fe52ea9798b793c9982c1ef4319dd0c85b019738827628c38d1c96e218a94"
+    },
+    {
+      "path": "final-player-cadence.log",
+      "bytes": 5377,
+      "sha256": "e3b56e237f5f97df40f6304988ed81bbecc89446d989bf6a7ef8fe22bb08c001"
+    },
+    {
+      "path": "final-resume-app-tests.json",
+      "bytes": 26325,
+      "sha256": "d21c41571c698df011d4acac00afb4c08bd5aee6a3e11d9616f30775bd015816"
+    },
+    {
+      "path": "log-evidence-1080p.json",
+      "bytes": 9936,
+      "sha256": "c97d1a29ea6f3cce258274ac0d0d684e85a5ac7073d422afc01e8aca206b990f"
+    },
+    {
+      "path": "ps5vdec-level51.patch",
+      "bytes": 4079,
+      "sha256": "24c900e8fa32b252726c3fe9bd6688be69b4467d77fcea8c4a714069ec20165d"
+    },
+    {
+      "path": "ps5vdec-native-compile.log",
+      "bytes": 2037,
+      "sha256": "b748583cd5618409c41718b69617c7c574ae704636d78cb90d6dfe9ef902b15e"
+    },
+    {
+      "path": "ps5vdec-receipts.json",
+      "bytes": 207,
+      "sha256": "574aa0241d84a5603d88ad2fc511a4a4be4370ad93364aef0f52065cff3d4c2e"
+    },
+    {
+      "path": "ps5vdec-startup.json",
+      "bytes": 10369,
+      "sha256": "63f6ca2ae916bd08e494d532dca31cae17270dadd17dc9491837d462dd3c9ab6"
+    },
+    {
+      "path": "video-gl-allocation-rectangle.json",
+      "bytes": 1864,
+      "sha256": "6d3c83374fa7aa3dc6473cd81a03d2089176f0eda91af0aab1134796d53fea0c"
+    },
+    {
+      "path": "video-gl-allocation-rectangle.log",
+      "bytes": 587,
+      "sha256": "6a1134b17ee5374fb34ce002c382f5ec0f262942040cdda951d33b0bd3fc6102"
+    },
+    {
+      "path": "video-gl-rectangle.json",
+      "bytes": 1169,
+      "sha256": "bc9c14441856800ff709b85d378f9abe170765f99399f9d4a0b0526a4d2ef191"
+    },
+    {
+      "path": "video-gl-rectangle.log",
+      "bytes": 78,
+      "sha256": "2cadd542be9ba29037e434c1344768a3279570a3c5e9bc2c6fc3215db28b0396"
+    }
+  ],
+  "scope": "All evidence files except inventory and SHA256SUMS themselves"
+}

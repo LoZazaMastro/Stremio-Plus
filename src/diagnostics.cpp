@@ -9,6 +9,7 @@
 #include <atomic>
 #include <cerrno>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
@@ -267,7 +268,10 @@ bool runtime_key(const std::string& key) {
         "audio_language", "interface_language", "language", "log_io_failures", "log_dropped_events",
         "display_refresh", "preference", "available", "active", "refresh_code", "video_processing",
         "source_fps", "upscaler_preference", "upscaler", "sharpness", "smoothing_preference", "smoothing",
-        "dolby_vision_reshape", "audio_passthrough_requested", "audio_output"
+        "dolby_vision_reshape", "audio_passthrough_requested", "audio_output", "video_frame_accepted",
+        "accepted_frame_fps", "upload_path", "presentation_timing", "scope", "histogram_upper_ms",
+        "histogram_last_bucket", "loop", "upload", "allocation", "plane_transfer", "conversion_submit",
+        "swap_wait", "accepted_video_swap", "samples", "mean_ms", "max_ms", "histogram"
     };
     for (const char* name : allowed) if (key == name) return true;
     return false;
@@ -282,6 +286,13 @@ json safe_runtime(const json& source, int depth = 0) {
         if (it.value().is_object()) result[it.key()] = safe_runtime(it.value(), depth + 1);
         else if (it.value().is_string()) result[it.key()] = diagnostics_redact(it.value().get<std::string>());
         else if (it.value().is_number() || it.value().is_boolean() || it.value().is_null()) result[it.key()] = it.value();
+        // Only these two bounded numeric arrays are diagnostic histograms.
+        // Never admit arbitrary arrays/strings through the runtime allowlist.
+        else if ((it.key() == "histogram" || it.key() == "histogram_upper_ms") &&
+                 it.value().is_array() && it.value().size() <= 8 &&
+                 std::all_of(it.value().begin(), it.value().end(), [](const json& value) {
+                     return value.is_number() && std::isfinite(value.get<double>()) && value.get<double>() >= 0;
+                 })) result[it.key()] = it.value();
     }
     return result;
 }

@@ -1,0 +1,14 @@
+{
+  "coreBuildExit": 0,
+  "actualSetupReentryPass": true,
+  "plugins": 106,
+  "staticArchivesVerified": 132,
+  "allNativeArchivesByteIdenticalToBeforeHunkFix": true,
+  "changedReceiptFields": [
+    "patches"
+  ],
+  "patch0014Sha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53",
+  "patch0025Sha256": "4bcf85d308566ae899739822103cacce1a9224e7f0d785f1772ef1f222d7a87a",
+  "productionPlayerSha256": "83c82c0fd599fd4fcb5e237bbd6b6a4c1e664c64ebfdd762fc9083bdc395372d",
+  "productionHwdecSha256": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf"
+}

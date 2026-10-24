@@ -91,7 +91,9 @@ class Carousel
     }
     // Call again after changing sizes or the mode in `style` to settle
     // without a glide.
-    void set_bounds(const gfx::Rect &bounds);
+    // Pass snap=false when only relocating a retained shelf; preserve its
+    // focus/scroll animation as asynchronous rows appear before it.
+    void set_bounds(const gfx::Rect &bounds, bool snap = true);
     const gfx::Rect &bounds() const
     {
         return bounds_;

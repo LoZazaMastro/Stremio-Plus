@@ -1,0 +1,37 @@
+{
+  "dependencyFingerprint": "681addedd3658ebd75ea4d949f71632e7c40f25a9357c6bd51ab2df666e25faf",
+  "retainedArchives": {
+    "libgnutls.a": "02fda7d1dcfa91a7eb1ab4f4f5a67fcdbf2162d8100a9887814d9a1acd6d51f6",
+    "libz.a": "277caaf924a464822ee00fbe5004c05e3a9f8a3ae07a034f3b4c5c81c73bac17",
+    "libass.a": "27a404d3f4ede8ffa60558fe899836edfddbf83fc43831fce3a16d4041d25f0a",
+    "libiconv.a": "fc4c89bb85fa94a07b04fc0d5c98cc8ae407b7855fee15728c2cb0001818a80f",
+    "libfreetype.a": "da868bb23965504d28d55b483cd1e47077c85393da014d96fafce5cd1b6b3c5f",
+    "libxml2.a": "3e860a8d05d55a9d07fd9cbfb441e0c299145ee5411e5a73fd952d3b10c69366",
+    "libavutil.a": "80f0cad1fa8d3a7ce5dc28c5995ac629e4ffae4f093d7c13af2d5738a3d67c3a",
+    "libhogweed.a": "74bbf9c1a420220175b27b58a8b0fad7f16d6b231f1c43e826f6ca5cec0d7110",
+    "libmatroska.a": "12e3afab3882df1b3ef29745ea9b66118edc4798db35686c391345ab645c4f15",
+    "libharfbuzz.a": "e12de1d26342f9b8a85485b391bea7f75a33977af3b90fcfe73268190852baea",
+    "libdvbpsi.a": "16f4bb1a6ce9cd42659bb4df272484f85a99c3918b97f7c766604f4912b8d11f",
+    "libswscale.a": "60b34c829075099675cea77743da91b9c7cc1864eed0ab483a62937223e01660",
+    "libharfbuzz-subset.a": "6772cd46d24e6de3132075a3100241d329d90578a840040653830d94e0f60402",
+    "libebml.a": "fbd7a7ee809af844ad9fa9bd4bddc630005e20fec8b315fe123cd40cb6c7cfa8",
+    "libfribidi.a": "64c6d687c793587a87235e7291198b8f0bd9da3e3fe72200e7cfdb610c34f5d9",
+    "libavformat.a": "19f74a1f05e9435f234adfebae73a916fde5fac1d88fcaed13a560bb5ee274a2",
+    "libswresample.a": "0849e010567e1a749d8e5edc54c687b092c6fb251952668229d744be149308d6",
+    "libnettle.a": "357f19242c6550de321af8bd8f68a0e9957d1242ea76e52d558479cca8ef6840",
+    "libdav1d.a": "f5606f601b09cefdb76cdf71b6736b038133faf6129c30cfa41f95a377058c4a",
+    "libavcodec.a": "f8b160e5689e00cdc928068b39c1fd92d08a6592e0a0c7d1e65f4c37cdba7339",
+    "libgmp.a": "7c0bf4afc664fd2a1019cdd2c9bedf7d05cd95b5e39ad576116d44c29a2c7b4d"
+  },
+  "removedGeneratedTrees": [
+    "src/vlc-3.0.24",
+    "build-vlc-host"
+  ],
+  "baselineReceiptPreserved": "baseline-vlc-build-receipt-host.json",
+  "ps5DeliverablesBefore": {
+    "PPSA74126.zip": "d2fbd107eff9dd412f30303e15750a5278dd44c005de4e5ce93fafc5fdeedd26",
+    "PPSA74126.ffpfsc": "d360c78af8ff0877b2b7bef00bf565b3180630175d99374c879cbd8e4cc45535",
+    "Stremio-Plus-0.5.19-symbols.zip": "6c3bcfdfd1e534d01bc3767aa763d568b3c463a732a6f29520dc661f3e793c95"
+  },
+  "nativeSourceTreeSha256": "77a7748a58920827d7ca6e5d904d14bd540e9c1330dd1f5c0ae2258e950d8ebd"
+}

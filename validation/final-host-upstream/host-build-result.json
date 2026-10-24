@@ -1,0 +1,40 @@
+{
+  "target": "host-vlc",
+  "nativePs5Execution": false,
+  "buildReturnCode": 0,
+  "binary": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/host-vlc/stremio",
+  "bytes": 44766640,
+  "sha256": "e8abe2ecf32dd5058f60021f0ea500ce157e35905479f55bd4b3bdb93e97946e",
+  "nonemptyApplicationObjects": 143,
+  "coreArchiveIntegrity": {
+    "allArchives": 252,
+    "allObjects": 632,
+    "selectedArchives": 129,
+    "plugins": 106
+  },
+  "retainedMediaTlsArchivesUnchanged": 21,
+  "productionSourceTreeSha256": "9016a56286cf954b99942ccb067acea4cf39297c36fa288be7a69da03baf5144",
+  "mediaReceiptSha256": "eab79287276875ddcfcee66026dbae0d661c453d63fdbf19ab3ce522fc9f49c4",
+  "logs": [
+    "core-build.log",
+    "object-recovery.log",
+    "setup-reentry-failure.log",
+    "core-build-final.log",
+    "core-object-integrity-final.log",
+    "receipt-verify.log",
+    "app-configure.log",
+    "app-build.log",
+    "core-reentry-final.log",
+    "core-reentry-compiler.log",
+    "receipt-verify-final.log",
+    "app-after-reentry.log"
+  ],
+  "ps5DeliverablesUnchangedByInitialHostRebuild": true,
+  "resolvedBuildIssue": "A second setup pass with the existing 0014/0025 patch contexts is not idempotent; current engine was completed from a pristine source extraction with all patches applied once. Follow-up correction is coordinated with root. RESOLVED: only the hunk boundaries of 0014 were adjusted; 4383 files matched the original generated source and all 25 patches were recognized on a second pass.",
+  "actualSetupReentryPass": true,
+  "setupReentryReturnCode": 0,
+  "applicationBuildAfterReentryReturnCode": 0,
+  "coreArchiveHashesUnchangedAfterReentry": true,
+  "binarySha256UnchangedAfterReentry": true,
+  "patch0014Sha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53"
+}

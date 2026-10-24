@@ -1,0 +1,101 @@
+{
+  "sha": "c1862643f84b68d3b4f01cb484b887196093bfa2",
+  "node_id": "C_kwDOVBeKXtoAKGMxODYyNjQzZjg0YjY4ZDNiNGYwMWNiNDg0Yjg4NzE5NjA5M2JmYTI",
+  "commit": {
+    "author": {
+      "name": "AZiZ",
+      "email": "60833584+ZiZc3@users.noreply.github.com",
+      "date": "2026-10-22T01:35:34Z"
+    },
+    "committer": {
+      "name": "GitHub",
+      "email": "noreply@github.com",
+      "date": "2026-10-22T01:35:34Z"
+    },
+    "message": "Redesign by Juxtoposed",
+    "tree": {
+      "sha": "7572f3c10ec0ded587c6f61be0e00e96a59e09f4",
+      "url": "https://api.github.com/repos/ZiZc3/VLC/git/trees/7572f3c10ec0ded587c6f61be0e00e96a59e09f4"
+    },
+    "url": "https://api.github.com/repos/ZiZc3/VLC/git/commits/c1862643f84b68d3b4f01cb484b887196093bfa2",
+    "comment_count": 0,
+    "verification": {
+      "verified": true,
+      "reason": "valid",
+      "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJq2WhnCRC1aQ7uu5UhlAAAYHQQABxf/ucAwODQ1dhDis1RlpRP\nx91RjvYXq3EHu3DNpCCgk2ifoeSihiberJ1kNU/WNl6k8TJqvbHkSTappaCKCgeN\n8XjYctfHxOQdNsAxMRyPQ7GK0QT2fW/aNRW2f3kS9EsMD2ttgJNgyZWKBtGaMUHk\n12kZqanZdzB+ZAX89EJQgcnWb2oQRzK0Ep3Wb7bpfCOd/Qy+8L9ERk+NPIDl15BQ\n+SdHQKZp2XonOpmGLePD8f3oMCaOMYRtlOHXJXRoH/wPTEyb7oJC3K3J6kT0pm9o\nJAj9Ii8mMitW3wwOF/3u+U2P9yfNJeKmHb4A5E0roo1f/3D5UcP1EBDFkvpylGPX\nK1hYY7l8xXj1uUUuddHOkBx1XIClXHO+bWXnNaPJtb/Vap3eqIKIQjwEszbn8kp9\ngu3u3i9ecFckGj9JxFy9dD6DY2V/oJxgwE55yIAjvE7cMAZ1e3O3RBnm72DZYjkn\nXv8xnIxenBgSwo9gUYmgf5ug1Zil2zXqNOVvogM6k/HBRmIH4cr+/A86gph0n6WH\nf0ySJLz33W24qC1PyEzG+7sG1OFt9mbOx+K7BrhMPZYo1Cc+9XlyRDpntIwt794X\nr3eA+zzl4ae/KLvpXfiqw9bQxDcO/KeGtCkn93FmPheH4rXdt5zQhlb4OCwzLeKq\n6wcjayghxdzib3QCoKBc\n=Ryrq\n-----END PGP SIGNATURE-----\n",
+      "payload": "tree 7572f3c10ec0ded587c6f61be0e00e96a59e09f4\nparent 3424b1e1bcab773c8ccbe412a4174b2575ae66dd\nauthor AZiZ <60833584+ZiZc3@users.noreply.github.com> 1792632934 +0100\ncommitter GitHub <noreply@github.com> 1792632934 +0100\n\nRedesign by Juxtoposed",
+      "verified_at": "2026-10-22T01:35:35Z"
+    }
+  },
+  "url": "https://api.github.com/repos/ZiZc3/VLC/commits/c1862643f84b68d3b4f01cb484b887196093bfa2",
+  "html_url": "https://github.com/ZiZc3/VLC/commit/c1862643f84b68d3b4f01cb484b887196093bfa2",
+  "comments_url": "https://api.github.com/repos/ZiZc3/VLC/commits/c1862643f84b68d3b4f01cb484b887196093bfa2/comments",
+  "author": {
+    "login": "ZiZc3",
+    "id": 60833584,
+    "node_id": "MDQ6VXNlcjYwODMzNTg0",
+    "avatar_url": "https://avatars.githubusercontent.com/u/60833584?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/ZiZc3",
+    "html_url": "https://github.com/ZiZc3",
+    "followers_url": "https://api.github.com/users/ZiZc3/followers",
+    "following_url": "https://api.github.com/users/ZiZc3/following{/other_user}",
+    "gists_url": "https://api.github.com/users/ZiZc3/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/ZiZc3/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/ZiZc3/subscriptions",
+    "organizations_url": "https://api.github.com/users/ZiZc3/orgs",
+    "repos_url": "https://api.github.com/users/ZiZc3/repos",
+    "events_url": "https://api.github.com/users/ZiZc3/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/ZiZc3/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "committer": {
+    "login": "web-flow",
+    "id": 19864447,
+    "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+    "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/web-flow",
+    "html_url": "https://github.com/web-flow",
+    "followers_url": "https://api.github.com/users/web-flow/followers",
+    "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+    "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+    "organizations_url": "https://api.github.com/users/web-flow/orgs",
+    "repos_url": "https://api.github.com/users/web-flow/repos",
+    "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/web-flow/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "parents": [
+    {
+      "sha": "3424b1e1bcab773c8ccbe412a4174b2575ae66dd",
+      "url": "https://api.github.com/repos/ZiZc3/VLC/commits/3424b1e1bcab773c8ccbe412a4174b2575ae66dd",
+      "html_url": "https://github.com/ZiZc3/VLC/commit/3424b1e1bcab773c8ccbe412a4174b2575ae66dd"
+    }
+  ],
+  "stats": {
+    "total": 2,
+    "additions": 1,
+    "deletions": 1
+  },
+  "files": [
+    {
+      "sha": "da685ff46a27b0e8cebffbdf00212a5ec16a7edb",
+      "filename": "README.md",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "changes": 2,
+      "blob_url": "https://github.com/ZiZc3/VLC/blob/c1862643f84b68d3b4f01cb484b887196093bfa2/README.md",
+      "raw_url": "https://github.com/ZiZc3/VLC/raw/c1862643f84b68d3b4f01cb484b887196093bfa2/README.md",
+      "contents_url": "https://api.github.com/repos/ZiZc3/VLC/contents/README.md?ref=c1862643f84b68d3b4f01cb484b887196093bfa2",
+      "patch": "@@ -224,7 +224,7 @@ The libraries are downloaded by `build-deps.sh`; the changes to VLC and FFmpeg a\n - **[Dear ImGui](https://github.com/ocornut/imgui)**, [volk](https://github.com/zeux/volk), [stb](https://github.com/nothings/stb), GnuTLS, libsmb2, libupnp, libxml2, libass, FreeType, FriBidi, HarfBuzz, libdvdnav, libbluray and libarchive.\n - Fonts: **[Inter](https://rsms.me/inter/)**, **Selawik**, **DejaVu Sans Mono** and **Noto**.\n - [iptv-org](https://github.com/iptv-org/iptv), [radio-browser.info](https://www.radio-browser.info/) and [OpenSubtitles](https://www.opensubtitles.com/).\n-- **The \"Redesign by Juxtopposed\" look** is based on **VLC Redesign** by **[Juxtopposed](https://github.com/juxtopposed)**, used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and adapted for the PS5. Thanks to [StickyGonzales](https://github.com/StickyGonzales/vlc-redesign-juxtopposed) for showing the design working on real VLC.\n+- **The \"Redesign by Juxtopposed\"** look is based on **VLC Redesign** by **[Juxtopposed](https://github.com/juxtopposed)**, used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and adapted for the PS5. Thanks to [StickyGonzales](https://github.com/StickyGonzales/vlc-redesign-juxtopposed) for showing the design working on real VLC.\n \n ## License\n "
+    }
+  ]
+}

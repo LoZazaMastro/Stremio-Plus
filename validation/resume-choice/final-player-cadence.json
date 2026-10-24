@@ -1,0 +1,36 @@
+{
+  "result": "PASS",
+  "runs": {
+    "baseline": {
+      "mode": "baseline",
+      "checks": 2207,
+      "frames": 89,
+      "frames_after_stall": 75,
+      "burst_displays_50ms": 10,
+      "decoded_pictures": 241,
+      "vout_lost_pictures": 0,
+      "final_pickup_lateness_ms": 1.814,
+      "decoder_guards_preserved": true
+    },
+    "fixed": {
+      "mode": "fixed",
+      "checks": 2160,
+      "frames": 88,
+      "frames_after_stall": 74,
+      "burst_displays_50ms": 3,
+      "decoded_pictures": 239,
+      "vout_lost_pictures": 7,
+      "final_pickup_lateness_ms": 0.181,
+      "decoder_guards_preserved": true
+    }
+  },
+  "scope": "Real Player and patched static VLC/FFmpeg; 1080p H264 long GOP with B/P references, PCM audio and independent pixel hashes",
+  "fault_boundary": "One 350 ms delay in the vmem luma copy, after steady playback; no decoder packet or native syscall is mocked",
+  "limits": "Host software decode/output only. Does not establish firmware 12.7 cause or PS5 HDMI scanout cadence.",
+  "fixture_sha256": "91d4096c43e0ebaf03a6cce0aad1257ee8df22b5dfc3164b7a9c9ea6527c95b2",
+  "source_sha256": {
+    "src/player_vlc.cpp": "016d5be248e1b67e5f6b351c5f15c197ebbffa160cb632d009fff12f37a313ba",
+    "tests/test_player_cadence.cpp": "8e1fc47201eb20dd8cb91f53208b8d2b7a1a1f97b5bdba5de3c8696fce30b62a",
+    "tests/run_player_cadence_tests.py": "13ddcf7687b09bbbc85e462cb07a48f559d49dc4f9bdb2cc9383463ac8944842"
+  }
+}

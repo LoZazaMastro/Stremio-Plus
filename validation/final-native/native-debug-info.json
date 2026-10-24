@@ -1,0 +1,68 @@
+{
+  "elfSha256": "c63cc78cbb749a4aa68bf9749761e9692ed0d431ead036ae4a594b580abbf9ad",
+  "hasSymtab": true,
+  "hasDebugInfo": true,
+  "hasDebugLine": true,
+  "addressLookups": [
+    {
+      "symbol": "000000000003cda0 t App::update_home_startup_at(double, bool)",
+      "lookup": "App::update_home_startup_at(double, bool)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/app_board.cpp:444",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "0000000000028c20 t App::update()",
+      "lookup": "App::update()\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/app.cpp:803",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001bd160 t HwDecoder::Impl::decode_one(unsigned char const*, int, long, bool)",
+      "lookup": "HwDecoder::Impl::decode_one(unsigned char const*, int, long, bool)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:670",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001bf5f0 t HwDecoder::Impl::harvest(SceVideodec2OutputInfo const&)",
+      "lookup": "HwDecoder::Impl::harvest(SceVideodec2OutputInfo const&)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:631",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001be5e0 t HwDecoder::send(unsigned char const*, int, long)",
+      "lookup": "HwDecoder::send(unsigned char const*, int, long)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:905",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001be8b0 t HwDecoder::receive(HwDecoder::Picture*)",
+      "lookup": "HwDecoder::receive(HwDecoder::Picture*)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:935",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001bea70 t HwDecoder::flush()",
+      "lookup": "HwDecoder::flush()\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:951",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "000000000034ab30 t Player::take_frame(Player::VideoFrame&)",
+      "lookup": "Player::take_frame(Player::VideoFrame&)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/player_vlc.cpp:1260",
+      "sourceLineResolved": true
+    }
+  ],
+  "globalDwarfVerifyExit": 1,
+  "globalDwarfErrorCount": 37812,
+  "globalDwarfErrorCategories": {
+    "DIE has overlapping ranges in DW_AT_ranges attribute": 3158,
+    "DIE address ranges are not contained in its parent's ranges": 12924,
+    "DIEs have overlapping address ranges": 19701,
+    "DIE has DW_AT_type with incompatible tag DW_TAG_template_alias": 2029
+  },
+  "objectDwarfVerify": {
+    "app.cpp.o": {
+      "exit": 0,
+      "log": "native-app-cpp-o-dwarf-verify.log"
+    },
+    "hwdec_ps5.cpp.o": {
+      "exit": 0,
+      "log": "native-hwdec_ps5-cpp-o-dwarf-verify.log"
+    }
+  },
+  "globalDwarfVerifyLog": "native-dwarf-verify.log",
+  "limitation": "The complete linked ELF did not pass global DWARF verification. Real function address-to-line results and individual object verification are reported separately. Full variable/type debugging is not promised, and no ELF sections were removed to suppress diagnostics."
+}

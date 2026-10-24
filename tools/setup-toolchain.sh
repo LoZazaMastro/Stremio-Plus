@@ -17,10 +17,20 @@ done
 mkdir -p "$CACHE"
 fetch() {
     local url=$1 file=$2 hash=$3
+    shift 3
     if [[ ! -f $file ]] || ! printf '%s  %s\n' "$hash" "$file" | sha256sum --check --status; then
-        curl -fL --retry 3 --connect-timeout 20 --output "$file.part" "$url"
-        printf '%s  %s\n' "$hash" "$file.part" | sha256sum --check --strict
-        mv -- "$file.part" "$file"
+        local source
+        for source in "$url" "$@"; do
+            if curl -fL --retry 3 --connect-timeout 20 --max-time 600 --output "$file.part" "$source" &&
+                    printf '%s  %s\n' "$hash" "$file.part" | sha256sum --check --strict; then
+                mv -- "$file.part" "$file"
+                return
+            fi
+            rm -f -- "$file.part"
+            echo "Pinned dependency unavailable or checksum rejected: $source" >&2
+        done
+        echo "Could not obtain the pinned dependency: $file" >&2
+        exit 2
     fi
 }
 if [[ ! -x $PS5_PAYLOAD_SDK/bin/prospero-clang ]]; then
@@ -46,7 +56,8 @@ if [[ ! -f $PS5_OPENGL_PREFIX/manifest.sha256 ]]; then
         echo "The supplied PS5_OPENGL_PREFIX has no manifest" >&2; exit 2;
     }
     fetch https://github.com/blackbearreloaded/ps5-opengl/releases/download/v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz \
-        "$CACHE/ps5-opengl-sdk-1.0.0.tar.gz" "$GL_HASH"
+        "$CACHE/ps5-opengl-sdk-1.0.0.tar.gz" "$GL_HASH" \
+        https://github.com/MyLuxy/overdrive-deps/releases/download/ps5-opengl-v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz
     tar -xzf "$CACHE/ps5-opengl-sdk-1.0.0.tar.gz" -C "$STREMIO_ROOT/.deps" --no-same-owner \
         ps5-opengl-sdk-1.0.0/sdk ps5-opengl-sdk-1.0.0/LICENSE \
         ps5-opengl-sdk-1.0.0/LICENSES ps5-opengl-sdk-1.0.0/THIRD_PARTY_NOTICES.md
@@ -57,7 +68,17 @@ if [[ ! -d $BOILERPLATE_DIR/.git ]]; then
     mkdir -p "$BOILERPLATE_DIR"
     git -C "$BOILERPLATE_DIR" init -q
     git -C "$BOILERPLATE_DIR" remote add origin https://github.com/blackbearreloaded/ps5-native-app-boilerplate.git
-    git -C "$BOILERPLATE_DIR" fetch -q --depth 1 origin "$BP_REV"
+fi
+if ! git -C "$BOILERPLATE_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
+    # Both locations must supply the original commit. Fetching a commit and
+    # checking it out detached creates no local branch and changes no remote.
+    if ! GIT_TERMINAL_PROMPT=0 git -C "$BOILERPLATE_DIR" \
+            -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch -q --depth 1 \
+            https://github.com/blackbearreloaded/ps5-native-app-boilerplate.git "$BP_REV"; then
+        GIT_TERMINAL_PROMPT=0 git -C "$BOILERPLATE_DIR" \
+            -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 fetch -q --depth 1 \
+            https://github.com/drakmor/ps5-native-app-boilerplate.git "$BP_REV"
+    fi
     git -C "$BOILERPLATE_DIR" checkout -q --detach FETCH_HEAD
 fi
 [[ $(git -C "$BOILERPLATE_DIR" rev-parse HEAD) == "$BP_REV" ]] || {

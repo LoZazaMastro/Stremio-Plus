@@ -1,0 +1,109 @@
+{
+  "elfSha256": "6f37caf3bd87ac30505031a4259623a8f7d7b15cc0c0c68cb0bdd8d0f725eefe",
+  "hasSymtab": true,
+  "hasDebugInfo": true,
+  "hasDebugLine": true,
+  "addressLookups": [
+    {
+      "symbol": "000000000003d6b0 t App::update_home_startup_at(double, bool)",
+      "lookup": "App::update_home_startup_at(double, bool)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/app_board.cpp:444",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "0000000000029620 t App::update()",
+      "lookup": "App::update()\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/app.cpp:803",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001bf4f0 t HwDecoder::Impl::decode_one(unsigned char const*, int, long, bool)",
+      "lookup": "HwDecoder::Impl::decode_one(unsigned char const*, int, long, bool)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:670",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001c1980 t HwDecoder::Impl::harvest(SceVideodec2OutputInfo const&)",
+      "lookup": "HwDecoder::Impl::harvest(SceVideodec2OutputInfo const&)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:631",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001c0970 t HwDecoder::send(unsigned char const*, int, long)",
+      "lookup": "HwDecoder::send(unsigned char const*, int, long)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:905",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001c0c40 t HwDecoder::receive(HwDecoder::Picture*)",
+      "lookup": "HwDecoder::receive(HwDecoder::Picture*)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:935",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001c0e00 t HwDecoder::flush()",
+      "lookup": "HwDecoder::flush()\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/hwdec_ps5.cpp:951",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "000000000034d390 t Player::take_frame(Player::VideoFrame&)",
+      "lookup": "Player::take_frame(Player::VideoFrame&)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/player_vlc.cpp:1260",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000000cb410 t App::choose_playback_start(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, double, std::__1::function<void (double)>, bool)",
+      "lookup": "App::choose_playback_start(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, double, std::__1::function<void (double)>, bool)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/app_watch.cpp:105",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000000885c0 t App::start_stream_playback(Stream const&, bool, double)",
+      "lookup": "App::start_stream_playback(Stream const&, bool, double)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/app_detail.cpp:1104",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "0000000000139970 t App::start_download_playback(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, bool, double)",
+      "lookup": "App::start_download_playback(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, bool, double)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/app_downloads.cpp:637",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "00000000001f5a40 t VideoGl::upload(Player::VideoFrame const&)",
+      "lookup": "VideoGl::upload(Player::VideoFrame const&)\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/video_gl.cpp:187",
+      "sourceLineResolved": true
+    },
+    {
+      "symbol": "000000000035b3a0 t OpenDecoder",
+      "lookup": "OpenDecoder\n/workspace/scratch/7fa7f080734e/Stremio-Plus-work/vendor/vlc-ps5/modules/ps5vdec.c:1068",
+      "sourceLineResolved": true
+    }
+  ],
+  "globalDwarfVerifyExit": 1,
+  "globalDwarfErrorCount": 37831,
+  "globalDwarfErrorCategories": {
+    "DIE has overlapping ranges in DW_AT_ranges attribute": 3160,
+    "DIE address ranges are not contained in its parent's ranges": 12933,
+    "DIEs have overlapping address ranges": 19709,
+    "DIE has DW_AT_type with incompatible tag DW_TAG_template_alias": 2029
+  },
+  "objectDwarfVerify": {
+    "app.cpp.o": {
+      "exit": 0,
+      "log": "native-app-cpp-o-dwarf-verify.log"
+    },
+    "hwdec_ps5.cpp.o": {
+      "exit": 0,
+      "log": "native-hwdec_ps5-cpp-o-dwarf-verify.log"
+    },
+    "src/video_gl.cpp.o": {
+      "exit": 0,
+      "log": "native-video_gl-cpp-o-dwarf-verify.log"
+    },
+    "src/app_watch.cpp.o": {
+      "exit": 0,
+      "log": "native-app_watch-cpp-o-dwarf-verify.log"
+    },
+    "src/app_detail.cpp.o": {
+      "exit": 0,
+      "log": "native-app_detail-cpp-o-dwarf-verify.log"
+    },
+    "vendor/vlc-ps5/modules/ps5vdec.c.o": {
+      "exit": 0,
+      "log": "native-ps5vdec-c-o-dwarf-verify.log"
+    }
+  },
+  "globalDwarfVerifyLog": "native-dwarf-verify.log",
+  "limitation": "The complete linked ELF did not pass global DWARF verification. Real function address-to-line results and individual object verification are reported separately. Full variable/type debugging is not promised, and no ELF sections were removed to suppress diagnostics."
+}

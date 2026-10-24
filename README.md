@@ -1,5 +1,10 @@
 # Stremio Plus
 
+> **Stremio Plus 0.5.20.** Improved Home loading, PS5 sign-in and 1080p playback,
+> with right-stick volume control and a start/resume choice before playback.
+> See the [release](https://github.com/LoZazaMastro/Stremio-Plus/releases/tag/0.5.20),
+> [changelog](CHANGELOG.md) and [build instructions](BUILDING.md).
+
 A native Stremio app for PlayStation 5, built around the way you watch on a TV.
 Browse your catalogs, pick a stream, save something for later, and keep your
 library together in an interface designed for the DualSense.
@@ -171,11 +176,19 @@ either in Settings. Signing out returns to the sign-in screen.
 | Triangle | Open search while browsing |
 | L1 / R1 | Change top-level tabs, seasons, or stream providers, depending on the screen |
 | L2 / R2 in Downloads | Cycle gallery sorting between title, release year and download date |
+| L2 / R2 during playback | Adjust subtitle delay (unchanged) |
 | Square on a cover | Add or remove it from your library |
 | Square in Continue Watching | Remove that item from Continue Watching |
 | Square on a stream | Download **only the selected stream** |
 | Up / Down during playback | Show playback controls |
+| Right stick up / down during playback | Increase / decrease PCM volume in 5% steps; center the stick after playback starts or system input returns |
 | Options during playback | Open audio and subtitle controls |
+
+Playback volume is saved independently of interface sound volume. The
+temporary indicator shows the current level. Active HDMI bitstream
+passthrough instead shows TV/receiver guidance: encoded audio is not scaled,
+and the saved PCM level is preserved. Disable passthrough to use software
+volume, or adjust the receiver when keeping encoded output.
 
 The Sony PlayStation 5 Media Remote is read through its dedicated input port,
 independently of the DualSense. Direction, Select and Back navigate the app;
@@ -185,9 +198,10 @@ audio and subtitle commands are handled when reported by a compatible remote.
 The Media Remote must first be paired in the console's system settings.
 
 Playback skip intervals for the D-pad and L1 / R1 can be set independently.
-Completed downloads offer a choice between starting again and resuming from
-the saved position for that movie or episode. Each episode has its own saved
-position, so watching another episode does not replace its bookmark.
+Online streams and downloads ask before playback begins. When a valid saved
+position exists, choose between starting from the beginning and resuming that
+movie or episode; otherwise, choose to start or cancel. Each episode has its
+own saved position, so watching another episode does not replace its bookmark.
 
 In Downloads, L2/R2 cycles between title A-Z, release year newest first and
 download date newest first. The app remembers the selected order and keeps
@@ -206,9 +220,10 @@ the later bookmark is preserved until the required prefix has been recovered.
 
 When a series episode ends, an optional card shows the next episode's
 thumbnail, title, and number. Its countdown defaults to 15 seconds. Choose
-**Watch now** to continue immediately or **Ignore** to dismiss it; Circle
-also dismisses it. If the countdown reaches zero, the next episode starts
-automatically. Autoplay and the countdown duration can be changed in Settings.
+**Watch now** to open the start/resume choice or **Ignore** to dismiss the
+card; Circle also dismisses it. When the countdown reaches zero, the same
+choice opens and waits for confirmation before starting the next episode.
+Autoplay and the countdown duration can be changed in Settings.
 
 ## Video and display options
 
@@ -416,21 +431,14 @@ and attribution are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
 ### Corresponding source
 
-The matching application source for this release is available at
-[tag 0.5.18](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.18), including
-the modified playback components, retained VLC patches, dependency recipes,
-assets and build scripts. [BUILDING.md](BUILDING.md) identifies the pinned
-dependency sources and explains how to reproduce the native packages.
-The [dependency source index](docs/DEPENDENCY_SOURCES.md) lists exact
-upstream revisions and source locations for the linked libraries and SDK.
-The [release page](https://github.com/LoZazaMastro/Stremio-Plus/releases/tag/0.5.18)
-links these sources alongside the binary downloads. Source access is free
-and does not require downloading the application packages first.
-For a local copy, download
-[the application source bundle](https://github.com/LoZazaMastro/Stremio-Plus/releases/download/0.5.18/Stremio-Plus-0.5.18-source.zip)
-and [the dependency source bundle](https://github.com/LoZazaMastro/Stremio-Plus/releases/download/0.5.18/Stremio-Plus-0.5.18-dependency-source.zip).
-Extract both into the same parent directory to bring the application,
-dependency archives, build receipt and checksum records together.
+The [0.5.20 source tag](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.20)
+contains the corresponding application source, including modified playback
+components, retained VLC patches, dependency recipes, assets and build scripts.
+[BUILDING.md](BUILDING.md) explains how to reproduce the native packages.
+The separate dependency bundles include the available verified inputs and
+cache restoration instructions; their inventory distinguishes sources from
+binary SDK packages. The [dependency source index](docs/DEPENDENCY_SOURCES.md)
+also lists exact upstream revisions and additional source locations.
 
 Stremio Plus is an independent homebrew project, unaffiliated with Stremio
 or Sony Interactive Entertainment. Their names, logos, and other trademarks

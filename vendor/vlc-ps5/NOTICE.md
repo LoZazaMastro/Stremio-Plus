@@ -47,6 +47,42 @@ frontend, Vulkan renderer, remote-upload server, and library screens are not
 part of this application. Unused original patches are retained for source
 provenance; the selected build configuration determines linked features.
 
+## Selected upstream backports, 2026-10-23
+
+The original integration above remains the base. Two specific mechanisms
+were reviewed against ZiZc3/VLC release **v0.6.0**, Git commit
+`c0ffdca8351a3a7210eabae26897e36f83b26bd8`:
+
+<https://github.com/ZiZc3/VLC/tree/c0ffdca8351a3a7210eabae26897e36f83b26bd8>
+
+- `patches/0025-vmem-ps5-keep-visible.patch` is the unmodified upstream
+  `patches/0018-vmem-ps5-keep-visible.patch`, renumbered to preserve this
+  integration's existing patch sequence. It preserves the visible rectangle
+  inside a same-size decoder buffer with a zero crop origin. Stremio Plus
+  adapts `src/player_vlc.cpp` to keep coded plane storage and pass the visible
+  dimensions to its existing checked OpenGL upload. The earlier Stremio
+  callback already avoided geometric rescaling; the measured improvement
+  here is removal of an intermediate full-picture copy, not proof of a
+  firmware-specific stutter cause.
+- The upstream decoder's pending `{PTS, hidden}` association informs a small
+  VP9 adaptation in Stremio Plus's existing `src/hwdec_ps5.cpp`. Metadata is
+  associated with the submitted access unit and consumed with the delayed
+  output, rather than taken from the current input. This does not replace
+  the vendored decoder or import upstream memory allocation, decoder
+  lifecycle, interlacing or additional codec policies.
+
+The upstream main snapshot
+`c1862643f84b68d3b4f01cb484b887196093bfa2` was checked separately. Its changes
+after the release concern frontend, equalizer and controller features; its
+`patches`, `ps5/modules` and `ps5/compat` trees are unchanged from the release.
+This is a selective backport, not a claim that Stremio Plus uses the whole
+v0.6.0 frontend or the complete current upstream decoder. All existing
+memory bounds, aligned allocations, reference-picture, frame-lease and
+failure/lifetime safeguards are retained.
+
+VideoLAN's latest stable source checked on this date remains VLC **3.0.24**,
+with the same SHA-256 recorded above. No experimental core is substituted.
+
 ## Corresponding source
 
 The binary delivery includes the exact application source and these patches,

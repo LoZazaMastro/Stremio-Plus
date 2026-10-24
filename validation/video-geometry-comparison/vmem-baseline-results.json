@@ -1,0 +1,62 @@
+{
+  "1280x720": {
+    "frames": 30,
+    "setups": 1,
+    "setup_input": [
+      1280,
+      738
+    ],
+    "setup_output": [
+      1280,
+      720
+    ],
+    "visible": [
+      1280,
+      720
+    ],
+    "adapt_filters": 1,
+    "sws_scale_calls": 0,
+    "copy_plane_calls": 111,
+    "copy_plane_bytes": 51148800
+  },
+  "1920x1080": {
+    "frames": 30,
+    "setups": 1,
+    "setup_input": [
+      1920,
+      1090
+    ],
+    "setup_output": [
+      1920,
+      1080
+    ],
+    "visible": [
+      1920,
+      1080
+    ],
+    "adapt_filters": 1,
+    "sws_scale_calls": 0,
+    "copy_plane_calls": 108,
+    "copy_plane_bytes": 111974400
+  },
+  "1920x1088": {
+    "frames": 30,
+    "setups": 1,
+    "setup_input": [
+      1920,
+      1090
+    ],
+    "setup_output": [
+      1920,
+      1080
+    ],
+    "visible": [
+      1920,
+      1080
+    ],
+    "adapt_filters": 1,
+    "sws_scale_calls": 0,
+    "copy_plane_calls": 108,
+    "copy_plane_bytes": 111974400
+  }
+}

@@ -67,7 +67,7 @@ template<class T> struct Plan {
     }
 };
 Plan<LinkCode> creates;
-Plan<ApiResult> reads, users, logouts;
+Plan<ApiResult> reads, users, logouts, exchanges;
 LinkCode code(const std::string& value) { return {true, value, "https://link.stremio.com/" + value, {}}; }
 ApiResult approved(const std::string& key) { return {true, json{{"authKey", key}}, {}}; }
 ApiResult profile(const std::string& email) { return {true, json{{"email", email}}, {}}; }
@@ -82,6 +82,8 @@ json saved(const std::string& directory) {
     return result;
 }
 } // namespace
+
+ApiResult account_test_session_exchange(const std::string& token) { return exchanges.take(token); }
 
 // Names come from nm + c++filt for the existing host executable, in the runner.
 LinkCode wrapped_create() asm(WRAP_LINK_CREATE);
@@ -135,6 +137,79 @@ struct AppProtocolTest {
         app.login_next_poll_ = 0;
         app.login_expires_ = now_seconds() + 600;
         app.login_polling_ = false;
+    }
+    static void separate_device_session(const std::string& directory) {
+        const auto profile_path = directory + "/device-session";
+        expect(make_dirs(profile_path), "device-session profile directory exists");
+        App app; prepare(app, profile_path);
+        active_code(app, "DISTINCT_SESSION");
+        auto approval = reads.add(approved("BROWSER_SUCCESS"));
+        auto exchange = exchanges.add(approved("DEVICE_SUCCESS"));
+        auto user = users.add(profile("device@example.test"));
+        app.login_poll(); approval->release();
+        until([&] { return exchange->entered.load(); }, "device-session exchange", false);
+        expect(exchange->argument == "BROWSER_SUCCESS", "exchange receives the browser approval credential");
+        expect(!app.signed_in(), "approval alone does not authenticate before the session exchange completes");
+        exchange->release();
+        until([&] { return user->entered.load(); }, "profile using device session");
+        expect(app.signed_in() && app.settings_.auth_key == "DEVICE_SUCCESS",
+               "App retains the returned device credential instead of the browser approval");
+        expect(user->argument == "DEVICE_SUCCESS", "authenticated profile request uses the new device session");
+        expect(jstr(saved(profile_path), "auth_key") == "DEVICE_SUCCESS",
+               "device credential is on disk before the profile request completes");
+        // Model revocation of only the browser credential at the API boundary.
+        // The production server's revocation policy still requires a live test.
+        auto browser_logout = logouts.add({true, json::object(), {}});
+        browser_logout->release();
+        expect(api_logout("BROWSER_SUCCESS").ok, "browser-session revocation fixture succeeds");
+        expect(browser_logout->argument == "BROWSER_SUCCESS" && app.settings_.auth_key != browser_logout->argument,
+               "browser logout never selects the saved device credential");
+        expect(jstr(saved(profile_path), "auth_key") == "DEVICE_SUCCESS",
+               "browser logout leaves the distinct persisted device credential intact");
+        user->release(); flush_tasks();
+        app.shutdown(); flush_tasks();
+        App restarted;
+        expect(restarted.init(profile_path, profile_path, false), "saved device-session profile restarts");
+        expect(restarted.signed_in() && restarted.settings_.auth_key == "DEVICE_SUCCESS" && !restarted.login_visible,
+               "restart loads the exchanged device credential without another pairing");
+        restarted.shutdown(); flush_tasks();
+    }
+    static void session_exchange_failures(const std::string& directory) {
+        App app; prepare(app, directory);
+        for (const auto& response : std::vector<ApiResult>{{false, json{{"authKey", "IGNORED"}}, "offline"},
+                                                          {true, json::object(), {}}}) {
+            active_code(app, "FAILED_EXCHANGE");
+            auto approval = reads.add(approved("BROWSER_FAILED"));
+            auto exchange = exchanges.add(response);
+            approval->release(); exchange->release();
+            app.login_poll(); flush_tasks();
+            expect(!app.signed_in() && app.login_state == App::LoginState::error &&
+                   app.login_code.empty() && app.login_code_raw_.empty(),
+                   "failed or empty exchange clears pairing and cannot persist the browser credential");
+        }
+        app.login_close();
+    }
+    static void cancelled_device_session(const std::string& directory, bool expire) {
+        App app; prepare(app, directory);
+        active_code(app, expire ? "EXPIRING_EXCHANGE" : "CANCELLED_EXCHANGE");
+        const std::string browser = expire ? "BROWSER_EXPIRED" : "BROWSER_CANCELLED";
+        const std::string device = expire ? "DEVICE_EXPIRED" : "DEVICE_CANCELLED";
+        auto approval = reads.add(approved(browser));
+        auto exchange = exchanges.add(approved(device));
+        auto cleanup = logouts.add({true, json::object(), {}});
+        app.login_poll(); approval->release();
+        until([&] { return exchange->entered.load(); }, "exchange held across cancellation/expiry", false);
+        if (expire) {
+            app.login_expires_ = now_seconds() - 1;
+            app.login_poll();
+            expect(app.login_state == App::LoginState::expired, "expiry remains responsive during exchange");
+        } else app.login_close();
+        exchange->release();
+        until([&] { return cleanup->entered.load(); }, "discarding newly issued device session");
+        expect(!app.signed_in() && cleanup->argument == device && cleanup->argument != browser,
+               "cancelled/expired exchange revokes only its newly issued device credential");
+        cleanup->release(); flush_tasks();
+        app.login_close();
     }
     static void startup_routes(const std::string& directory) {
         const auto unsigned_dir = directory + "/startup-unsigned";
@@ -408,6 +483,10 @@ int main(int argc, char** argv) {
     g_tasks.start(1);
     try {
         AppProtocolTest::startup_routes(argv[1]);
+        AppProtocolTest::separate_device_session(argv[1]);
+        AppProtocolTest::session_exchange_failures(argv[1]);
+        AppProtocolTest::cancelled_device_session(argv[1], false);
+        AppProtocolTest::cancelled_device_session(argv[1], true);
         AppProtocolTest::create_and_cancel(argv[1]);
         AppProtocolTest::pending_expired_empty(argv[1]);
         AppProtocolTest::stale_poll(argv[1]);
@@ -416,7 +495,7 @@ int main(int argc, char** argv) {
         AppProtocolTest::late_poll_after_logout(argv[1]);
         AppProtocolTest::logout_choices_and_stale_save(argv[1]);
         expect(unexpected_http == 0, "no real HTTP requests escape the controlled account boundaries");
-        expect(qr_requests > 0 && creates.calls > 0 && reads.calls > 0 && users.calls > 0 && logouts.calls > 0,
+        expect(qr_requests > 0 && creates.calls > 0 && reads.calls > 0 && users.calls > 0 && logouts.calls > 0 && exchanges.calls >= 5,
                "every account boundary is exercised");
         flush_tasks(); g_tasks.stop();
         std::cout << "ACCOUNT_TESTS_OK checks=" << checks << " real_http_requests=" << unexpected_http.load() << '\n';

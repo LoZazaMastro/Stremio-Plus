@@ -1069,6 +1069,39 @@ void App::play_stream(const Stream& st, bool transcode) {
 		return;
 	}
 	if (!transcode && play_saved_stream(st)) return;
+	const std::string type = d_meta_loaded_ && !d_meta_.type.empty() ? d_meta_.type : d_item_.type;
+	std::string title = d_meta_loaded_ && !d_meta_.name.empty() ? d_meta_.name : d_item_.name;
+	if (d_series) for (const auto& video : d_meta_.videos) {
+		if (video.id != d_video_id_) continue;
+		title += " · " + download_episode_label(video.season, video.episode, video.title);
+		break;
+	}
+	const bool live = (d_meta_loaded_ && d_meta_.is_live) || type == "tv";
+	double resume = 0;
+	// Prefer the exact local episode bookmark, including a cleared bookmark,
+	// over an older account entry. Keep the existing end-of-video policy.
+	const auto saved = video_progress_.find(video_progress_key(type, d_item_.id, d_video_id_));
+	if (!live && saved != video_progress_.end()) {
+		if (resumable_progress(saved->second, d_video_id_) &&
+		    (saved->second.duration <= 0 || saved->second.time < saved->second.duration * 0.95)) resume = saved->second.time;
+	} else if (!live) for (const auto& cw : continue_watching()) {
+		if (cw.id != d_item_.id) continue;
+		const bool same_video = cw.video_id == d_video_id_ || (!d_series && cw.video_id.empty());
+		if (same_video && cw.offset > 5 && (cw.duration <= 0 || cw.offset < cw.duration * 0.95)) resume = cw.offset;
+	}
+	const int streams = d_gen_, metadata = d_meta_gen_;
+	const std::string media_id = d_item_.id, media_type = d_item_.type, video_id = d_video_id_;
+	// Keep a value copy: an add-on may replace the stream list while the
+	// dialog is open. No torrent, resolver or player starts before the choice.
+	choose_playback_start(title, resume,
+		[this, stream = st, transcode, streams, metadata, media_id, media_type, video_id](double start) {
+			if (view != "detail" || streams != d_gen_ || metadata != d_meta_gen_ ||
+			    media_id != d_item_.id || media_type != d_item_.type || video_id != d_video_id_) return;
+			start_stream_playback(stream, transcode, start);
+		}, live);
+}
+
+void App::start_stream_playback(const Stream& st, bool transcode, double start) {
 	std::string srv = server();
 	bool torrent = st.url.empty() && !st.info_hash.empty();
 	// Torrents play with the app's own engine, unless Settings says to use
@@ -1108,18 +1141,6 @@ void App::play_stream(const Stream& st, bool transcode) {
 				           (v.title.empty() ? "" : " · " + v.title);
 	} else {
 		subtitle = d_year;
-	}
-
-	// Resume where it was left.
-	double start = 0;
-	const auto saved = video_progress_.find(video_progress_key(w_item_.type, w_item_.id, w_video_id_));
-	if (saved != video_progress_.end()) {
-		if (resumable_progress(saved->second, w_video_id_) &&
-		    (saved->second.duration <= 0 || saved->second.time < saved->second.duration * 0.95)) start = saved->second.time;
-	} else for (const auto& cw : continue_watching()) {
-		if (cw.id != w_item_.id) continue;
-		const bool same_video = cw.video_id == w_video_id_ || (!d_series && cw.video_id.empty());
-		if (same_video && cw.offset > 5 && (cw.duration <= 0 || cw.offset < cw.duration * 0.95)) start = cw.offset;
 	}
 
 	int gen = ++w_gen_;

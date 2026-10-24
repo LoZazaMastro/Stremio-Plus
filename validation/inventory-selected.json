@@ -1,0 +1,429 @@
+{
+  "created_at_utc": "2026-10-23T12:01:48.795584+00:00",
+  "scope": "Closed allowlist of previously completed text evidence; no tests or builds executed while archiving.",
+  "file_count": 60,
+  "total_bytes": 944929,
+  "files": [
+    {
+      "path": "baseline-host/home-startup-ffmpeg/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/home-startup-ffmpeg/result.json",
+      "sha256": "bd1f4ef739e419876ee1847a9c31f6c598128b55af1657e3417a094b52b0cc1b",
+      "bytes": 1249,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/home-startup-ffmpeg/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/home-startup-ffmpeg/output.txt",
+      "sha256": "7078d1aecc9ebcfe5619d7e3165951a40b5d7a24c68e8580295051160bfcf7b8",
+      "bytes": 30,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/home-startup-ffmpeg/run.log",
+      "original_path": "validation-current/final-home-startup-ffmpeg.log",
+      "sha256": "2561a6fded75186fd5d9609e8ea7cce66eec9c7133e2bbc98666fdf8d638e1a3",
+      "bytes": 124,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume-app-ffmpeg/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/playback-volume-app-ffmpeg/result.json",
+      "sha256": "11a9033db4456c324cdf1f2b7e1f5303be3d9a4dea43de22149afb9e700cc05b",
+      "bytes": 1498,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume-app-ffmpeg/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/playback-volume-app-ffmpeg/output.txt",
+      "sha256": "c13bbcbb9f340fd45bae2bf4547a04ed5fc2f718931af725d7a735e337d728c1",
+      "bytes": 413,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume-app-ffmpeg/run.log",
+      "original_path": "validation-current/playback-volume-app-ffmpeg.txt",
+      "sha256": "e56cca12a4475ef4138ec0952314b5e4ead3121dc0f50875071a61bdeed05ef7",
+      "bytes": 514,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/home-startup-vlc/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/home-startup-vlc/result.json",
+      "sha256": "66f093b68eee3fd27af0bca42d1ec00bf8c69e2723483cf56da732f1f35e7d06",
+      "bytes": 1246,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/home-startup-vlc/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/home-startup-vlc/output.txt",
+      "sha256": "7078d1aecc9ebcfe5619d7e3165951a40b5d7a24c68e8580295051160bfcf7b8",
+      "bytes": 30,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/home-startup-vlc/run.log",
+      "original_path": "validation-current/final-home-startup-vlc.log",
+      "sha256": "58934e0464d96fd6418106b1eefc4d79356c79f780cd7f163820efd97199c419",
+      "bytes": 121,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume-app-vlc/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/playback-volume-app-vlc/result.json",
+      "sha256": "05d448a4472f918a741c7ef80bd81c72b47506d371b698707d8fa0d5284229f2",
+      "bytes": 1499,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume-app-vlc/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/playback-volume-app-vlc/output.txt",
+      "sha256": "1ee836408a8718a255f22b808d75422f6d5950182967d21a8a8a55dafbfc6f3c",
+      "bytes": 413,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume-app-vlc/run.log",
+      "original_path": "validation-current/volume-app-vlc.log",
+      "sha256": "507ee5d83f809dbcc2b511292d234bc5bb3ad747d8425bfe87623eef6576dcde",
+      "bytes": 511,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/account.log",
+      "original_path": "validation-current/final-account.log",
+      "sha256": "07bb9c5bf1a34f361717430110b780263a6cbbfc4f3abbfdde3380ed6d9aba98",
+      "bytes": 49,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/interactions.log",
+      "original_path": "validation-current/interactions.txt",
+      "sha256": "762a06a9d0ea082b918f5343e4caf539f1a88186f9928f6dc4307ce0b0adb838",
+      "bytes": 51,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/desktop-ui.log",
+      "original_path": "validation-current/final-desktop-ui.log",
+      "sha256": "f54aad40653c3a0d73bdad6f19691a5c6fcfaabc0a9a4df65752858f5f7e2bec",
+      "bytes": 944,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/builds.json",
+      "original_path": "validation-current/final-host-builds.json",
+      "sha256": "79e81d32d15a72735c5352980a3504f788694f1388259ed3b893a51fb6b4f696",
+      "bytes": 855,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/desktop-build.log",
+      "original_path": "validation-current/final-desktop-build.log",
+      "sha256": "68b1e21574b2a37fbdb6a73a653c8887c79ff77e7343527ed8ff29e5bdc8cae0",
+      "bytes": 22061,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/host-vlc-build.log",
+      "original_path": "validation-current/final-host-vlc-build.log",
+      "sha256": "0e18c62846d264ee67c0df32f30a655bc4b20596255679173b1137391c8a6060",
+      "bytes": 22469,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume-helper.log",
+      "original_path": "validation-current/playback-volume-unit.txt",
+      "sha256": "f1d83fee872ade1b5a22e5f2caf486c5c9219b422d08f7b1193c75e95b785cdd",
+      "bytes": 113,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/vlc-output.log",
+      "original_path": "validation-current/vlc-output-volume-regression.txt",
+      "sha256": "9512662c1a451b8ec3ee914d85220934a4c84f7ee69b3f02e8df855cb26a6fd2",
+      "bytes": 108,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/playback-volume.json",
+      "original_path": "Stremio-Plus-work/build/tests/playback-volume.json",
+      "sha256": "6bb606f1e9399faf944b6b63bd5b371dfdad8990171a3b18b38fffe489652bb8",
+      "bytes": 670,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-host/vlc-output.json",
+      "original_path": "Stremio-Plus-work/build/tests/vlc-output.json",
+      "sha256": "777821a9d57e92ac38aa92d695a5c9f64f62143ea24de5f5534aab47a5afb018",
+      "bytes": 773,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/native-heap/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/native-heap/result.json",
+      "sha256": "9836aede26e3daff8c18b23b4263b479ac35bea2dd157891c466a90758370f7f",
+      "bytes": 9938,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/native-heap/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/native-heap/test-output.txt",
+      "sha256": "5c3ce67981535f170ff5462e05bd8b333e5a648c0ff3429e5e0ae0c33745bfc2",
+      "bytes": 2538,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/native-video-memory/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/native-video-memory/result.json",
+      "sha256": "188b70b29a880906e80c14d6396facc1706b1900bc6a7529d210e835323835ac",
+      "bytes": 3429,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/ps5-audio/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/ps5-audio/result.json",
+      "sha256": "ee8b38b2e7476c283109cc74bea35a2fc7c71eb7db44ef22ab4e873f9a180c8c",
+      "bytes": 862,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/ps5-audio/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/ps5-audio/test-output.txt",
+      "sha256": "5d3474b9b12de587cf14744182e073757550336dbd90fa40beaf216d35248ef6",
+      "bytes": 47,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/native-heap/run.log",
+      "original_path": "validation-current/native_heap-tests.log",
+      "sha256": "124ac6f347ae4f3404bba38b6638806b6cd9d42028fa5f00ae78c7202faecbf9",
+      "bytes": 2759,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/native-video-memory/run.log",
+      "original_path": "validation-current/native_video_memory-tests.log",
+      "sha256": "c56fd483d005347e434c0b0715b5535093af17e4ef4cfb109e702247d0dc5e75",
+      "bytes": 243,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/ps5-audio/run.log",
+      "original_path": "validation-current/ps5-audio-tests.log",
+      "sha256": "e5322beb1ad538745bd5e3caef2d3eb225ce9b3e2536c57af433c13b3e68c12d",
+      "bytes": 131,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/native-startup.log",
+      "original_path": "validation-current/native_startup-tests.log",
+      "sha256": "569cf13d80bb39d18c44d6a9da0d3be7cce64e97e097815e5e8e3389480b76ce",
+      "bytes": 876,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/ps5vdec-startup.log",
+      "original_path": "validation-current/ps5vdec_startup-tests.log",
+      "sha256": "068afb94eae54396e8fd3c927bec552e937947062ee1b5f148262afb664f7672",
+      "bytes": 237,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "baseline-safety/ps5vdec-startup.json",
+      "original_path": "Stremio-Plus-work/build/tests/ps5vdec-startup.json",
+      "sha256": "29bdce802f7a3d256c6d66d3edd602bff2227c1904b3b0c876c7e682a70fc47d",
+      "bytes": 8264,
+      "phase": "pre-upstream-backport"
+    },
+    {
+      "path": "backport-vp9/vp9-output/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/vp9-output/result.json",
+      "sha256": "01ba2145eedd71e1acd7dc604d0ca6f51030a61de6062cb2f53000a211730cb4",
+      "bytes": 913,
+      "phase": "vp9-fifo-backport"
+    },
+    {
+      "path": "backport-vp9/vp9-output/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/vp9-output/output.txt",
+      "sha256": "b849fbd8f5c09c4bb716312df181386b6e77249b7f9318fa6d9e52e921374462",
+      "bytes": 1051,
+      "phase": "vp9-fifo-backport"
+    },
+    {
+      "path": "backport-vp9/vp9-output/run.log",
+      "original_path": "validation-current/upstream-vp9-output.log",
+      "sha256": "1cfc90c3adf455df98917905f6ee60463b7c9cc7ed3323d5781bf96be5808106",
+      "bytes": 1136,
+      "phase": "vp9-fifo-backport"
+    },
+    {
+      "path": "backport-vp9/vp9-output-pinned/result.json",
+      "original_path": "Stremio-Plus-work/build/tests/vp9-output-pinned/result.json",
+      "sha256": "3630d2c5f2154da8340daacd63e3f7c72504ebeb7ce124b25d6b8e762cd66f8f",
+      "bytes": 1230,
+      "phase": "vp9-fifo-backport"
+    },
+    {
+      "path": "backport-vp9/vp9-output-pinned/output.txt",
+      "original_path": "Stremio-Plus-work/build/tests/vp9-output-pinned/output.txt",
+      "sha256": "7bcc4f7597ea86c540fee29588af43548e8840b30fa70c85bdc204573350d6f3",
+      "bytes": 1133,
+      "phase": "vp9-fifo-backport"
+    },
+    {
+      "path": "backport-vp9/vp9-output-pinned/run.log",
+      "original_path": "validation-current/upstream-vp9-output-pinned.log",
+      "sha256": "419e6f9f59180f78ab70f0f069fe07b00058c8498cad0ff4e3ddce0279681848",
+      "bytes": 1225,
+      "phase": "vp9-fifo-backport"
+    },
+    {
+      "path": "backport-vp9/before-fix-output.log",
+      "original_path": "evo-review/vlc-hardware/vp9-delayed-output.log",
+      "sha256": "9735ea05fd7b18a458787aa685c7ff8b4c6acfe0cdfa90d89bfbd2a284eb2a8c",
+      "bytes": 207,
+      "phase": "before-vp9-fifo-fix"
+    },
+    {
+      "path": "upstream/evo/REVIEW.md",
+      "original_path": "evo-review/REVIEW.md",
+      "sha256": "09235e2410222e0bece6736d03e3bf1aa2ef8890d3435b8ec74353a5706fd833",
+      "bytes": 3553,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/review.json",
+      "original_path": "evo-review/review.json",
+      "sha256": "fb556b6dc22f3e52a73b77540bd0e674f5dc6de7043b21ccf6d385a4ea1ea428",
+      "bytes": 2014,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/head.json",
+      "original_path": "evo-review/head.json",
+      "sha256": "a11dce82cf844ac16cfee60474a8609c57d8cc68fd3550a9ce3edb8edb489349",
+      "bytes": 23546,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/compare.json",
+      "original_path": "evo-review/compare.json",
+      "sha256": "3156693d95f2d4b4dad601c0d515a068c9f792f866a0f21544065b2c1a75a6b5",
+      "bytes": 8147,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/latest-release.json",
+      "original_path": "evo-review/latest-release.json",
+      "sha256": "429d15c66d6d0df3a1bf7bbba62a4ce7517cd5228931e56c9c9ea557c47a5c86",
+      "bytes": 13007,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/release-tag.json",
+      "original_path": "evo-review/release-tag.json",
+      "sha256": "34e2ecdb06807c420eb350f208ce8ffcdc2879743cc435d9e18bea3b7dcced98",
+      "bytes": 351,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/branches.json",
+      "original_path": "evo-review/branches.json",
+      "sha256": "b295fb45e91dbf8cb9d471e7f5f28fd776402ea6999816e5c76771217e74c6e1",
+      "bytes": 4067,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/branch-claude_nifty-hopper-xtpgp6.json",
+      "original_path": "evo-review/branch-claude_nifty-hopper-xtpgp6.json",
+      "sha256": "4ea0332032f214a0e53c5d0068a2ae664221bcaab8165691f6fb5da001a5c744",
+      "bytes": 8089,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/branch-feat_27-agc-submit-watchdog.json",
+      "original_path": "evo-review/branch-feat_27-agc-submit-watchdog.json",
+      "sha256": "36f9c02ad60f145ef028040ad4c6f77206172393e1702a96ff309049fe1650e6",
+      "bytes": 8366,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/branch-feat_37-video-decoder-setting.json",
+      "original_path": "evo-review/branch-feat_37-video-decoder-setting.json",
+      "sha256": "1f1169777321ac1df640d48ca425bd7fd566fecc7b933ef327ad60d82ba23b66",
+      "bytes": 9449,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/branch-feat_6-video-buffers-direct-mem.json",
+      "original_path": "evo-review/branch-feat_6-video-buffers-direct-mem.json",
+      "sha256": "91c0c3e1468425d4738e249b1160d7fe5bf1be8b9274410a94794e1134ad9163",
+      "bytes": 8829,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/branch-fix_57-4k-seek-sps-reinject.json",
+      "original_path": "evo-review/branch-fix_57-4k-seek-sps-reinject.json",
+      "sha256": "009198dc8579ee6d95a415ae61a0ef7f74b3834a1560206174bceffe4fa191c0",
+      "bytes": 9425,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/evo/branch-research_hardware-decode.json",
+      "original_path": "evo-review/branch-research_hardware-decode.json",
+      "sha256": "5834c01608c9438d677b95d332c4dbc15ab829be8b3f626d7330e879f7a6c9d7",
+      "bytes": 725227,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/vlc/REVIEW.md",
+      "original_path": "validation-current/upstream-vlc-review/REVIEW.md",
+      "sha256": "13f44da24d97ea8a32bb025cee1a5a31a54bc04f651317d9fb2b73c1271d7cdd",
+      "bytes": 7104,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/vlc/latest-release.json",
+      "original_path": "validation-current/upstream-vlc-review/latest-release.json",
+      "sha256": "c68d998f2370014838b35c02f6a54dcd731b136653b18e53f9c18dbf22d4fe95",
+      "bytes": 4727,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/vlc/main-commit.json",
+      "original_path": "validation-current/upstream-vlc-review/main-commit.json",
+      "sha256": "9b2217c47fd8b8d8fa7826a5863e70f85474f1300db960e1950d1588e6a5ac56",
+      "bytes": 6666,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/vlc/remote-ref-verification.json",
+      "original_path": "validation-current/upstream-vlc-review/remote-ref-verification.json",
+      "sha256": "aa9ee963d9d8ceae8e1bca6fb951d454d6fd0328f08aa56a8afa464cfcc0e207",
+      "bytes": 370,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/vlc/release-to-main-stat.txt",
+      "original_path": "validation-current/upstream-vlc-review/release-to-main-stat.txt",
+      "sha256": "00a8853ea3eb614dfc89bb389af7bc17c8f5559e87deaff6ef04f9e5e438ce3a",
+      "bytes": 1587,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/vlc/videolan-latest-source.sha256",
+      "original_path": "validation-current/upstream-vlc-review/videolan-latest-source.sha256",
+      "sha256": "e3be9b860a336e649b2b172103508a03850a95d4a2b7f804edec45880fa94ce1",
+      "bytes": 84,
+      "phase": "upstream-read-only-review"
+    },
+    {
+      "path": "upstream/vlc-hardware/REVIEW.md",
+      "original_path": "evo-review/vlc-hardware/REVIEW.md",
+      "sha256": "70c686b37761faf165ccc72cea4683861eabb69250d96d18e32635c7edbe9c2c",
+      "bytes": 8361,
+      "phase": "upstream-read-only-review"
+    }
+  ],
+  "missing_requested_files": []
+}

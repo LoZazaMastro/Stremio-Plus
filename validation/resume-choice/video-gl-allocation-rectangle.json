@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "checks": 99,
+  "failures": 0,
+  "scope": "Real OpenGL output and texture lifetime; exhausted 2D-output/rectangle-plane allocations at every stage; target-aware native-size first-fit model with reserved render staging for 4K10-bit and 1080p8-bit; clear/reopen; unrelated preexisting GL errors",
+  "limits": "The failure injection models an exhausted GL allocation after any driver retry. The physical ledger is an independent first-fit model using retained PS5 driver footprints including rectangle render staging, not a hardware trace or a reconstruction of the user session.",
+  "source_sha256": {
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/video_gl.cpp": "231fc93ea7423a175ab07fcf84d32da8f98ce347278d42a2af9c5e2163dc8f8f",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/src/video_gl.h": "022c3441f8fce271c9c7b15875f56f71052304e07e47d537cb06913b59ca5785",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/test_video_gl_allocation.cpp": "d3570af34097b7aa34e13662f8db39048b25e60910ed067ec741ae379b433890",
+    "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/tests/run_video_gl_allocation_tests.py": "c4bac7aed1ea72eefd1d6384a7711d28b6de91a2c3bd1e92ffe72b1ee4f3d1e0"
+  },
+  "stdout": "GPU allocation tests: 99 checks, 0 failures (real host GL; injected API exhaustion and modeled native extents)\n",
+  "stderr": "Failed to create /root/.cache/mesa_shader_cache for shader cache (Read-only file system)---disabling.\n[HUI] program Stremio YUV video built in 17 ms\n[HUI] program Stremio YUV video built in 11 ms\n[HUI] program Stremio YUV video built in 12 ms\n[HUI] program Stremio YUV video built in 12 ms\n[HUI] program Stremio YUV video built in 13 ms\n[HUI] program Stremio YUV video built in 9 ms\n[HUI] program Stremio YUV video built in 14 ms\n[HUI] program Stremio YUV video built in 8 ms\n"
+}

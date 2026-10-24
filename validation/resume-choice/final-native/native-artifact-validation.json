@@ -1,0 +1,2944 @@
+{
+  "pass": true,
+  "checks": 722,
+  "filesCompared": 227,
+  "directoryCount": 21,
+  "applicationVersion": "0.5.20",
+  "titleId": "PPSA74126",
+  "contentVersion": "00.070.000",
+  "sourceTreeSha256": "70fc195d4b6582e49edca77bb29c1224b72c8d11df3affd00d84cf1e703929d0",
+  "physicalConsoleTest": false,
+  "pfsWarnings": [],
+  "pfsModePolicy": "The pinned MkPFS wraps the application folder in PPSA74126.exfat and stores that image in read-only PFS/PFSC with 0555 container inodes. exFAT has no POSIX execute permissions. ZIP preserves 0755 eboot/libc, 0644 other files. Contents, file lengths, paths and application metadata were verified after deep extraction; container inode permissions were parsed directly.",
+  "outputs": {
+    "dist/PPSA74126.zip": {
+      "bytes": 38278146,
+      "sha256": "95f24d39bb4466cffa3873e43131d56e4c834fc91b833460df3362763935ee3a"
+    },
+    "dist/PPSA74126.ffpfsc": {
+      "bytes": 42991616,
+      "sha256": "4e3337fcb708d622eb90322b235e09e1fb9364356673eb3be9143044e24e0a61"
+    },
+    "dist/PPSA74126/eboot.bin": {
+      "bytes": 66543601,
+      "sha256": "27e81608d02fd18ad7ca7f0b0d678b77a062cc3d39f270465e23bcd75594326d"
+    },
+    "dist/PPSA74126/sce_module/libc.prx": {
+      "bytes": 1284674,
+      "sha256": "e6ff45d16adf687855cc3b33b0c8a4132b6504360b221e0a34c7e99fb3ba0036"
+    },
+    "build/native/pie.elf": {
+      "bytes": 117807616,
+      "sha256": "6f37caf3bd87ac30505031a4259623a8f7d7b15cc0c0c68cb0bdd8d0f725eefe"
+    },
+    "build/native/eboot.elf": {
+      "bytes": 68734756,
+      "sha256": "8cdc82c37a54aa4cc2c17b583ae83c008f7a2d4835c7b1e87bee590ef2bb2915"
+    },
+    "build/native/sandbox-elevator.elf": {
+      "bytes": 551472,
+      "sha256": "978526c2597e352be81dca02427a4dddfa38d5f8d01a1c06ff4c6e93f6947292"
+    },
+    "build/native/download-writer.elf": {
+      "bytes": 1503792,
+      "sha256": "03576159216f07261a0ce025712b365cb036fad077c1ad6440de334d79b4e992"
+    }
+  },
+  "pfsFiles": {
+    "PPSA74126.exfat": {
+      "mode": "0o555",
+      "flags": "0x11",
+      "logicalBytes": 120324096
+    }
+  },
+  "checksDetail": [
+    {
+      "check": "PFS extracted file paths match application folder",
+      "pass": true
+    },
+    {
+      "check": "PFS extracted bytes match every application file",
+      "pass": true
+    },
+    {
+      "check": "Application contains only regular files/directories",
+      "pass": true
+    },
+    {
+      "check": "ZIP CRC validation",
+      "pass": true
+    },
+    {
+      "check": "ZIP contains only the PPSA74126 top-level folder",
+      "pass": true
+    },
+    {
+      "check": "ZIP file paths match application folder",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory paths match application folder",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode ",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode hui",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode hui/audio",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode hui/audio/sfx",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode hui/audio/sfx/paper",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode hui/audio/sfx/glass",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode hui/fonts",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode sce_module",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode sce_sys",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode assets",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode assets/images",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode assets/icons",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode assets/css",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode licenses",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode licenses/ps5-opengl",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode licenses/ps5-opengl/LICENSES",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode licenses/ps5-opengl/LICENSES/Mesa",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode licenses/ps5-opengl/LICENSES/Mesa/exceptions",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode licenses/vlc",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode licenses/evo-player",
+      "pass": true
+    },
+    {
+      "check": "ZIP directory mode fonts",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes build-receipt.json",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode build-receipt.json",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes THIRD_PARTY.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode THIRD_PARTY.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes LICENSE",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode LICENSE",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes sandbox-elevator.elf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode sandbox-elevator.elf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes ca-bundle.crt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode ca-bundle.crt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes download-writer.elf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode download-writer.elf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes eboot.bin",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode eboot.bin",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes sce_module/libc.prx",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode sce_module/libc.prx",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes sce_sys/icon0.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode sce_sys/icon0.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes sce_sys/pic0.dds",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode sce_sys/pic0.dds",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes sce_sys/param.json",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode sce_sys/param.json",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes sce_sys/pic1.dds",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode sce_sys/pic1.dds",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/rml.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/rml.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/main.rml",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/main.rml",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/MPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/MPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/dht.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/dht.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/zstd.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/zstd.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-homebrew-ui-NOTICES.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-homebrew-ui-NOTICES.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/dlmalloc.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/dlmalloc.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/libpsl.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/libpsl.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/FFmpeg.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/FFmpeg.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/libpng.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/libpng.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/FreeBSD.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/FreeBSD.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/OpenSSL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/OpenSSL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/xz.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/xz.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/FreeType.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/FreeType.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/libwebp.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/libwebp.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/stb_image.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/stb_image.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/zlib.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/zlib.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/dashboard-icons.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/dashboard-icons.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/README.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/README.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/RmlUi.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/RmlUi.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/curl.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/curl.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/libsamplerate.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/libsamplerate.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/nlohmann-json.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/nlohmann-json.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/bzip2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/bzip2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/libwebp-PATENTS.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/libwebp-PATENTS.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/LLVM.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/LLVM.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/SDL2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/SDL2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/xz-0BSD.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/xz-0BSD.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/Stremio-MIT.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/Stremio-MIT.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/miniupnpc.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/miniupnpc.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/GPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/GPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/NotoNaskhArabicUI-Bold.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/NotoNaskhArabicUI-Bold.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/NotoSans-Regular.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/NotoSans-Regular.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/OFL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/OFL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/NotoSans-Bold.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/NotoSans-Bold.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/NotoEmoji-VariableFont_wght.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/NotoEmoji-VariableFont_wght.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/NotoNaskhArabicUI-NOTICE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/NotoNaskhArabicUI-NOTICE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/NotoNaskhArabicUI-Regular.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/NotoNaskhArabicUI-Regular.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes fonts/NotoSans-Italic.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode fonts/NotoSans-Italic.ttf",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/patrick-hand.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/patrick-hand.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/press-start-2p.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/press-start-2p.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/Inter-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/Inter-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/PressStart2P-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/PressStart2P-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/PatrickHand-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/PatrickHand-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/dejavu-sans-mono.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/dejavu-sans-mono.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/DejaVu-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/DejaVu-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/inter-regular.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/inter-regular.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/subtitles-serif.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/subtitles-serif.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/inter-semibold.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/inter-semibold.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/montserrat-medium.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/montserrat-medium.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/subtitles.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/subtitles.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/Montserrat-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/Montserrat-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/fonts/subtitles-mono.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/fonts/subtitles-mono.huifont",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/cascade_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/cascade_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/focus_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/focus_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/error_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/error_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/rotate_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/rotate_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/back_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/back_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/erase_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/erase_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/spawn_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/spawn_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/new_record_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/new_record_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/place_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/place_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/connect_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/connect_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/toggle_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/toggle_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/merge_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/merge_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/solve_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/solve_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/slide_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/slide_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/merge_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/merge_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/slider_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/slider_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/invalid_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/invalid_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/flip_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/flip_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/notify_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/notify_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/mark_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/mark_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/redo_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/redo_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/restart_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/restart_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/place_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/place_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/modal_close_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/modal_close_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/type_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/type_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/drop_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/drop_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/reveal_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/reveal_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/slide_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/slide_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/focus_03.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/focus_03.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/game_over_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/game_over_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/launch_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/launch_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/undo_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/undo_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/focus_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/focus_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/tick_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/tick_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/explode_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/explode_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/new_game_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/new_game_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/select_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/select_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/favorite_on_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/favorite_on_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/slider_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/slider_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/tab_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/tab_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/type_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/type_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/modal_open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/modal_open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/tick_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/tick_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/complete_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/complete_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/mark_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/mark_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/index.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/index.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/favorite_off_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/favorite_off_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/paper/pickup_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/paper/pickup_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/saved_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/saved_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/focus_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/focus_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/error_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/error_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/back_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/back_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/toggle_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/toggle_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/toggle_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/toggle_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/slider_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/slider_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/notify_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/notify_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/modal_close_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/modal_close_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/slider_03.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/slider_03.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/welcome_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/welcome_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/resume_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/resume_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/launch_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/launch_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/focus_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/focus_02.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/select_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/select_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/slider_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/slider_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/tab_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/tab_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/modal_open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/modal_open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/index.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/index.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes hui/audio/sfx/glass/toggle_03.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode hui/audio/sfx/glass/toggle_03.wav",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/searchbar_sel.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/searchbar_sel.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/shade_v.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/shade_v.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/searchbar.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/searchbar.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/bg.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/bg.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/shade_top.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/shade_top.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/shade_h.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/shade_h.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/dot32.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/dot32.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/dot22.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/dot22.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/images/shade_detail.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/images/shade_detail.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_library_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_library_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/chevron_right.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/chevron_right.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/check.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/check.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_board_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_board_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_addons_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_addons_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_library.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_library.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/l1.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/l1.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/chevron_down.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/chevron_down.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_discover_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_discover_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/chevron_left.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/chevron_left.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_board.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_board.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_discover.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_discover.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/logo.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/logo.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/square.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/square.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_settings.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_settings.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/triangle.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/triangle.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/r1.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/r1.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/circle.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/circle.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/pause.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/pause.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_settings_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_settings_o.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/search.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/search.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/options.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/options.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/cross.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/cross.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/dpad.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/dpad.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/nav_addons.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/nav_addons.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/icons/play.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/icons/play.png",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/overlays.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/overlays.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/watch.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/watch.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/shell.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/shell.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/browse.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/browse.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/settings.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/settings.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/theme.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/theme.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/board.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/board.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/detail.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/detail.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes assets/css/motion.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode assets/css/motion.rcss",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/THIRD_PARTY_NOTICES.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/THIRD_PARTY_NOTICES.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSE",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSE",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/libass.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/libass.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/VLC-PS5-GPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/VLC-PS5-GPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/GnuTLS-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/GnuTLS-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/libxml2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/libxml2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/GMP-README.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/GMP-README.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/GnuTLS-GPL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/GnuTLS-GPL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/libebml.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/libebml.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/dav1d.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/dav1d.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/VLC-AUTHORS.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/VLC-AUTHORS.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/GMP-GPL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/GMP-GPL.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/libmatroska.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/libmatroska.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/README.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/README.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/HarfBuzz.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/HarfBuzz.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/libdvbpsi.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/libdvbpsi.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/GMP-LGPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/GMP-LGPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/VLC-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/VLC-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/FFmpeg-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/FFmpeg-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/HarfBuzz-ms-use.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/HarfBuzz-ms-use.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/Nettle-LGPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/Nettle-LGPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/utf8cpp.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/utf8cpp.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/VLC-PS5-NOTICE.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/VLC-PS5-NOTICE.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/vlc/VLC-GPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/vlc/VLC-GPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/evo-player/LICENSE-FSR1",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/evo-player/LICENSE-FSR1",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/evo-player/LICENSE-libplacebo",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/evo-player/LICENSE-libplacebo",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/evo-player/NOTICE-libplacebo",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/evo-player/NOTICE-libplacebo",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/evo-player/LICENSE",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/evo-player/LICENSE",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/evo-player/NOTICE-upstream",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/evo-player/NOTICE-upstream",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/evo-player/NOTICE.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/evo-player/NOTICE.md",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/VK-GL-CTS.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/VK-GL-CTS.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Sokol-Samples.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Sokol-Samples.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Sokol.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Sokol.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Vulkan-Headers.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Vulkan-Headers.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Dear-ImGui.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Dear-ImGui.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/OpenGNM-PSBC.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/OpenGNM-PSBC.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/OpenGNM.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/OpenGNM.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/SDL2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/SDL2.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/vecmath.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/vecmath.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/SPIRV-Headers.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/SPIRV-Headers.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/NanoVG.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/NanoVG.txt",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Mesa/BSL-1.0",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Mesa/BSL-1.0",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Mesa/Apache-2.0",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Mesa/Apache-2.0",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Mesa/GPL-2.0-only",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Mesa/GPL-2.0-only",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Mesa/MIT",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Mesa/MIT",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Mesa/SGI-B-2.0",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Mesa/SGI-B-2.0",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Mesa/GPL-1.0-or-later",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Mesa/GPL-1.0-or-later",
+      "pass": true
+    },
+    {
+      "check": "ZIP bytes licenses/ps5-opengl/LICENSES/Mesa/exceptions/Linux-Syscall-Note",
+      "pass": true
+    },
+    {
+      "check": "ZIP mode licenses/ps5-opengl/LICENSES/Mesa/exceptions/Linux-Syscall-Note",
+      "pass": true
+    },
+    {
+      "check": "PFS structural inspection: []",
+      "pass": true
+    },
+    {
+      "check": "PFS format version is PS5",
+      "pass": true
+    },
+    {
+      "check": "PFS contains exactly the requested title exFAT image",
+      "pass": true
+    },
+    {
+      "check": "PFS pinned read/execute-only container inode PPSA74126.exfat",
+      "pass": true
+    },
+    {
+      "check": "PFS pinned read/execute-only container directory ",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT is accessible",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT file paths match application folder",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT directory paths match application folder",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/board.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/browse.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/detail.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/motion.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/overlays.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/settings.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/shell.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/theme.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/css/watch.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/check.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/chevron_down.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/chevron_left.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/chevron_right.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/circle.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/cross.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/dpad.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/l1.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/logo.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_addons.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_addons_o.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_board.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_board_o.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_discover.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_discover_o.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_library.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_library_o.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_settings.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/nav_settings_o.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/options.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/pause.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/play.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/r1.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/search.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/square.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/icons/triangle.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/bg.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/dot22.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/dot32.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/searchbar.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/searchbar_sel.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/shade_detail.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/shade_h.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/shade_top.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/images/shade_v.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/main.rml",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size assets/rml.rcss",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size build-receipt.json",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size ca-bundle.crt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size download-writer.elf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size eboot.bin",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/NotoEmoji-VariableFont_wght.ttf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/NotoNaskhArabicUI-Bold.ttf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/NotoNaskhArabicUI-NOTICE.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/NotoNaskhArabicUI-Regular.ttf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/NotoSans-Bold.ttf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/NotoSans-Italic.ttf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/NotoSans-Regular.ttf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size fonts/OFL.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/back_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/error_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/focus_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/focus_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/index.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/launch_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/modal_close_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/modal_open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/notify_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/resume_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/saved_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/select_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/slider_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/slider_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/slider_03.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/tab_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/toggle_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/toggle_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/toggle_03.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/glass/welcome_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/back_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/cascade_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/complete_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/connect_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/drop_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/erase_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/error_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/explode_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/favorite_off_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/favorite_on_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/flip_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/focus_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/focus_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/focus_03.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/game_over_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/index.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/invalid_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/launch_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/mark_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/mark_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/merge_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/merge_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/modal_close_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/modal_open_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/new_game_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/new_record_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/notify_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/pickup_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/place_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/place_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/redo_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/restart_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/reveal_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/rotate_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/select_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/slide_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/slide_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/slider_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/slider_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/solve_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/spawn_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/tab_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/tick_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/tick_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/toggle_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/type_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/type_02.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/audio/sfx/paper/undo_01.wav",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/DejaVu-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/dejavu-sans-mono.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/Inter-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/inter-regular.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/inter-semibold.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/Montserrat-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/montserrat-medium.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/patrick-hand.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/PatrickHand-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/press-start-2p.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/PressStart2P-LICENSE.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/subtitles-mono.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/subtitles-serif.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size hui/fonts/subtitles.huifont",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size LICENSE",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/bzip2.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/curl.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/dashboard-icons.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/dht.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/dlmalloc.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/evo-player/LICENSE",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/evo-player/LICENSE-FSR1",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/evo-player/LICENSE-libplacebo",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/evo-player/NOTICE-libplacebo",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/evo-player/NOTICE-upstream",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/evo-player/NOTICE.md",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/FFmpeg.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/FreeBSD.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/FreeType.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/GPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/libpng.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/libpsl.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/libsamplerate.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/libwebp-PATENTS.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/libwebp.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/LLVM.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/miniupnpc.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/MPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/nlohmann-json.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/OpenSSL.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-homebrew-ui-NOTICES.md",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSE",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Dear-ImGui.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Mesa/Apache-2.0",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Mesa/BSL-1.0",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Mesa/exceptions/Linux-Syscall-Note",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Mesa/GPL-1.0-or-later",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Mesa/GPL-2.0-only",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Mesa/MIT",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Mesa/SGI-B-2.0",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/NanoVG.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/OpenGNM-PSBC.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/OpenGNM.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/SDL2.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Sokol-Samples.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Sokol.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/SPIRV-Headers.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/vecmath.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/VK-GL-CTS.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/LICENSES/Vulkan-Headers.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/ps5-opengl/THIRD_PARTY_NOTICES.md",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/README.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/RmlUi.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/SDL2.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/stb_image.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/Stremio-MIT.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/dav1d.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/FFmpeg-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/GMP-GPL.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/GMP-LGPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/GMP-README.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/GnuTLS-GPL.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/GnuTLS-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/HarfBuzz-ms-use.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/HarfBuzz.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/libass.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/libdvbpsi.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/libebml.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/libmatroska.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/libxml2.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/Nettle-LGPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/README.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/utf8cpp.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/VLC-AUTHORS.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/VLC-GPL-2.0.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/VLC-LGPL-2.1.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/VLC-PS5-GPL-3.0.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/vlc/VLC-PS5-NOTICE.md",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/xz-0BSD.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/xz.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/zlib.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size licenses/zstd.txt",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size sandbox-elevator.elf",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size sce_module/libc.prx",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size sce_sys/icon0.png",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size sce_sys/param.json",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size sce_sys/pic0.dds",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size sce_sys/pic1.dds",
+      "pass": true
+    },
+    {
+      "check": "Inner exFAT logical size THIRD_PARTY.md",
+      "pass": true
+    },
+    {
+      "check": "Folder executable mode eboot.bin",
+      "pass": true
+    },
+    {
+      "check": "Folder executable mode sce_module/libc.prx",
+      "pass": true
+    },
+    {
+      "check": "Title identity matches receipt",
+      "pass": true
+    },
+    {
+      "check": "Content version matches receipt",
+      "pass": true
+    },
+    {
+      "check": "Matching diagnostic PIE ELF in build receipt",
+      "pass": true
+    }
+  ]
+}

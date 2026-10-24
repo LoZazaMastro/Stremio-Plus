@@ -1,0 +1,18 @@
+{
+  "toolchain_setup_exit": 0,
+  "original_runtime_sha256": "e6ff45d16adf687855cc3b33b0c8a4132b6504360b221e0a34c7e99fb3ba0036",
+  "runtime_rebuilt_twice_identically": true,
+  "opengl_archive_sha256": "f93643c04c843d56143b00951df1f8042ea7706ae9f19e4e9abf158e1ead77c5",
+  "opengl_manifest_sha256": "f4b91f672be037fbac3f82494f1225deaf4c227a03f37ac3ffa56abb213b943f",
+  "opengl_manifest_all_files_verified": true,
+  "boilerplate_commit": "f98de734b68b0b980d38ff03a330066afd6ae16d",
+  "boilerplate_tree": "723111f8b760d912f975edce4a821085c1167c2a",
+  "boilerplate_local_branches": [],
+  "physical_console_tests": false,
+  "log": "native-toolchain-recovered.log",
+  "dependency_sources_or_pins_changed": false,
+  "local_bootstrap_updated_with_verified_mirror_fallbacks": true,
+  "runtime_observed_sha256": "e6ff45d16adf687855cc3b33b0c8a4132b6504360b221e0a34c7e99fb3ba0036",
+  "boilerplate_observed_commit": "f98de734b68b0b980d38ff03a330066afd6ae16d",
+  "opengl_observed_manifest_sha256": "f4b91f672be037fbac3f82494f1225deaf4c227a03f37ac3ffa56abb213b943f"
+}

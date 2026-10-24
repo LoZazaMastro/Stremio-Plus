@@ -1,0 +1,37 @@
+{
+  "file": "/workspace/scratch/7fa7f080734e/deliverables-0.5.20/Stremio-Plus-0.5.20-symbols.zip",
+  "bytes": 71050816,
+  "sha256": "36f78b9e69c886bbbaf0118902df2fb8077eed9674b86709a052ba4ecaf3f8d3",
+  "sourceTreeSha256": "70fc195d4b6582e49edca77bb29c1224b72c8d11df3affd00d84cf1e703929d0",
+  "pieElfSha256": "6f37caf3bd87ac30505031a4259623a8f7d7b15cc0c0c68cb0bdd8d0f725eefe",
+  "addressLookupsResolved": 13,
+  "addressLookupsTotal": 13,
+  "globalDwarfVerifyExit": 1,
+  "globalDwarfErrorCount": 37831,
+  "objectDwarfVerify": {
+    "app.cpp.o": {
+      "exit": 0,
+      "log": "native-app-cpp-o-dwarf-verify.log"
+    },
+    "hwdec_ps5.cpp.o": {
+      "exit": 0,
+      "log": "native-hwdec_ps5-cpp-o-dwarf-verify.log"
+    },
+    "src/video_gl.cpp.o": {
+      "exit": 0,
+      "log": "native-video_gl-cpp-o-dwarf-verify.log"
+    },
+    "src/app_watch.cpp.o": {
+      "exit": 0,
+      "log": "native-app_watch-cpp-o-dwarf-verify.log"
+    },
+    "src/app_detail.cpp.o": {
+      "exit": 0,
+      "log": "native-app_detail-cpp-o-dwarf-verify.log"
+    },
+    "vendor/vlc-ps5/modules/ps5vdec.c.o": {
+      "exit": 0,
+      "log": "native-ps5vdec-c-o-dwarf-verify.log"
+    }
+  }
+}

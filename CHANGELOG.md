@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.20 - 2026-10-24
+
+Changes since 0.5.18.
+
+- **Stable Home loading.** Fixed the repeated flashing and repositioning of shelves during startup. The loading screen now stays visible until the first shelves and their artwork are ready, with bounded waits for slow add-ons. Later catalog updates preserve the current selection and scroll position.
+
+- **Persistent PS5 sign-in.** Corrected phone pairing to exchange the approval credential for a PS5 device session and save it immediately. Failed exchanges and expired or cancelled approvals can no longer complete a stale sign-in attempt.
+
+- **Smoother 1080p playback.** Removed the expensive per-frame texture upload path that caused dropped frames and reduced playback speed. Improved late-frame handling and removed an unnecessary video-output copy.
+
+- **Right-stick volume control.** Move the right stick up or down to adjust playback volume in 5% steps. Added a dead zone, controlled repeat, a temporary volume indicator and a saved volume level. Audio passthrough displays TV/receiver volume guidance. L2/R2 keep their existing controls.
+
+- **Consistent start and resume choices.** Every playback request now asks before starting, including online streams, downloads and the next episode. A saved position offers **Start from the beginning** or **Resume**; choosing the beginning starts at zero, and cancelling preserves the bookmark. Invalid or repeated confirmations cannot launch playback, and incomplete downloads retain their verified-data checks.
+
 ## 0.5.18 - 2026-10-19
 
 This release brings together the playback fixes and Downloads improvements developed since 0.5.11.

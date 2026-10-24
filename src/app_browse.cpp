@@ -608,7 +608,14 @@ void App::open_dropdown(const std::string& title, const std::vector<std::string>
 	dd_options.clear();
 	for (size_t i = 0; i < options.size(); i++) dd_options.push_back({options[i], int(i) == active});
 	dd_sel = std::max(0, std::min(active, int(options.size()) - 1));
-	dd_chosen_ = chosen;
+	const auto generation = ++dd_generation_;
+	dd_chosen_ = [this, generation, chosen = std::move(chosen)](int selected) {
+		if (generation != dd_generation_) return;
+		// A single choice is consumed once, even if an old callback survives.
+		// Multi-select menus intentionally keep accepting the current callback.
+		if (!dd_multiselect) ++dd_generation_;
+		if (chosen) chosen(selected);
+	};
 	dd_visible = true;
 	dirty_all();
 }
@@ -632,6 +639,7 @@ void App::dropdown_button(Btn b) {
 		break;
 	}
 	case Btn::Circle:
+		++dd_generation_;
 		dd_visible = false;
 		dd_multiselect = false;
 		dd_chosen_ = nullptr;

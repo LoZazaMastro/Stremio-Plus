@@ -10,7 +10,7 @@ import tempfile
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    files = [root / name for name in ("src/player_vlc_audio.h", "src/player_vlc_copy.cpp",
+    files = [root / name for name in ("src/player_vlc_audio.h", "src/playback_volume.h", "src/player_vlc_copy.cpp",
         "tests/test_vlc_output.cpp", "tests/run_vlc_output_tests.py")]
     hashes = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
     with tempfile.TemporaryDirectory(prefix="stremio-vlc-output-") as temporary:

@@ -1,6 +1,8 @@
 // Exercise real App end-of-episode ordering, one-shot countdown and input.
 // Network, artwork and decoder boundaries are controlled; no console required.
 #include "app.h"
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -38,10 +40,10 @@ std::optional<DownloadEntry> wrapped_find(const DownloadManager*, const std::str
     for (const auto& entry : inventory) if (entry.id == id) return entry;
     return {};
 }
-void wrapped_local(App*, const std::string&, bool, double) asm(WRAP_LOCAL_START);
-void wrapped_local(App*, const std::string& id, bool progressive, double start) {
-    expect(!progressive && start == 0, "next local video starts complete and from its beginning");
-    ++local_plays; local_played = id;
+void wrapped_open(Player*, const Player::Options&) asm(WRAP_PLAYER_OPEN);
+void wrapped_open(Player*, const Player::Options& options) {
+    expect(!options.growing_download && options.start == 0, "confirmed next local video starts complete and from its beginning");
+    ++local_plays; local_played = options.url;
 }
 std::string wrapped_get(ArtCache*, const std::string&, ArtKind,
     std::function<void(const std::string&)>, ArtPriority, const void*) asm(WRAP_ART_GET);
@@ -77,9 +79,12 @@ struct AppProtocolTest {
         app.w_ended_handled_ = false; app.w_offline_ = false;
         app.w_stream_.binge_group = "same-binge"; app.w_stream_.addon_url = "https://provider.invalid/installation";
         app.next_episode_visible = false; app.watched_.clear(); app.autoplay_pending_ = false;
+        app.dd_visible = false; app.dd_chosen_ = nullptr; app.launch_visible = false;
+        app.progress_.clear(); app.video_progress_.clear();
     }
-    static void run() {
+    static void run(const std::string& directory) {
         App app; prepare(app);
+        app.base_dir_ = app.data_dir_ = directory;
         expect(app.settings_.next_episode_delay_seconds == 15, "default countdown is fifteen seconds");
         const int old_season = app.d_season_idx_, old_selection = app.d_episode_sel;
         art_ready = false; app.watch_finish_episode();
@@ -159,17 +164,26 @@ struct AppProtocolTest {
         app.d_stream_list_ = {unrelated, provider, binge};
         app.d_stream_buckets_ = {app.d_stream_list_}; app.d_pending_ = 1; app.d_answered_ = 1;
         app.detail_refresh_streams();
+        expect(app.dd_visible && !app.launch_visible && !app.watching(),
+               "the automatic next source asks before launching playback");
         const int launch_generation = app.w_gen_;
         app.detail_refresh_streams();
-        expect(app.w_stream_.url == binge.url && app.w_gen_ == launch_generation && !app.autoplay_pending_,
-               "matching binge stream is preferred and starts once");
+        expect(app.dd_visible && app.w_gen_ == launch_generation && !app.autoplay_pending_,
+               "repeated source refresh does not replace or bypass the next-episode choice");
+        app.on_button(Btn::Cross);
+        expect(app.w_stream_.url == binge.url && app.launch_visible && app.w_gen_ == launch_generation + 1,
+               "confirming the choice launches the matching binge source exactly once");
         g_tasks.stop();
         prepare(app); app.w_offline_ = true; app.view = "downloads";
         app.d_item_.id = "unrelated"; app.w_download_id_ = "local-one";
         DownloadEntry one, two, three;
         one.id = "local-one"; one.media_id = "series"; one.type = "series"; one.video_id = "s1e1";
-        one.season = 1; one.episode = 1; one.state = DownloadState::Complete; one.local_path = "first.mkv";
+        one.season = 1; one.episode = 1; one.state = DownloadState::Complete;
+        one.local_path = directory + "/first.mkv";
+        std::ofstream(one.local_path) << "local fixture";
         two = one; two.id = "local-two"; two.video_id = "s1e2"; two.episode = 2;
+        two.local_path = directory + "/second.mkv";
+        std::ofstream(two.local_path) << "local fixture";
         two.subtitle = "S1E2 · Local next title"; two.background_path = "local-next.rgba";
         three = two; three.id = "local-three"; three.video_id = "s1e3"; three.episode = 3;
         inventory = {one, three, two};
@@ -177,7 +191,10 @@ struct AppProtocolTest {
         expect(app.next_episode_visible && app.next_episode_title == "Local next title" &&
                app.next_episode_thumb == "local-next.rgba", "completed offline episode offers exact adjacent downloaded video with local artwork");
         app.on_button(Btn::Cross);
-        expect(local_plays == 1 && local_played == "local-two" && stream_requests == 0,
+        expect(app.dd_visible && local_plays == 0 && !app.watching(),
+               "offline next asks before opening its local player");
+        app.on_button(Btn::Cross);
+        expect(local_plays == 1 && app.w_download_id_ == "local-two" && local_played == two.local_path && stream_requests == 0,
                "offline next starts existing local player path without any provider request");
         prepare(app, "s1e2"); app.w_offline_ = true; app.view = "downloads"; app.w_download_id_ = "local-two";
         DownloadEntry next_season = two; next_season.id = "local-next-season";
@@ -186,7 +203,10 @@ struct AppProtocolTest {
         expect(app.next_episode_visible && app.next_episode_id_ == "s2e1",
                "complete cached metadata can establish the exact offline season boundary");
         app.on_button(Btn::Cross);
-        expect(local_played == "local-next-season" && stream_requests == 0, "known offline season boundary stays entirely local");
+        expect(app.dd_visible && local_plays == 0, "a new offline season also requires the playback choice");
+        app.on_button(Btn::Cross);
+        expect(app.w_download_id_ == "local-next-season" && local_played == next_season.local_path && stream_requests == 0,
+               "known offline season boundary stays entirely local");
         prepare(app, "s1e2"); app.w_offline_ = true; app.view = "downloads";
         app.d_item_.id = "unrelated"; app.w_download_id_ = "local-two";
         inventory = {two, next_season}; app.watch_finish_episode();
@@ -207,7 +227,8 @@ struct AppProtocolTest {
         app.watching_ = false;
     }
 };
-int main() {
-    try { AppProtocolTest::run(); std::cout << "Next episode: " << checks << " checks passed\n"; }
+int main(int argc, char** argv) {
+    if (argc != 2) return 2;
+    try { AppProtocolTest::run(argv[1]); std::cout << "Next episode: " << checks << " checks passed\n"; }
     catch (const std::exception& error) { std::cerr << "FAIL: " << error.what() << '\n'; return 1; }
 }

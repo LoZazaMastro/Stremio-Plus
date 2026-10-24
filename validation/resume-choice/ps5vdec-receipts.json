@@ -1,0 +1,10 @@
+{
+  "ps5": {
+    "exit": 0,
+    "output": "VLC ps5: 106 plugins and 132 static archives verified"
+  },
+  "host": {
+    "exit": 0,
+    "output": "VLC host: 106 plugins and 129 static archives verified"
+  }
+}

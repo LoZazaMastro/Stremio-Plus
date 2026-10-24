@@ -9,6 +9,12 @@
 class VideoGl {
 public:
     enum class Failure { None, InvalidFrame, InvalidPlane, Allocation, Framebuffer };
+    // CPU wall times around the GL calls, including any driver wait encountered
+    // there. These are not GPU execution times and introduce no GPU fence.
+    struct UploadTiming {
+        double allocation_ms = 0, plane_ms = 0, draw_ms = 0;
+        bool reconfigured = false;
+    };
     VideoGl();
     ~VideoGl();
     bool init();
@@ -20,6 +26,8 @@ public:
     double fps() const;
     bool dolby_vision_active() const { return dovi_active_; }
     Failure last_failure() const { return failure_; }
+    const UploadTiming& last_upload_timing() const { return upload_timing_; }
+    static constexpr const char* upload_path() { return "rectangle-planes"; }
 private:
     void discard_textures();
     bool reject(Failure failure, const char* stage, const Player::VideoFrame& frame,
@@ -33,5 +41,6 @@ private:
     int serial_ = -1;
     double stamp_ = 0, period_ = 0, previous_media_pts_ = -1;
     Failure failure_ = Failure::None;
+    UploadTiming upload_timing_;
     unsigned rejection_notes_ = 0, prior_gl_notes_ = 0;
 };

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pack a verified current app folder; file modes are preserved inside the image.
+# Pack a verified app folder with MkPFS's read-only, executable inode policy.
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/toolchain-env.sh"
 TITLE=${1:-PPSA74126}
@@ -14,7 +14,8 @@ mkdir -p "$BUILD_DIR"
 STAGE=$(mktemp -d "$BUILD_DIR/pack.XXXXXX")
 trap 'rm -rf -- "$STAGE"' EXIT
 cp -a "$SRC" "$STAGE/$TITLE"
-# The image is read-only app data; only eboot/modules need execute permission.
+# Normalize the staged folder as in the ZIP. The pinned MkPFS deliberately
+# stores all image inodes as read/execute-only, independently of these modes.
 find "$STAGE/$TITLE" -type d -exec chmod 0755 {} +
 find "$STAGE/$TITLE" -type f -exec chmod 0644 {} +
 chmod 0755 "$STAGE/$TITLE/eboot.bin" "$STAGE/$TITLE/sce_module/libc.prx"

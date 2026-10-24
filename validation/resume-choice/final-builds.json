@@ -1,0 +1,25 @@
+{
+  "scope": "Final local builds from frozen production source, not PS5 execution",
+  "applicationVersion": "0.5.20",
+  "sourceTreeSha256": "70fc195d4b6582e49edca77bb29c1224b72c8d11df3affd00d84cf1e703929d0",
+  "builds": {
+    "desktop": {
+      "command": "cmake --build build/desktop --parallel 2",
+      "exit": 0,
+      "executableSha256": "66b5a6a52befcf26240d400333ced4e795dbbbd4c4f3bf280fa6c464a0fcb421",
+      "logSha256": "b70f020f805e515b9673f5ff0f11287e5b77f42037138d9409e91bc87130e4a3"
+    },
+    "host-vlc": {
+      "command": "cmake --build build/host-vlc --parallel 2",
+      "exit": 0,
+      "executableSha256": "fbfa4390f8e3ecddda55c9eae9ac8b0546a8888dcfbe35173487bd9a2091eb9d",
+      "logSha256": "b1655748dd87f38f60b84f6575e6dde701b2e0ad5df578e94971d59cac4a0077"
+    },
+    "ps5": {
+      "build": "native",
+      "exit": 0,
+      "seconds": 164.15,
+      "log": "/workspace/scratch/7fa7f080734e/validation-resume-choice/final-native-build.log"
+    }
+  }
+}

@@ -1,0 +1,2357 @@
+--- a/BUILDING.md
++++ b/BUILDING.md
+@@ -1,11 +1,18 @@
+ # Building Stremio Plus
+ 
+-## Local 0.5.19 test candidate
+-
+-This local source tree contains the requested Home, account-session,
+-presentation and volume fixes. Use this tree when reproducing the candidate;
++## Local 0.5.20 test candidate
++
++This local source tree adds an explicit beginning/resume choice before every
++playback request, including online and downloaded next episodes. It also changes
++the sampled video input planes to rectangle textures to avoid the pinned PS5
++driver's per-pixel CPU tiling, and adds a bounded AVC level-51 compatibility
++retry after the native decoder rejects its original configuration. It retains
++the Home, account-session, presentation and volume changes from 0.5.19.
++Use this tree when reproducing the candidate;
+ checking out the older release below does not contain these changes. Nothing
+ has been published. The current verification record is
++[`docs/LOCAL_0_5_20_VALIDATION.md`](docs/LOCAL_0_5_20_VALIDATION.md).
++The earlier checks remain in
+ [`docs/LOCAL_0_5_19_VALIDATION.md`](docs/LOCAL_0_5_19_VALIDATION.md), with
+ Italian console-test instructions in [`docs/PROVA_PS5_IT.md`](docs/PROVA_PS5_IT.md).
+ 
+@@ -13,6 +20,13 @@
+ run the focused checks for this candidate:
+ 
+ ```sh
++python3 tests/run_video_gl_tests.py
++python3 tests/run_video_gl_allocation_tests.py
++python3 tests/run_ps5vdec_startup_tests.py
++python3 tests/run-diagnostics-tests.py
++python3 tests/run_playback_choice_tests.py build/desktop
++python3 tests/run_download_app_tests.py build/desktop
++python3 tests/run_next_episode_tests.py build/desktop
+ python3 tests/run_home_startup_tests.py build/desktop
+ python3 tests/run_home_ui_tests.py build/desktop
+ python3 tests/run_interaction_tests.py build/desktop
+@@ -46,7 +60,7 @@
+ 
+ ## Source delivery
+ 
+-Extract the supplied `Stremio-Plus-0.5.19-repository.zip` and run the commands
++Extract the supplied `Stremio-Plus-0.5.20-repository.zip` and run the commands
+ from its `Stremio-Plus` directory. The local candidate has no published tag.
+ For historical reference only, the
+ [0.5.18 tag](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.18)
+@@ -76,6 +90,11 @@
+ python3.12 ../Stremio-Plus-0.5.19-dependencies/restore-cache.py "$PWD"
+ BUILD_JOBS=4 ./build.sh ps5
+ ```
++
++The 0.5.20 update uses exactly the same dependency revisions,
++source archives and native media libraries as the supplied 0.5.19 bundles;
++those bundle names are intentional. The new application and its matching
++symbols must come from the 0.5.20 build.
+ 
+ The helper validates every input before writing the cache and installs the
+ pinned packaging tool from the included wheels. Those wheels target Linux
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,4 +1,35 @@
+ # Changelog
++
++## 0.5.20 - 2026-10-23 (local test candidate; unpublished)
++
++- Ask before starting each online or downloaded video. Offer playback from
++  the beginning or the saved position for the exact film/episode. Without a
++  valid bookmark, offer beginning and cancel; live sources explicitly offer
++  live playback. Keep the existing bookmark validity and completion policy.
++- Apply the same choice to next-episode playback, including complete local
++  downloads, and to streams redirected to an existing downloaded copy.
++- Start no player or online resolver while the choice is pending. Preserve
++  the bookmark on cancellation, invalidate stale account/title/episode
++  choices, and consume a single-selection callback only once.
++- Preserve verified-prefix checks for incomplete downloads. If the prefix
++  becomes insufficient after Resume was offered, report it and require a new
++  choice instead of silently starting from the beginning.
++
++- Use rectangle textures for sampled video planes, selecting the pinned PS5
++  driver's linear upload path instead of CPU tiling for every R8/RG8 frame.
++  Keep the source-sized 2D output and allocation/FBO/lifetime protections.
++- Add a bounded H.264 level-51 retry only after a rejected native memory query
++  and only for a declared compatible profile/level and known1080p coded size.
++  Retain software selection if the native decoder still refuses the stream.
++- Record separate CPU allocation, plane-transfer and conversion-submission
++  times; preserve numeric histograms in runtime.json. Report declared source
++  frame rate separately from accepted-frame cadence. New PS5 measurements
++  remain required to establish the performance improvement.
++
++Title ID: `PPSA74126`. Native content version: `00.070.000`.
++See [local validation and scope](docs/LOCAL_0_5_20_VALIDATION.md).
++Native memory and audio lifetime protections, decoder reference-frame safety
++and L2/R2 controls are retained. No publication or store submission is included.
+ 
+ ## 0.5.19 - 2026-10-23 (local test candidate; unpublished)
+ 
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ cmake_minimum_required(VERSION 3.20)
+-project(stremio-ps5 VERSION 0.5.19 LANGUAGES C CXX)
++project(stremio-ps5 VERSION 0.5.20 LANGUAGES C CXX)
+ set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ if(NOT CMAKE_BUILD_TYPE)
+--- a/README.md
++++ b/README.md
+@@ -1,8 +1,12 @@
+ # Stremio Plus
+ 
+-> **Local 0.5.19 test candidate, unpublished.** This delivered tree contains
+-> the requested Home loading, device-session, video presentation and
+-> right-stick volume changes. See the [current verification record](docs/LOCAL_0_5_19_VALIDATION.md),
++> **Local 0.5.20 test candidate, unpublished.** This delivered tree adds the
++> beginning/resume choice before playback, linear RECT texture uploads for video
++> input planes, and a narrowly limited AVC decoder configuration retry. It retains
++> the requested Home loading, device-session, video presentation and right-stick
++> volume changes. Rendering and failure handling have been checked locally;
++> performance and hardware decoder acceptance still require testing on PS5.
++> See the [current verification record](docs/LOCAL_0_5_20_VALIDATION.md),
+ > [PS5 test instructions in Italian](docs/PROVA_PS5_IT.md) and
+ > [local build instructions](BUILDING.md). Publication awaits the owner's test.
+ 
+@@ -430,7 +434,7 @@
+ 
+ ### Corresponding source
+ 
+-The supplied `Stremio-Plus-0.5.19-repository.zip` is the source of this local
++The supplied `Stremio-Plus-0.5.20-repository.zip` is the source of this local
+ candidate, including modified playback components, retained VLC patches,
+ dependency recipes, assets and build scripts. It has no published tag.
+ [BUILDING.md](BUILDING.md) explains how to reproduce the native packages.
+--- a/app/sce_sys/param.json
++++ b/app/sce_sys/param.json
+@@ -10,7 +10,7 @@
+   "conceptId": "74126",
+   "contentBadgeType": 2,
+   "contentId": "UP9000-PPSA74126_00-STREMIOPS5000001",
+-  "contentVersion": "00.069.000",
++  "contentVersion": "00.070.000",
+   "downloadDataSize": 0,
+   "localizedParameters": {
+     "defaultLanguage": "en-US",
+--- /dev/null
++++ b/docs/LOCAL_0_5_20_RESUME_CHOICE.md
+@@ -0,0 +1,93 @@
++# Stremio Plus 0.5.20 — scelta di avvio, build locale
++
++Data: 23 ottobre 2026. Title ID `PPSA74126`, content version `00.070.000`.
++La build è destinata alla prova del proprietario. Non è una pubblicazione,
++un tag Git o una richiesta allo store.
++
++## Comportamento
++
++Ogni richiesta di riproduzione mostra una scelta prima di aprire il player.
++Se esiste un segnalibro valido per quel film/episodio, le azioni sono
++**Riproduci dall'inizio** e **Riproduci da m:ss**, con la seconda selezionata.
++Senza segnalibro valido vengono proposti inizio e annullamento. Una diretta
++esplicita propone **Avvia diretta**, senza promettere un riavvio impossibile.
++Le etichette seguono la lingua italiana o inglese dell'interfaccia.
++
++La scelta copre sorgenti online, download completi o progressivi, sorgenti
++riconosciute come copie già scaricate e passaggio all'episodio successivo,
++sia online sia locale. Il passaggio automatico al prossimo episodio arriva
++alla scelta e attende l'utente prima di aprire il nuovo player.
++
++Cerchio annulla senza modificare la posizione salvata. Le callback annullate,
++sostituite, già consumate o appartenenti a un altro account/titolo/episodio
++non possono avviare una riproduzione. La sorgente viene catturata per valore,
++quindi un aggiornamento dei risultati degli add-on non cambia la scelta.
++
++Il punto di ripresa viene passato esplicitamente al launcher. Un avvio
++dall'inizio usa zero e non rilegge di nascosto il segnalibro. Rimangono le
++precedenti regole di validità e completamento del progresso. Ogni episodio
++usa la propria identità e non eredita il tempo di un altro episodio.
++
++Nei download incompleti rimangono obbligatori il prefisso verificato e la
++provenienza della stessa sorgente. Se la prova del prefisso viene meno fra
++la domanda e la conferma, l'app segnala l'indisponibilità e non apre il
++player; una nuova scelta è necessaria. Non si ricavano secondi di ripresa
++dalla percentuale scaricata.
++
++## Ambito tecnico
++
++Le modifiche applicative sono in `app.h`, `app_browse.cpp`, `app_detail.cpp`,
++`app_downloads.cpp` e `app_watch.cpp`. I controlli di volume, L2/R2, decoder,
++conversione video, memoria nativa e durata dei buffer audio restano quelli
++della build 0.5.19. Le dipendenze e le librerie statiche VLC restano identiche.
++
++Questo intervento non costituisce una correzione del rifiuto `ps5vdec`
++`0x811d0200` o del costo di upload/conversione di circa 43 ms osservati nei
++log PS5 della precedente prova breve. Quel problema richiede dati di una
++riproduzione continua e un'indagine separata. I circa 60 FPS dell'interfaccia
++non sono una misura del framerate effettivo del film.
++
++## Verifiche
++
++Il preflight ha compilato ed eseguito un programma C++20 con GCC e Clang 18
++e ha compilato un oggetto per il target `x86_64-sie-ps5`. Le ricevute delle
++dipendenze sono state verificate: 132 archivi statici PS5 e 129 host,
++ciascuno con 106 moduli VLC; manifest OpenGL e checksum libc corrispondono.
++I compilatori versionati funzionano anche in assenza dell'alias `clang++`.
++
++I risultati di compilazione, integrazione e confezionamento vengono raccolti
++in `validation/resume-choice/` prima della consegna. I test applicativi
++usano gli oggetti di produzione e controllano il confine esterno del decoder
++e delle richieste HTTP; non simulano una prova fisica della PS5.
++
++Comandi dei controlli mirati, dopo la build host:
++
++```sh
++python3 tests/run_playback_choice_tests.py build/desktop
++python3 tests/run_download_app_tests.py build/desktop
++python3 tests/run_next_episode_tests.py build/desktop
++python3 tests/run_preferences_tests.py build/desktop
++python3 tests/run_interaction_tests.py build/desktop
++python3 tests/run_playback_choice_tests.py build/host-vlc
++```
++
++La prova su PS5 della nuova scelta è ancora necessaria. Le istruzioni
++complete sono in [PROVA_PS5_IT.md](PROVA_PS5_IT.md), sezione 5.
++
++## Ricompilazione e dipendenze
++
++Usare `Stremio-Plus-0.5.20-repository.zip` e seguire [BUILDING.md](../BUILDING.md).
++Le due cache `Stremio-Plus-0.5.19-dependencies-core.zip` e
++`Stremio-Plus-0.5.19-dependencies-pacbrew.zip` già consegnate rimangono valide:
++la versione nel loro nome identifica gli stessi input, non il nuovo binario.
++
++```sh
++python3.12 ../Stremio-Plus-0.5.19-dependencies/restore-cache.py "$PWD"
++BUILD_JOBS=4 ./build.sh ps5
++```
++
++Gli output sono `dist/PPSA74126.zip`, `dist/PPSA74126.ffpfsc` e
++`build/native/pie.elf`. Usare esclusivamente i simboli della stessa build.
++La ricevuta inclusa nell'applicazione lega eseguibile, sorgenti, asset e
++dipendenze tramite SHA-256. Il pacchetto sorgenti conserva anche le verifiche
++storiche, chiaramente separate da quelle di questo aggiornamento.
+--- /dev/null
++++ b/docs/LOCAL_0_5_20_VALIDATION.md
+@@ -0,0 +1,272 @@
++# Stremio Plus 0.5.20 — verifica locale e microscatti 1080p
++
++Data: 23 ottobre 2026. Title ID `PPSA74126`, content version `00.070.000`.
++Candidato locale da provare sulla PS5 del proprietario. Nessun branch, commit,
++workflow, release, richiesta allo store o pubblicazione è stato creato.
++
++Questa versione comprende la scelta esplicita di avvio e la correzione del
++percorso di caricamento video individuato dopo l'arrivo di `Downloads(4).zip`.
++Mantiene le correzioni a Home, sessione account e volume della precedente
++build 0.5.19.
++Lo snapshot `POST_0_5_18_WORK_IN_PROGRESS.md` è storico e non descrive i test
++successivamente eseguiti.
++
++## Cosa mostrano realmente i nuovi log
++
++La sessione corrente è `1a169d41e94-d2`, avviata il 23 ottobre alle 17:34:31 UTC,
++con la build 0.5.19. I file contengono anche sessioni precedenti: i dati sotto
++sono filtrati per la sola sessione corrente, senza sommare log.txt ed events.
++Il firmware della console non è registrato; il riferimento a 12.7 viene dalla
++segnalazione dell'utente, non da un'identificazione automatica in questi log.
++
++| Misura | Riscontro nella sessione corrente |
++| --- | --- |
++| Sorgente | H.264, 1920 × 1080, 25 fps, 8 bit SDR |
++| Decoder effettivo | `software`; il modulo hardware è disponibile ma rifiuta la query della memoria |
++| Rifiuto hardware | `0x811d0200`, livello configurato 52, pipeline 4 e poi 1 |
++| Consegna VLC | Circa 40 ms, quindi 25 fps, in sette finestre complete |
++| Prelievo/presentazione app | 22,26–22,37 fps; circa 44,7–44,9 ms |
++| Callback / prelievi | 5.253 / 4.694 nelle sette finestre |
++| Scarti nell'uscita | 559, circa 10,64%; `vmem_drops` finale 559 |
++| Scarti interni VLC vout | `vout_lost_pictures=0` |
++| Upload/conversione nell'app | 42,91–42,95 ms medi per fotogramma nelle finestre stabili |
++| Attesa per il ritorno dallo swap | Circa 1,46 ms |
++| Audio | E-AC-3 in passthrough, `active_eac3` |
++| Output richiesto | 3840 × 2160; cambio frequenza rifiutato, `mode_refused`, codice 3 |
++
++Un film a 25 fps dispone di 40 ms per fotogramma. L'upload da solo supera quel
++budget: il decoder software fornisce regolarmente i fotogrammi, ma l'app non
++li consuma abbastanza rapidamente. Questo individua il collo di bottiglia
++nel percorso successivo alla decodifica; non dimostra che la CPU sia troppo
++lenta a decodificare né che il solo mancato uso del decoder hardware sia la
++causa dei 559 scarti.
++
++I vecchi campi `runtime.source_fps=0` e `video_processing.source_fps≈23,18`
++non descrivono correttamente la frequenza nominale: il primo rimaneva al
++valore iniziale e il secondo derivava dai timestamp dei frame accettati.
++La versione 0.5.20 li corregge e distingue frequenza nominale, cadenza accettata
++e ritorni dallo swap.
++`log_dropped_events` conta messaggi diagnostici, non fotogrammi video.
++`clean_shutdown:false` da solo non prova un crash e `crash-last.txt` conserva
++la storia precedente. Non sono stati rimossi i sistemi di cattura dei crash.
++
++## Correzione dell'upload video
++
++Nel driver OpenGL effettivamente usato, con SDK fissato alla versione 1.0.0 / commit
++`dce74910af7f4274c48d05e0ae001b3038462588`, Mesa assegna ai formati colore
++renderabili sia il bind sampler sia il bind render-target. Il driver sceglie
++quindi un'immagine 2D con layout tiled anche per i piani R8/RG8 che l'app
++campiona soltanto. Durante il caricamento la CPU esegue una copia per texel
++nel layout tiled.
++
++La modifica usa **GL_TEXTURE_RECTANGLE per i soli piani in ingresso**, che
++in questo driver mantengono memoria lineare. Lo shader usa `sampler2DRect`
++con coordinate scalate sulla dimensione di ciascun piano. Il risultato RGBA
++rimane una texture 2D alla risoluzione della sorgente, compatibile con la UI.
++Non viene aggiunta una seconda presentazione VideoOut né cambiato l'SDK.
++
++Riferimenti riproducibili nei sorgenti inclusi nell'archivio SDK della cache:
++
++- Mesa 26.2.0 `src/mesa/state_tracker/st_cb_texture.c`: `default_bindings` e
++  `gl_target_to_pipe`.
++- Driver PS5 `src/gallium/ps5/ps5_screen.c`: `ps5_linear_sampled_layout`,
++  `ps5_transfer_map`, `ps5_transfer_unmap`, `ps5_texture_subdata`.
++- Applicazione: `src/video_gl.cpp` e `src/video_gl.h`.
++
++Restano validi i limiti su dimensioni, pitch e piani, il controllo degli errori,
++l'allocazione dell'output più grande prima dei piani, il distacco dell'FBO prima
++di cancellare le texture, il rilascio delle allocazioni parziali e il mantenimento
++dell'ultima immagine valida su descrittori non validi. Il modello dei test
++conta anche lo staging che il driver può riservare per il bind render-target;
++non assume erroneamente che RECT elimini ogni riserva di memoria.
++
++È una correzione del percorso individuato nel codice e dai tempi applicativi.
++**Non è ancora una misura del nuovo tempo di upload sulla PS5.** Per verificarla
++la build registra ogni 30 s `allocation`, `plane_transfer` e `conversion_submit`
++oltre a loop/upload/swap. Sono tempi CPU attorno alle chiamate GL, comprensivi
++di eventuali attese nel driver: non misurano il completamento GPU o lo scanout HDMI.
++Non aggiungono fence, query GPU o `glFinish` al ciclo di riproduzione.
++
++## Compatibilità del decoder hardware
++
++Il riferimento EVO allegato documenta un test upstream AVC 1080p con profilo 100,
++livello massimo 51 e pipeline 1. È stato aggiunto un solo tentativo 52 → 51 dopo
++il rifiuto della query, limitato a flussi con profilo 66/77/100, livello noto
++maggiore di zero e ≤ 51, e dimensioni codificate note ≤ 1920 × 1088. Il tentativo
++iniziale con livello 52 e pipeline 4 e il precedente retry con pipeline 1
++restano presenti.
++
++Non si riducono livelli ignoti o superiori, non si confonde l'altezza 1090 del
++buffer VLC con il bitstream e il nuovo retry non scatta su errori di allocazione
++o creazione. ABI, memoria, coda preparata prima del cambio delle credenziali, pool,
++ownership, cleanup e comportamento HEVC precedente sono conservati.
++Il significato specifico del codice `0x811d0200` non è stato inventato.
++Il successo della nuova configurazione sulla console è ancora da verificare.
++
++Il modulo `vendor/vlc-ps5/modules/ps5vdec.c` è compilato nell'app. Gli archivi
++statici VLC e le ricevute delle dipendenze restano validi e sono stati verificati,
++senza riscriverne arbitrariamente i checksum.
++
++## Scelta prima di ogni riproduzione
++
++Ogni richiesta di riproduzione mostra una scelta prima di aprire il player.
++Se esiste un segnalibro valido per quel film/episodio, le azioni sono
++**Riproduci dall'inizio** e **Riproduci da m:ss**, con la seconda selezionata.
++Senza segnalibro valido vengono proposti inizio e annullamento. Una diretta
++esplicita propone **Avvia diretta**, senza promettere un riavvio impossibile.
++Le etichette seguono la lingua italiana o inglese dell'interfaccia.
++
++La scelta copre sorgenti online, download completi o progressivi, sorgenti
++riconosciute come copie già scaricate e passaggio all'episodio successivo,
++sia online sia locale. Il passaggio automatico al prossimo episodio arriva
++alla scelta e attende l'utente prima di aprire il nuovo player.
++
++Cerchio annulla senza modificare la posizione salvata. Le callback annullate,
++sostituite, già consumate o appartenenti a un altro account/titolo/episodio
++non possono avviare una riproduzione. La sorgente viene catturata per valore,
++quindi un aggiornamento dei risultati degli add-on non cambia la scelta.
++
++Il punto di ripresa viene passato esplicitamente al launcher. Un avvio
++dall'inizio usa zero e non rilegge di nascosto il segnalibro. Rimangono le
++precedenti regole di validità e completamento del progresso. Ogni episodio
++usa la propria identità e non eredita il tempo di un altro episodio.
++
++Nei download incompleti rimangono obbligatori il prefisso verificato e la
++provenienza della stessa sorgente. Se la prova del prefisso viene meno fra
++la domanda e la conferma, l'app segnala l'indisponibilità e non apre il
++player; una nuova scelta è necessaria. Non si ricavano secondi di ripresa
++dalla percentuale scaricata.
++
++## EVO come motore alternativo
++
++È tecnicamente possibile eliminare libVLC e integrare i componenti di EVO,
++conservando l'interfaccia Stremio. L'archivio allegato è identico al riferimento
++EVO v0.12.5 già esaminato. Il suo percorso operativo è AGC diretto; alcuni
++commenti negli header descrivono ancora una precedente implementazione GL.
++
++EVO non espone una libreria completa e autonoma equivalente a libVLC: il
++controller, il demux, l'audio e il clock condividono stato con l'app. L'interfaccia
++del decoder `evo_vdec` e il batch AGC per `hui::gfx::DrawList` sono parti riutilizzabili.
++Una migrazione completa dovrebbe preservare HTTP e relativi header, torrent,
++download progressivi con prefissi verificati, seek/resume, tracce, sottotitoli, PCM,
++passthrough e gestione della durata delle risorse GPU e audio, usando un solo
++componente responsabile di VideoOut. Cambiare solo VLC lasciando VideoGl
++non rimuoverebbe il vecchio costo di upload.
++
++Questa build mantiene il motore VLC e applica la correzione circoscritta verificata
++localmente. Non dichiara completata una migrazione EVO. La valutazione tecnica
++con i file e i punti di chiamata effettivi è in `validation/resume-choice/evo-architecture-review.md`.
++
++## Verifiche locali realmente eseguite
++
++Il preflight ha compilato ed eseguito C++20 con GCC e Clang 18 e compilato un oggetto
++per `x86_64-sie-ps5`. I compilatori versionati funzionano anche senza l'alias
++`clang++`. Dipendenze verificate: 106 plugin e 132 archivi per PS5, 106 plugin
++e 129 archivi per host; i manifest OpenGL e i checksum di libc corrispondono.
++
++| Verifica | Risultato | Limite |
++| --- | --- | --- |
++| Shader, readback, coordinate e formati VideoGl | 319 controlli PASS | OpenGL host reale, non driver PS5 in esecuzione |
++| Allocazioni, FBO, rilascio e frammentazione | 99 controlli PASS | GL reale con fault injection e modello dei layout PS5 |
++| Avvio del decoder | 78 casi / 10.039 controlli PASS | ASan/UBSan, funzioni Sony importate simulate e ownership indipendente |
++| Scelta di avvio online | 121 controlli PASS | App di produzione, interfacce HTTP/decoder controllate |
++| Episodio successivo | 46 controlli PASS | App di produzione, file locali controllati |
++| Download/progresso | 263 controlli PASS | Prefissi, identità, soglia 5% e scelta di avvio |
++| Preferenze | 247 controlli PASS | Multiselect conservato, nessuna richiesta HTTP reale |
++| Interazioni | 102 controlli PASS | Callback, navigazione e controlli dell'app |
++| Diagnostica e identità della release | PASS | Istogrammi persistiti, oscuramento dei dati sensibili e controlli di versione e ricevuta |
++
++Build finali **desktop, host-VLC e PS5 PASS**, codice di uscita 0. La build
++nativa (`BUILD_JOBS=4 ./build.sh ps5`) ha richiesto 164,15 secondi e ha completato
++compilazione, collegamento, conversione, firma e confezione dei pacchetti.
++Dopo la ricompilazione finale sono stati rieseguiti i cinque gate App desktop
++riportati sopra, con hash degli oggetti collegati invariati prima/dopo i test.
++La scelta di avvio è stata verificata anche sul backend host-VLC: 121 PASS.
++
++Il test di cadenza usa il vero Player con VLC/FFmpeg statici, H.264 1080p con
++B/P frame e audio PCM. Dopo un ritardo artificiale di 350 ms nell'uscita video,
++il comportamento corretto riduce la raffica di recupero nei primi 50 ms da
++10 a 3 frame e riprende con ritardo finale circa 0,18 ms. I riferimenti immagine
++indipendenti e le lease dei buffer rimangono validi; la frequenza nominale
++resta 24 fps per il fixture. È un test host della presentazione e della nuova
++API diagnostica, non la misura del fix RECT sulla PS5.
++
++Confezionamento: **722 controlli PASS su 227 file**, con verifica della ricevuta,
++CRC ZIP, verifica MkPFS, estrazione completa e confronto dei nomi/SHA-256 tra
++cartella applicazione, ZIP e FFPFSC estratto; controllati anche metadati,
++struttura delle directory e permessi. Il binario contiene 0.5.20 / PPSA74126 /
++00.070.000. Le ricevute non sono state modificate per forzare un esito positivo.
++
++Simboli: PIE e ricevuta corrispondono; **13/13 risoluzioni indirizzo→riga PASS**
++e **sei verifiche DWARF su singoli oggetti PASS**. La verifica **globale DWARF
++resta FAIL**, exit 1 con **37.831 errori**. L'esito e il log completo sono inclusi:
++non viene dichiarata la validità globale di ogni metadato di debug. Non sono
++state eliminate sezioni per nascondere il problema.
++
++Identità di produzione:
++
++- Source tree SHA-256: `70fc195d4b6582e49edca77bb29c1224b72c8d11df3affd00d84cf1e703929d0`.
++- PIE ELF SHA-256: `6f37caf3bd87ac30505031a4259623a8f7d7b15cc0c0c68cb0bdd8d0f725eefe`.
++
++Il precedente caso diagnostico H.264 con crop SPS a origine non nulla, descritto
++nelle verifiche 0.5.19, rimane una limitazione preesistente e non è stato
++riclassificato come PASS. Questa versione non modifica quella geometria.
++
++
++I risultati originali sono raccolti in `validation/resume-choice/`, separati
++dalle verifiche storiche 0.5.19. Il confronto del driver e la revisione di EVO
++sono letture di codice, non test sulla console. Gli eventuali test nativi con
++mock non dimostrano accettazione hardware, audio HDMI o assenza di crash su PS5.
++
++Comandi dei controlli mirati dopo le build host:
++
++```sh
++python3 tests/run_video_gl_tests.py
++python3 tests/run_video_gl_allocation_tests.py
++python3 tests/run_ps5vdec_startup_tests.py
++python3 tests/run-diagnostics-tests.py
++python3 tests/run_playback_choice_tests.py build/desktop
++python3 tests/run_download_app_tests.py build/desktop
++python3 tests/run_next_episode_tests.py build/desktop
++python3 tests/run_preferences_tests.py build/desktop
++python3 tests/run_interaction_tests.py build/desktop
++python3 tests/run_player_cadence_tests.py build/host-vlc
++```
++
++## Ricompilazione e dipendenze
++
++Estrarre `Stremio-Plus-0.5.20-repository.zip` e seguire `BUILDING.md`.
++Le cache `Stremio-Plus-0.5.19-dependencies-core.zip` e
++`Stremio-Plus-0.5.19-dependencies-pacbrew.zip` rimangono valide: le versioni
++e i sorgenti delle dipendenze non sono cambiati. La versione nei loro nomi
++identifica gli input conservati, non il nuovo eseguibile.
++
++```sh
++python3.12 ../Stremio-Plus-0.5.19-dependencies/restore-cache.py "$PWD"
++BUILD_JOBS=4 ./build.sh ps5
++```
++
++Sono inclusi anche i 132 archivi statici effettivamente usati nel bundle
++`Stremio-Plus-0.5.19-native-libraries.zip`. È una copia verificabile, non una
++cache di build relocabile: per un percorso nuovo rigenerare il motore con
++le ricette e gli archivi verificati, senza modificare le ricevute.
++
++Output: `dist/PPSA74126.zip`, `dist/PPSA74126.ffpfsc`, `build/native/pie.elf`.
++I simboli 0.5.20 devono appartenere a questa compilazione. La ricevuta nell'app
++lega eseguibile, sorgenti di produzione, asset e dipendenze tramite SHA-256.
++Documenti, test ed evidenze sono conservati nello ZIP del repository, coperto
++dal proprio checksum.
++
++## Prova PS5 ancora necessaria
++
++Le istruzioni sono in `PROVA_PS5_IT.md`. Riprodurre prima lo stesso video 1080p per
++almeno 5 minuti, poi verificare pausa/seek/ripresa, cambio video e ritorno alla Home.
++Controllare la riduzione di `plane_transfer`/`upload`, la cadenza di prelievo,
++gli scarti e il decoder effettivamente selezionato. Il cambio di refresh era rifiutato:
++anche con 25 fotogrammi al secondo consegnati correttamente, un output a frequenza
++non multipla può conservare un judder distinto dagli scarti dovuti all'upload.
++
++Restano necessari i test del controller PS5, del volume PCM e del passthrough
++sul dispositivo reale, della persistenza del login dopo il logout del browser,
++della tenuta prolungata e delle precedenti protezioni. Nessun test locale
++equivale a queste prove.
+--- a/docs/PROVA_PS5_IT.md
++++ b/docs/PROVA_PS5_IT.md
+@@ -1,8 +1,10 @@
+-# Stremio Plus 0.5.19 — prova locale su PS5
+-
+-Title ID **PPSA74126**, content version **00.069.000**. Questa è una build
++# Stremio Plus 0.5.20 — prova locale su PS5
++
++Title ID **PPSA74126**, content version **00.070.000**. Questa è una build
+ destinata alla prova del proprietario, senza pubblicazione o invio allo store.
+ Le verifiche locali e i loro limiti sono in
++[LOCAL_0_5_20_VALIDATION.md](LOCAL_0_5_20_VALIDATION.md).
++Le verifiche della precedente build restano documentate separatamente in
+ [LOCAL_0_5_19_VALIDATION.md](LOCAL_0_5_19_VALIDATION.md).
+ 
+ ## Installazione della cartella applicazione
+@@ -17,7 +19,7 @@
+ 4. Per il formato immagine, usa invece `PPSA74126.ffpfsc` con il tuo loader
+    compatibile. Cartella ZIP e immagine appartengono alla stessa compilazione.
+ 5. Conserva i simboli forniti con questa build. Quelli delle versioni
+-   0.5.12 o 0.5.18 non corrispondono al nuovo eseguibile.
++   precedenti, inclusa 0.5.19, non corrispondono al nuovo eseguibile.
+ 
+ L'app conserva Title ID e percorso dati. Non è necessario cancellare le
+ preferenze o i video scaricati per provare questi interventi.
+@@ -61,17 +63,44 @@
+ API controllate. La sequenza sopra verifica il comportamento effettivo del
+ servizio, che non è stato simulato come prova reale.
+ 
+-## 3. Microscatti a 1080p su firmware 12.7
+-
+-Usa un file 1080p che conosci, annotando codec, frequenza dei fotogrammi e
+-uscita impostata sulla PS5. Inizia con un file locale completo, così i
+-risultati non dipendono dalla variabilità della sorgente di rete. Ripeti
+-poi con la sorgente che presentava il problema.
+-
+-Riproduci per almeno 90 secondi, poi prova pausa/ripresa e uno spostamento
+-avanti/indietro. Annota il momento di eventuali scatti. Non cambiare più
+-impostazioni contemporaneamente: confronta lo stesso contenuto con la
+-stessa uscita e lo stesso percorso audio.
++## 3. Microscatti a 1080p: confronto con i nuovi log
++
++I log di `Downloads(4).zip`, registrati con la build **0.5.19**, mostrano una
++sorgente H.264 a **25 fps**. VLC consegna i fotogrammi ogni **40 ms**, mentre
++l'app ne presenta circa **22,3 al secondo**: l'upload/conversione richiede in
++media circa **42,94 ms**, oltre i 40 ms disponibili per ciascun fotogramma.
++Nelle sette finestre complete analizzate risultano **559 fotogrammi scartati
++nell'uscita**. In questa prova il decoder è software, ma la consegna regolare
++a 25 fps colloca il rallentamento osservato dopo la decodifica. Il firmware
++non è registrato nei log: **12.7 è il firmware segnalato dall'utente**, non
++un dato verificato automaticamente in questa sessione.
++
++La **0.5.20** modifica il caricamento dei piani video usando texture
++`GL_TEXTURE_RECTANGLE`, per evitare la riorganizzazione per pixel nella CPU
++individuata nel driver. Aggiunge anche un tentativo hardware AVC con livello
++massimo 51 dopo il rifiuto della configurazione precedente, soltanto per
++stream con profilo, livello e dimensioni compatibili e noti. Questo tentativo
++non garantisce l'attivazione del decoder hardware. I dettagli e i limiti
++sono in [LOCAL_0_5_20_VALIDATION.md](LOCAL_0_5_20_VALIDATION.md).
++
++**Il miglioramento deve ancora essere misurato sulla PS5.** Per confrontare
++la nuova build con quella dei log:
++
++1. Riproduci **lo stesso video 1080p per almeno cinque minuti**, mantenendo
++   la stessa sorgente, la stessa uscita video e lo stesso percorso audio.
++   Annota firmware effettivo, risoluzione e frequenza di uscita impostate.
++2. Segna il tempo del film in cui percepisci eventuali scatti. Dopo il tratto
++   continuo, prova pausa/ripresa e uno spostamento avanti e indietro.
++3. Ferma il video, torna alla Home e riaprilo, verificando sia **Riproduci
++   dall'inizio** sia **Riproduci da m:ss**. Chiudi completamente l'app e
++   ripeti l'apertura per controllare anche il riavvio.
++4. Passa da un video 1080p a uno 4K e poi di nuovo al 1080p, chiudendo ogni
++   riproduzione prima della successiva. Controlla che la nuova immagine sia
++   corretta e che il ritorno alla Home resti utilizzabile. Questi passaggi
++   verificano anche riallocazione e rilascio delle superfici video.
++5. Se possibile, confronta anche una copia locale completa dello stesso
++   contenuto: aiuta a distinguere le attese di rete dalla presentazione.
++   Cambia una sola condizione alla volta.
+ 
+ I log distinguono:
+ 
+@@ -85,11 +114,37 @@
+   dei fotogrammi da parte dell'app.
+ - `presentation timing`: intervalli del ciclo principale, caricamento video,
+   attesa dello swap e intervalli tra swap che hanno accettato un nuovo frame.
++- `video upload timing`, con `path=rectangle-planes`: separa allocazione,
++  trasferimento dei piani (`plane_transfer`) e invio della conversione
++  (`conversion_submit`). Questi dati sono registrati anche nell'oggetto
++  `presentation_timing` di `runtime.json`, con conteggi e istogrammi.
++- `source_fps` in `runtime.json`: frequenza nominale dello stream;
++  `accepted_frame_fps`: cadenza filtrata ricavata dai timestamp dei frame
++  accettati, distinta dalla frequenza del display.
++
++Confronta soprattutto **tempo di upload, cadenza di acquisizione e scarti**:
++il risultato atteso sullo stesso 1080p a 25 fps è un upload inferiore al budget
++di 40 ms, un'acquisizione vicina ai 25 fps e la scomparsa della perdita
++sistematica osservata. Leggi sempre il decoder effettivo: il tentativo AVC
++può riuscire oppure mantenere il ripiego software. Entrambi i casi devono
++restare diagnosticabili, senza attribuire il risultato alla sola presenza
++del modulo hardware.
++
++Nei passaggi 1080p/4K e nelle riaperture conserva anche le righe di memoria:
++controlla eventuali errori di allocazione o rilascio, rifiuti di fotogrammi e
++una crescita che prosegue a ogni ripetizione. Non è richiesto che ogni valore
++torni subito a zero: alcune riserve vengono mantenute per il riuso. Le
++protezioni precedenti contro i crash restano attive e la loro tenuta deve
++essere verificata anche in una sessione prolungata.
+ 
+ I tempi di ritorno dallo swap non misurano direttamente la scansione HDMI
+-del monitor. I contatori possono aiutare a distinguere decodifica lenta,
+-accodamento dei fotogrammi e presentazione, ma non costituiscono da soli
+-una diagnosi del firmware.
++del monitor. Anche `plane_transfer` e `conversion_submit` sono tempi CPU
++attorno alle chiamate grafiche, comprensivi di eventuali attese del driver;
++non sono misure del completamento GPU. Nei log precedenti il cambio di
++frequenza risultava rifiutato: una cadenza non uniforme dovuta al rapporto
++fra 25 fps e frequenza del display può rimanere distinta dagli scarti causati
++dall'upload. I contatori aiutano a separare questi fenomeni, ma non
++costituiscono da soli una diagnosi del firmware o una prova di risoluzione.
+ 
+ ## 4. Volume con la levetta destra
+ 
+@@ -120,6 +175,33 @@
+ software deve tornare disponibile. La sola preferenza “passthrough” non
+ blocca il volume quando l'uscita effettiva è PCM.
+ 
++## 5. Scelta prima di ogni riproduzione
++
++Con un film o episodio interrotto, seleziona una sorgente: prima di aprire
++il player deve comparire la scelta **Riproduci dall'inizio** / **Riproduci
++da m:ss**, con la posizione salvata già selezionata. Conferma l'inizio e
++controlla che il video parta da zero; ripeti scegliendo la posizione salvata.
++
++La stessa domanda deve apparire dalla pagina Download, usando una sorgente
++già scaricata e al passaggio all'episodio successivo online o scaricato.
++Per un episodio mai visto, le azioni sono inizio e annullamento: non viene
++riutilizzata la posizione dell'episodio precedente. Le dirette offrono
++**Avvia diretta** e annullamento, perché non hanno un inizio riavvolgibile
++garantito.
++
++Premi **Cerchio** mentre la scelta è aperta: il player non deve avviarsi e
++la posizione salvata deve rimanere disponibile al tentativo successivo.
++Verifica anche che due pressioni rapide di conferma non aprano due player.
++
++Per un download incompleto, la ripresa resta disponibile soltanto quando
++il punto già visto appartiene alla parte scaricata e verificata della stessa
++sorgente. Se questa condizione cambia mentre il dialogo è aperto, l'app
++deve avvisare e richiedere una nuova scelta, senza ripartire da zero da sola.
++
++Questa build conserva le precedenti regole di validità del segnalibro:
++stesso episodio, tempo finito oltre cinque secondi e prima della fine.
++Il progresso vicino alla conclusione può già essere segnato come terminato.
++
+ ## Log utili per l'esito della prova
+ 
+ Conserva i file aggiornati di `/data/Stremio/appdata/logs`, in particolare
+--- a/src/app.h
++++ b/src/app.h
+@@ -175,6 +175,7 @@
+ 	const Settings& settings() const { return settings_; }
+ 	bool take_video_frame(Player::VideoFrame& frame) { return watching_ && player_.take_frame(frame); }
+ 	std::string audio_output_status() const { return player_.audio_output_status(); }
++	double source_video_fps() const { return watching_ ? player_.source_fps() : 0; }
+ 	bool audio_passthrough_active() const { return player_.audio_passthrough_active(); }
+ 	void video_frame_presented();  // Called only after a successful GPU upload.
+ 	void video_frame_rejected();
+@@ -428,6 +429,9 @@
+ 	void detail_close();
+ 	void detail_update_resume();
+ 	void play_stream(const Stream& st, bool transcode);
++	void start_stream_playback(const Stream& st, bool transcode, double start);
++	void choose_playback_start(const std::string& title, double resume,
++	                           std::function<void(double)> chosen, bool live = false);
+ 	bool play_saved_stream(const Stream& stream);
+ 	void saved_stream_tick();
+ 	std::string saved_stream_download_;
+@@ -604,6 +608,7 @@
+ 
+ 	// Dropdown
+ 	std::function<void(int)> dd_chosen_;
++	uint64_t dd_generation_ = 0;
+ 
+ 	// Login
+ 	std::string login_code_raw_, login_qr_url_;
+--- a/src/app_browse.cpp
++++ b/src/app_browse.cpp
+@@ -608,7 +608,14 @@
+ 	dd_options.clear();
+ 	for (size_t i = 0; i < options.size(); i++) dd_options.push_back({options[i], int(i) == active});
+ 	dd_sel = std::max(0, std::min(active, int(options.size()) - 1));
+-	dd_chosen_ = chosen;
++	const auto generation = ++dd_generation_;
++	dd_chosen_ = [this, generation, chosen = std::move(chosen)](int selected) {
++		if (generation != dd_generation_) return;
++		// A single choice is consumed once, even if an old callback survives.
++		// Multi-select menus intentionally keep accepting the current callback.
++		if (!dd_multiselect) ++dd_generation_;
++		if (chosen) chosen(selected);
++	};
+ 	dd_visible = true;
+ 	dirty_all();
+ }
+@@ -632,6 +639,7 @@
+ 		break;
+ 	}
+ 	case Btn::Circle:
++		++dd_generation_;
+ 		dd_visible = false;
+ 		dd_multiselect = false;
+ 		dd_chosen_ = nullptr;
+--- a/src/app_detail.cpp
++++ b/src/app_detail.cpp
+@@ -1069,6 +1069,39 @@
+ 		return;
+ 	}
+ 	if (!transcode && play_saved_stream(st)) return;
++	const std::string type = d_meta_loaded_ && !d_meta_.type.empty() ? d_meta_.type : d_item_.type;
++	std::string title = d_meta_loaded_ && !d_meta_.name.empty() ? d_meta_.name : d_item_.name;
++	if (d_series) for (const auto& video : d_meta_.videos) {
++		if (video.id != d_video_id_) continue;
++		title += " · " + download_episode_label(video.season, video.episode, video.title);
++		break;
++	}
++	const bool live = (d_meta_loaded_ && d_meta_.is_live) || type == "tv";
++	double resume = 0;
++	// Prefer the exact local episode bookmark, including a cleared bookmark,
++	// over an older account entry. Keep the existing end-of-video policy.
++	const auto saved = video_progress_.find(video_progress_key(type, d_item_.id, d_video_id_));
++	if (!live && saved != video_progress_.end()) {
++		if (resumable_progress(saved->second, d_video_id_) &&
++		    (saved->second.duration <= 0 || saved->second.time < saved->second.duration * 0.95)) resume = saved->second.time;
++	} else if (!live) for (const auto& cw : continue_watching()) {
++		if (cw.id != d_item_.id) continue;
++		const bool same_video = cw.video_id == d_video_id_ || (!d_series && cw.video_id.empty());
++		if (same_video && cw.offset > 5 && (cw.duration <= 0 || cw.offset < cw.duration * 0.95)) resume = cw.offset;
++	}
++	const int streams = d_gen_, metadata = d_meta_gen_;
++	const std::string media_id = d_item_.id, media_type = d_item_.type, video_id = d_video_id_;
++	// Keep a value copy: an add-on may replace the stream list while the
++	// dialog is open. No torrent, resolver or player starts before the choice.
++	choose_playback_start(title, resume,
++		[this, stream = st, transcode, streams, metadata, media_id, media_type, video_id](double start) {
++			if (view != "detail" || streams != d_gen_ || metadata != d_meta_gen_ ||
++			    media_id != d_item_.id || media_type != d_item_.type || video_id != d_video_id_) return;
++			start_stream_playback(stream, transcode, start);
++		}, live);
++}
++
++void App::start_stream_playback(const Stream& st, bool transcode, double start) {
+ 	std::string srv = server();
+ 	bool torrent = st.url.empty() && !st.info_hash.empty();
+ 	// Torrents play with the app's own engine, unless Settings says to use
+@@ -1108,18 +1141,6 @@
+ 				           (v.title.empty() ? "" : " · " + v.title);
+ 	} else {
+ 		subtitle = d_year;
+-	}
+-
+-	// Resume where it was left.
+-	double start = 0;
+-	const auto saved = video_progress_.find(video_progress_key(w_item_.type, w_item_.id, w_video_id_));
+-	if (saved != video_progress_.end()) {
+-		if (resumable_progress(saved->second, w_video_id_) &&
+-		    (saved->second.duration <= 0 || saved->second.time < saved->second.duration * 0.95)) start = saved->second.time;
+-	} else for (const auto& cw : continue_watching()) {
+-		if (cw.id != w_item_.id) continue;
+-		const bool same_video = cw.video_id == w_video_id_ || (!d_series && cw.video_id.empty());
+-		if (same_video && cw.offset > 5 && (cw.duration <= 0 || cw.offset < cw.duration * 0.95)) start = cw.offset;
+ 	}
+ 
+ 	int gen = ++w_gen_;
+--- a/src/app_downloads.cpp
++++ b/src/app_downloads.cpp
+@@ -622,21 +622,16 @@
+                 progressive_resume_proven(*saved, entry->id, entry->source_identity, entry->done, entry->total))))
+             resume = saved->time;
+     }
+-    if (resume > 0) {
+-        const bool it = settings_.ui_language == "it";
+-        const auto generation = account_generation_;
+-        open_dropdown(entry->title + (entry->subtitle.empty() ? "" : " · " + entry->subtitle),
+-            {it ? "Riproduci dall'inizio" : "Play from beginning",
+-             (it ? "Riproduci da " : "Resume from ") + format_time(resume)}, 1,
+-            [this, id, resume, generation, progressive](int choice) {
+-                if (generation != account_generation_ || choice < 0 || choice > 1) return;
+-                start_download_playback(id, progressive, choice == 0 ? 0 : resume);
+-            });
++    if (!entry || entry->recovery_only) {
++        // Keep the existing availability/error handling before offering a
++        // playback action for a missing or unreadable entry.
++        start_download_playback(id, progressive, 0);
+         return;
+     }
+     // A byte percentage cannot prove a timestamp. An incomplete download may
+     // resume only an actually viewed position whose saved prefix is present.
+-    start_download_playback(id, progressive, 0);
++    choose_playback_start(entry->title + (entry->subtitle.empty() ? "" : " · " + entry->subtitle), resume,
++        [this, id, progressive](double start) { start_download_playback(id, progressive, start); });
+ }
+ 
+ void App::start_download_playback(const std::string& id, bool progressive, double start) {
+@@ -673,7 +668,10 @@
+             prefix.generation != growing->generation || prefix.total != growing->total ||
+             !progressive_resume_proven(*saved, entry->id, entry->source_identity, prefix.available, prefix.total)) {
+             dlog("download playback: saved position waits for its verified prefix");
+-            start = 0;
++            show_toast(settings_.ui_language == "it" ?
++                "La posizione salvata non è ancora disponibile. Scegli di nuovo come iniziare." :
++                "The saved position is not available yet. Choose how to start again.", 5);
++            return;
+         }
+     }
+     if (!entry || (!progressive && (entry->state != DownloadState::Complete || entry->local_path.empty() || !file_exists(entry->local_path)))) {
+--- a/src/app_watch.cpp
++++ b/src/app_watch.cpp
+@@ -100,6 +100,24 @@
+ 	std::thread deadline_thread_;
+ };
+ }  // namespace
++
++void App::choose_playback_start(const std::string& title, double resume,
++                                std::function<void(double)> chosen, bool live) {
++	const bool italian = settings_.ui_language == "it";
++	const bool can_resume = !live && std::isfinite(resume) && resume > 0;
++	const int account = account_generation_, playback = w_gen_;
++	std::vector<std::string> options{
++		live ? (italian ? "Avvia diretta" : "Start live stream")
++		     : (italian ? "Riproduci dall'inizio" : "Play from beginning"),
++		can_resume ? (italian ? "Riproduci da " : "Resume from ") + format_time(resume)
++		           : (italian ? "Annulla" : "Cancel")};
++	open_dropdown(title, options, can_resume ? 1 : 0,
++		[this, account, playback, resume, can_resume, chosen = std::move(chosen)](int choice) {
++			if (account != account_generation_ || playback != w_gen_ || choice < 0 || choice > 1) return;
++			if (choice == 1 && !can_resume) return;
++			if (chosen) chosen(choice == 1 ? resume : 0);
++		});
++}
+ 
+ void App::watch_start(const std::string& url, const std::vector<std::string>& headers, double start,
+                       const std::string& title, const std::string& subtitle, bool direct) {
+@@ -1140,7 +1158,7 @@
+ 	if (local) {
+ 		const auto entry = downloads_.find(download_id);
+ 		if (entry && entry->state == DownloadState::Complete && entry->video_id == id && !entry->recovery_only)
+-			start_download_playback(download_id, false, 0);
++			play_download(download_id, false);
+ 		return;
+ 	}
+ 	if (!detail_select_episode(id)) return;
+--- a/src/diagnostics.cpp
++++ b/src/diagnostics.cpp
+@@ -9,6 +9,7 @@
+ #include <atomic>
+ #include <cerrno>
+ #include <chrono>
++#include <cmath>
+ #include <condition_variable>
+ #include <cstdint>
+ #include <cstdio>
+@@ -267,7 +268,10 @@
+         "audio_language", "interface_language", "language", "log_io_failures", "log_dropped_events",
+         "display_refresh", "preference", "available", "active", "refresh_code", "video_processing",
+         "source_fps", "upscaler_preference", "upscaler", "sharpness", "smoothing_preference", "smoothing",
+-        "dolby_vision_reshape", "audio_passthrough_requested", "audio_output"
++        "dolby_vision_reshape", "audio_passthrough_requested", "audio_output", "video_frame_accepted",
++        "accepted_frame_fps", "upload_path", "presentation_timing", "scope", "histogram_upper_ms",
++        "histogram_last_bucket", "loop", "upload", "allocation", "plane_transfer", "conversion_submit",
++        "swap_wait", "accepted_video_swap", "samples", "mean_ms", "max_ms", "histogram"
+     };
+     for (const char* name : allowed) if (key == name) return true;
+     return false;
+@@ -282,6 +286,13 @@
+         if (it.value().is_object()) result[it.key()] = safe_runtime(it.value(), depth + 1);
+         else if (it.value().is_string()) result[it.key()] = diagnostics_redact(it.value().get<std::string>());
+         else if (it.value().is_number() || it.value().is_boolean() || it.value().is_null()) result[it.key()] = it.value();
++        // Only these two bounded numeric arrays are diagnostic histograms.
++        // Never admit arbitrary arrays/strings through the runtime allowlist.
++        else if ((it.key() == "histogram" || it.key() == "histogram_upper_ms") &&
++                 it.value().is_array() && it.value().size() <= 8 &&
++                 std::all_of(it.value().begin(), it.value().end(), [](const json& value) {
++                     return value.is_number() && std::isfinite(value.get<double>()) && value.get<double>() >= 0;
++                 })) result[it.key()] = it.value();
+     }
+     return result;
+ }
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -618,6 +618,7 @@
+     std::int64_t previous = hui::sys::monotonic_us(), report_start = previous;
+     std::uint64_t frames = 0, report_frames = 0;
+     hui::FrameStats loop_times, upload_times, swap_times, video_swap_times;
++    hui::FrameStats allocation_times, plane_times, conversion_times;
+     std::int64_t previous_video_swap = 0;
+     bool quit = false, first = true;
+ #ifdef PLATFORM_PS5
+@@ -672,6 +673,12 @@
+             const auto upload_started = hui::sys::monotonic_us();
+             const bool accepted = video.upload(frame);
+             upload_times.add(double(hui::sys::monotonic_us() - upload_started) / 1000.0);
++            const auto& upload_timing = video.last_upload_timing();
++            if (upload_timing.reconfigured) allocation_times.add(upload_timing.allocation_ms);
++            if (accepted) {
++                plane_times.add(upload_timing.plane_ms);
++                conversion_times.add(upload_timing.draw_ms);
++            }
+             if (accepted) {
+                 app.video_frame_presented();
+                 video_uploaded = true;
+@@ -693,7 +700,7 @@
+                     frame.layout == Player::VideoFrame::Layout::Nv12 ? "NV12/P010" : "YUV420P";
+                 runtime["color_range"] = frame.full_range ? "full" : "limited";
+                 runtime["color_transfer"] = frame.hlg ? "HLG" : frame.colors == YuvColors::Hdr10 ? "PQ" : "SDR";
+-                runtime["source_fps"] = video.fps();
++                runtime["source_fps"] = app.source_video_fps();
+                 runtime["dolby_vision_reshape"] = video.dolby_vision_active();
+                 runtime["audio_output"] = app.audio_output_status();
+                 runtime["video_frame_accepted"] = accepted;
+@@ -750,8 +757,11 @@
+             const double fps = double(report_frames)*1000000.0/double(now-report_start);
+             runtime["fps"] = fps; runtime["addon_count"] = app.addon_rows.size();
+             runtime["output_width"] = surface.width; runtime["output_height"] = surface.height;
++            runtime["source_fps"] = app.source_video_fps();
+             runtime["video_processing"] = {{"upscaler", "bilinear"}, {"smoothing", "off"},
+-                {"dolby_vision_reshape", video.dolby_vision_active()}, {"source_fps", video.fps()},
++                {"dolby_vision_reshape", video.dolby_vision_active()},
++                {"source_fps", app.source_video_fps()}, {"accepted_frame_fps", video.fps()},
++                {"upload_path", VideoGl::upload_path()},
+                 {"audio_passthrough_requested", app.settings().audio_passthrough},
+                 {"audio_output", app.audio_output_status()}};
+             const auto timing_json = [](const hui::FrameStats& value) {
+@@ -759,10 +769,12 @@
+                     {"max_ms", value.max_ms()}, {"histogram", value.buckets()}};
+             };
+             runtime["presentation_timing"] = {
+-                {"scope", "monotonic loop/upload/swap-return timings; not physical HDMI scanout"},
++                {"scope", "CPU monotonic timings; conversion_submit is GL submission, not GPU completion or HDMI scanout"},
+                 {"histogram_upper_ms", json::array({8.4, 17.5, 25.0, 34.0, 50.0, 100.0})},
+                 {"histogram_last_bucket", "100 ms and above"},
+                 {"loop", timing_json(loop_times)}, {"upload", timing_json(upload_times)},
++                {"allocation", timing_json(allocation_times)}, {"plane_transfer", timing_json(plane_times)},
++                {"conversion_submit", timing_json(conversion_times)},
+                 {"swap_wait", timing_json(swap_times)}, {"accepted_video_swap", timing_json(video_swap_times)}};
+             diagnostics_set_runtime(runtime);
+             dlog("UI frame pacing: %.1f FPS over 30s, %zu draw calls, video=%d", fps, renderer.last_draw_calls(), int(app.watching()));
+@@ -774,7 +786,14 @@
+             dlog("presentation timing: loop {%s} upload {%s} swap_wait {%s} video_swap_return {%s} refresh_code=%llu",
+                  loop_text, upload_text, swap_text, video_swap_text,
+                  static_cast<unsigned long long>(surface.refresh.refresh_code()));
++            char allocation_text[256], plane_text[256], conversion_text[256];
++            allocation_times.format(allocation_text, sizeof(allocation_text));
++            plane_times.format(plane_text, sizeof(plane_text));
++            conversion_times.format(conversion_text, sizeof(conversion_text));
++            dlog("video upload timing: path=%s allocation {%s} plane_transfer {%s} conversion_submit {%s} source_fps=%.6f",
++                 VideoGl::upload_path(), allocation_text, plane_text, conversion_text, app.source_video_fps());
+             loop_times.reset(); upload_times.reset(); swap_times.reset(); video_swap_times.reset();
++            allocation_times.reset(); plane_times.reset(); conversion_times.reset();
+ #ifdef PLATFORM_PS5_NATIVE
+             if (app.watching()) stremio_heap_snapshot(STREMIO_HEAP_PLAYBACK_PERIODIC);
+             log_video_memory(app.watching() ? "playing" : "idle");
+--- a/src/player.cpp
++++ b/src/player.cpp
+@@ -1517,7 +1517,7 @@
+ 	double secs = now - log_at_;
+ 	int shown = shown_ - log_shown_, dropped = dropped_ - log_dropped_;
+ 	dlog("player: %s | shown %.1f fps (video %.3g fps), dropped %d in %.0f s, buffered %.1f s%s%s", codec_summary().c_str(),
+-	     shown / secs, fps_, dropped, secs, std::max(vq_.duration(), aq_.duration()), paused_ ? ", paused" : "",
++	     shown / secs, fps_.load(), dropped, secs, std::max(vq_.duration(), aq_.duration()), paused_ ? ", paused" : "",
+ 	     buffering_ ? ", buffering" : "");
+ 	log_at_ = now;
+ 	log_shown_ = shown_;
+@@ -1527,10 +1527,11 @@
+ std::string Player::stats() {
+ 	if (state_ != State::Playing) return "";
+ 	char buf[256];
+-	snprintf(buf, sizeof(buf), "%s · %.3g fps · buffered %.1fs · dropped %d of %d", codec_summary().c_str(), fps_,
++	snprintf(buf, sizeof(buf), "%s · %.3g fps · buffered %.1fs · dropped %d of %d", codec_summary().c_str(), fps_.load(),
+ 	         std::max(vq_.duration(), aq_.duration()), dropped_.load(), decoded_.load());
+ 	return buf;
+ }
+ 
++double Player::source_fps() const { return fps_.load(std::memory_order_relaxed); }
+ std::string Player::audio_output_status() const { return "pcm"; }
+ bool Player::audio_passthrough_active() const { return false; }
+--- a/src/player.h
++++ b/src/player.h
+@@ -120,6 +120,8 @@
+ 
+ 	std::string stats();
+ 	std::string codec_summary() const;
++	// Declared stream rate, independent of renderer pickup/presentation cadence.
++	double source_fps() const;
+ 	std::string audio_output_status() const;
+ 	// Every 30 s while playing: frame rate shown, drops, buffer, decoder (to the log).
+ 	void log_stats();
+@@ -271,6 +273,6 @@
+ 	std::atomic<bool> too_heavy_{false};
+ 	double heavy_window_start_ = 0;
+ 	int heavy_window_dropped_ = 0, heavy_window_decoded_ = 0;
+-	double fps_ = 0;
++	std::atomic<double> fps_{0};
+ #endif
+ };
+--- a/src/player_vlc.cpp
++++ b/src/player_vlc.cpp
+@@ -1293,6 +1293,11 @@
+     std::lock_guard lock(vlc_->info_mutex);
+     return vlc_->description;
+ }
++double Player::source_fps() const {
++    if (!vlc_) return 0;
++    std::lock_guard lock(vlc_->info_mutex);
++    return vlc_->fps;
++}
+ void Player::log_stats() {
+     if (!vlc_ || (state_ != State::Opening && state_ != State::Playing)) return;
+     const double now = now_seconds();
+--- a/src/video_gl.cpp
++++ b/src/video_gl.cpp
+@@ -27,7 +27,7 @@
+ constexpr const char* fragment_begin = R"GLSL(
+ in vec2 uv;
+ out vec4 color;
+-uniform sampler2D ytex, utex, vtex;
++uniform sampler2DRect ytex, utex, vtex;
+ uniform int layout_mode, color_mode, wide, sample_shift, full_range, hlg, dovi_active;
+ )GLSL";
+ constexpr const char* fragment_end = R"GLSL(
+@@ -50,11 +50,17 @@
+     return mix(1.099 * pow(v, vec3(0.45)) - 0.099, 4.5 * v, lessThan(v, vec3(0.018)));
+ }
+ void main() {
+-    if (layout_mode == 0) { color = vec4(texture(ytex, uv).rgb, 1.0); return; }
++    // Rectangle planes use texel coordinates. Scale each plane independently:
++    // odd 4:2:0 dimensions and interleaved chroma retain their own extents.
++    vec2 yuv = uv * vec2(textureSize(ytex));
++    if (layout_mode == 0) { color = vec4(texture(ytex, yuv).rgb, 1.0); return; }
+     vec3 code;
+-    code.x = texture(ytex, uv).r;
+-    if (layout_mode == 1) code.yz = texture(utex, uv).rg;
+-    else { code.y = texture(utex, uv).r; code.z = texture(vtex, uv).r; }
++    code.x = texture(ytex, yuv).r;
++    if (layout_mode == 1) code.yz = texture(utex, uv * vec2(textureSize(utex))).rg;
++    else {
++        code.y = texture(utex, uv * vec2(textureSize(utex))).r;
++        code.z = texture(vtex, uv * vec2(textureSize(vtex))).r;
++    }
+     float scale = wide != 0 ? 65535.0 / exp2(float(sample_shift)) : 255.0;
+     code *= scale;
+     float factor = wide != 0 ? 4.0 : 1.0;
+@@ -79,12 +85,18 @@
+ }
+ )GLSL";
+ 
+-void texture_params() {
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
++void texture_params(GLenum target) {
++    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++    // Rectangle textures have exactly one image level by definition.
++    if (target == GL_TEXTURE_2D) glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 0);
++}
++
++using UploadClock = std::chrono::steady_clock;
++double elapsed_ms(UploadClock::time_point begin) {
++    return std::chrono::duration<double, std::milli>(UploadClock::now() - begin).count();
+ }
+ 
+ GLenum consume_gl_errors() {
+@@ -145,6 +157,7 @@
+     stamp_ = period_ = 0;
+     previous_media_pts_ = -1;
+     serial_ = -1;
++    upload_timing_ = {};
+ }
+ void VideoGl::release() {
+     clear();
+@@ -173,6 +186,7 @@
+ 
+ bool VideoGl::upload(const Player::VideoFrame& f) {
+     using Layout = Player::VideoFrame::Layout;
++    upload_timing_ = {};
+     failure_ = Failure::None;
+     if (!program_ || !framebuffer_ || !vao_ || !dovi_buffer_)
+         return reject(Failure::InvalidFrame, "renderer_objects", f);
+@@ -198,6 +212,8 @@
+     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previous_fbo);
+     const bool size_changed = width_ != f.w || height_ != f.h;
+     if (size_changed || format_ != format) {
++        const auto allocation_started = UploadClock::now();
++        upload_timing_.reconfigured = true;
+         const GLenum prior_error = consume_gl_errors();
+         if (prior_error != GL_NO_ERROR && prior_gl_notes_++ < 8)
+             dlog("video: prior GL error before resource setup gl_error=0x%04x", unsigned(prior_error));
+@@ -208,23 +224,24 @@
+             discard_textures();
+             glBindFramebuffer(GL_FRAMEBUFFER, GLuint(previous_fbo));
+             glActiveTexture(GL_TEXTURE0);
++            upload_timing_.allocation_ms = elapsed_ms(allocation_started);
+             return reject(failure, stage, f, plane, error, status);
+         };
+         GLenum allocation_error = GL_NO_ERROR;
+-        auto allocate = [&](GLuint& texture, GLenum internal, GLenum external, GLenum type,
++        auto allocate = [&](GLuint& texture, GLenum target, GLenum internal, GLenum external, GLenum type,
+                             int width, int height) {
+             glGenTextures(1, &texture);
+-            glBindTexture(GL_TEXTURE_2D, texture); texture_params();
++            glBindTexture(target, texture); texture_params(target);
+             // This pinned Mesa's mutable allocation path flushes and retries
+             // once on resource exhaustion. TexStorage returns OOM immediately.
+             // MAX_LEVEL and the non-mipmap filter above keep one image level.
+-            glTexImage2D(GL_TEXTURE_2D, 0, GLint(internal), width, height, 0, external, type, nullptr);
++            glTexImage2D(target, 0, GLint(internal), width, height, 0, external, type, nullptr);
+             allocation_error = consume_gl_errors();
+             return texture != 0 && allocation_error == GL_NO_ERROR;
+         };
+         // The 4K RGBA target needs a contiguous 32 MiB region aligned to 2 MiB.
+         // Allocate it before smaller planes fragment the remaining regions.
+-        if (!allocate(output_, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, f.w, f.h))
++        if (!allocate(output_, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, f.w, f.h))
+             return failed_setup(Failure::Allocation, "output_storage", -1, allocation_error);
+         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output_, 0);
+@@ -237,23 +254,32 @@
+             const GLenum internal = layout == 0 ? GL_RGBA8 : (i == 1 && layout == 1) ? (f.wide ? GL_RG16 : GL_RG8) : (f.wide ? GL_R16 : GL_R8);
+             const GLenum external = layout == 0 ? GL_BGRA : (i == 1 && layout == 1) ? GL_RG : GL_RED;
+             const GLenum type = f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
+-            if (!allocate(planes_[i], internal, external, type, i == 0 ? f.w : cw, i == 0 ? f.h : ch))
++            // The pinned PS5 driver tiles renderable single-level 2D R8/RG8
++            // images during every CPU upload. Rectangle sampled planes retain
++            // linear storage, avoiding that per-pixel CPU tiling loop. Keep the
++            // rendered RGBA output 2D for the UI and never render to a plane.
++            if (!allocate(planes_[i], GL_TEXTURE_RECTANGLE, internal, external, type,
++                          i == 0 ? f.w : cw, i == 0 ? f.h : ch))
+                 return failed_setup(Failure::Allocation, "plane_storage", i, allocation_error);
+         }
+         width_ = f.w; height_ = f.h; format_ = format;
+-        dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output SDR", f.w, f.h, layout, f.wide ? 10 : 8);
+-    }
++        dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output SDR, upload=rectangle", f.w, f.h, layout, f.wide ? 10 : 8);
++        upload_timing_.allocation_ms = elapsed_ms(allocation_started);
++    }
++    const auto planes_started = UploadClock::now();
+     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+     for (int i = 0; i < count; ++i) {
+-        glActiveTexture(GL_TEXTURE0 + i); glBindTexture(GL_TEXTURE_2D, planes_[i]);
++        glActiveTexture(GL_TEXTURE0 + i); glBindTexture(GL_TEXTURE_RECTANGLE, planes_[i]);
+         const GLenum external = layout == 0 ? GL_BGRA : (i == 1 && layout == 1) ? GL_RG : GL_RED;
+         const size_t pixel_bytes = layout == 0 ? 4 : bytes * ((i == 1 && layout == 1) ? 2 : 1);
+         glPixelStorei(GL_UNPACK_ROW_LENGTH, GLint(row_pitches[i] / pixel_bytes));
+-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, i == 0 ? f.w : cw, i == 0 ? f.h : ch, external,
++        glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, i == 0 ? f.w : cw, i == 0 ? f.h : ch, external,
+                        f.wide && layout != 0 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE, f.data() + f.offsets[i]);
+     }
+     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
++    upload_timing_.plane_ms = elapsed_ms(planes_started);
++    const auto draw_started = UploadClock::now();
+     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); glViewport(0, 0, f.w, f.h);
+     glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND); glDisable(GL_FRAMEBUFFER_SRGB);
+     glUseProgram(program_); glBindVertexArray(vao_);
+@@ -270,6 +296,7 @@
+     }
+     uniform("color_mode", f.colors == YuvColors::Bt601 ? 0 : f.colors == YuvColors::Hdr10 ? 2 : 1);
+     glDrawArrays(GL_TRIANGLES, 0, 3);
++    upload_timing_.draw_ms = elapsed_ms(draw_started);
+     // Cadence is diagnostic only. Rendering always exposes this source-sized
+     // conversion texture, and the UI applies ordinary bilinear scaling.
+     const double time = f.presentation_time > 0 ? f.presentation_time :
+--- a/src/video_gl.h
++++ b/src/video_gl.h
+@@ -9,6 +9,12 @@
+ class VideoGl {
+ public:
+     enum class Failure { None, InvalidFrame, InvalidPlane, Allocation, Framebuffer };
++    // CPU wall times around the GL calls, including any driver wait encountered
++    // there. These are not GPU execution times and introduce no GPU fence.
++    struct UploadTiming {
++        double allocation_ms = 0, plane_ms = 0, draw_ms = 0;
++        bool reconfigured = false;
++    };
+     VideoGl();
+     ~VideoGl();
+     bool init();
+@@ -20,6 +26,8 @@
+     double fps() const;
+     bool dolby_vision_active() const { return dovi_active_; }
+     Failure last_failure() const { return failure_; }
++    const UploadTiming& last_upload_timing() const { return upload_timing_; }
++    static constexpr const char* upload_path() { return "rectangle-planes"; }
+ private:
+     void discard_textures();
+     bool reject(Failure failure, const char* stage, const Player::VideoFrame& frame,
+@@ -33,5 +41,6 @@
+     int serial_ = -1;
+     double stamp_ = 0, period_ = 0, previous_media_pts_ = -1;
+     Failure failure_ = Failure::None;
++    UploadTiming upload_timing_;
+     unsigned rejection_notes_ = 0, prior_gl_notes_ = 0;
+ };
+--- a/tests/diagnostics_test.cpp
++++ b/tests/diagnostics_test.cpp
+@@ -99,7 +99,18 @@
+                              {"display_refresh", {{"preference", 2}, {"available", true}, {"active", true}, {"refresh_code", 13}}},
+                              {"video_processing", {{"upscaler", "fsr1"}, {"smoothing", "hdr_input"},
+                                   {"source_fps", 23.976}, {"dolby_vision_reshape", true},
+-                                  {"audio_output", "active_eac3"}, {"token", "nested-secret"}}}});
++                                  {"accepted_frame_fps", 22.3}, {"upload_path", "rectangle-planes"},
++                                  {"audio_output", "active_eac3"}, {"token", "nested-secret"}}},
++                             {"video_frame_accepted", true},
++                             {"presentation_timing", {{"scope", "CPU timing, not physical scanout"},
++                                  {"histogram_upper_ms", json::array({8.4, 17.5, 25.0, 34.0, 50.0, 100.0})},
++                                  {"plane_transfer", {{"samples", 750}, {"mean_ms", 2.5}, {"max_ms", 4.0},
++                                       {"histogram", json::array({750, 0, 0, 0, 0, 0, 0})}, {"token", "nested-secret"}}},
++                                  {"conversion_submit", {{"samples", 750}, {"mean_ms", .2}}},
++                                  {"loop", {{"histogram", json::array({"nested-secret"})}}},
++                                  {"allocation", {{"histogram", json::array({1, 2, 3, 4, 5, 6, 7, 8, 9})}}},
++                                  {"upload", {{"histogram", json::array({-1, 2})}}},
++                                  {"private_array", json::array({"nested-secret"})}}}});
+     for (const auto& pair : cases) dlog("%s", pair.first);
+     ffmpeg_event(8, "Fatal codec test https://addon.test/fatal-private-value/manifest.json");
+     const auto fatal = contents(root + "/Stremio/log.txt");
+@@ -121,6 +132,20 @@
+     assert(runtime_json["runtime"]["video_processing"]["smoothing"] == "hdr_input");
+     assert(runtime_json["runtime"]["video_processing"]["audio_output"] == "active_eac3");
+     assert(runtime_json["runtime"]["video_processing"]["dolby_vision_reshape"] == true);
++    assert(runtime_json["runtime"]["video_processing"]["source_fps"] == 23.976);
++    assert(runtime_json["runtime"]["video_processing"]["accepted_frame_fps"] == 22.3);
++    assert(runtime_json["runtime"]["video_processing"]["upload_path"] == "rectangle-planes");
++    assert(runtime_json["runtime"]["video_frame_accepted"] == true);
++    const auto& timing = runtime_json["runtime"]["presentation_timing"];
++    assert(timing["histogram_upper_ms"].size() == 6);
++    assert(timing["plane_transfer"]["samples"] == 750);
++    assert(timing["plane_transfer"]["histogram"].size() == 7);
++    assert(timing["plane_transfer"]["mean_ms"] == 2.5);
++    assert(timing["conversion_submit"]["mean_ms"] == .2);
++    assert(!timing["loop"].contains("histogram"));
++    assert(!timing["allocation"].contains("histogram"));
++    assert(!timing["upload"].contains("histogram"));
++    assert(!timing.contains("private_array"));
+ 
+     fail_checkpoint_sync = true;
+     diagnostics_set_runtime({{"video", {{"width", 1920}, {"height", 1080}}}});
+--- a/tests/run_next_episode_tests.py
++++ b/tests/run_next_episode_tests.py
+@@ -22,7 +22,7 @@
+ readable = subprocess.check_output(["c++filt"], input="\n".join(names) + "\n", text=True).splitlines()
+ boundaries = {"WRAP_NOW": "now_seconds", "WRAP_PLAYER_CLOSE": "Player::close",
+               "WRAP_SAVE_PROGRESS": "App::save_progress", "WRAP_DETAIL_STREAMS": "App::detail_load_streams",
+-              "WRAP_LOCAL_START": "App::start_download_playback",
++              "WRAP_PLAYER_OPEN": "Player::open",
+               "WRAP_DOWNLOAD_SNAPSHOT": "DownloadManager::snapshot", "WRAP_DOWNLOAD_FIND": "DownloadManager::find", "WRAP_ART_GET": "ArtCache::get",
+               "WRAP_ART_PEEK": "ArtCache::peek", "WRAP_ART_ASYNC": "ArtCache::get_async",
+               "WRAP_ART_CACHED": "ArtCache::peek_cached"}
+--- /dev/null
++++ b/tests/run_playback_choice_tests.py
+@@ -0,0 +1,59 @@
++#!/usr/bin/env python3
++"""Exercise real online App playback choices against the completed host build.
++
++Only decoder opening, artwork and HTTP boundaries are wrapped. Source selection,
++bookmarks, Tasks, dropdown navigation, cancellation and launch are production.
++"""
++from pathlib import Path
++import json
++import os
++import shlex
++import subprocess
++import sys
++import tempfile
++
++root = Path(__file__).resolve().parents[1]
++build = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else root / "build/desktop"
++link = shlex.split((build / "CMakeFiles/stremio.dir/link.txt").read_text())
++main_object = "CMakeFiles/stremio.dir/src/main.cpp.o"
++if main_object not in link:
++    raise SystemExit("Expected main.cpp.o in the completed host link command")
++for item in link:
++    if item.endswith(".o") and not (build / item).is_file():
++        raise SystemExit("Incomplete host build; finish it before testing playback choices")
++names = [line.split()[0] for line in subprocess.check_output(
++    ["nm", "-g", "--defined-only", "--format=posix", str(build / "stremio")], text=True).splitlines()]
++readable = subprocess.check_output(["c++filt"], input="\n".join(names) + "\n", text=True).splitlines()
++boundaries = {"WRAP_PLAYER_OPEN": "Player::open", "WRAP_ART_GET": "ArtCache::get",
++              "WRAP_ART_PEEK": "ArtCache::peek", "WRAP_FETCH_JSON": "fetch_json",
++              "WRAP_ART_GET_ASYNC": "ArtCache::get_async", "WRAP_ART_PEEK_CACHED": "ArtCache::peek_cached"}
++symbols = {}
++for macro, prefix in boundaries.items():
++    matches = [name for name, description in zip(names, readable)
++               if description.startswith(prefix + "(") or description.startswith(prefix + "[abi:")]
++    if len(matches) != 1:
++        raise SystemExit(f"Expected one production symbol for {prefix}; got {matches}")
++    symbols[macro] = matches[0]
++output = root / "build/tests/playback-choice"
++output.mkdir(parents=True, exist_ok=True)
++header = output / "playback_choice_wrap_symbols.h"
++header.write_text("#pragma once\n" + "".join(
++    f"#define {macro} {json.dumps('__wrap_' + symbol)}\n" for macro, symbol in symbols.items()))
++obj, executable = output / "test_playback_choice.o", output / "test_playback_choice"
++sdl = shlex.split(subprocess.check_output(["pkg-config", "--cflags", "sdl2"], text=True))
++definitions = shlex.split(next(line.split("=", 1)[1] for line in
++    (build / "CMakeFiles/stremio.dir/flags.make").read_text().splitlines() if line.startswith("CXX_DEFINES =")))
++subprocess.run([link[0], "-std=c++20", "-O1", "-g", "-Wall", "-Wextra", "-Wpedantic", "-pthread",
++                *definitions, "-I" + str(root / "src"), "-I" + str(root / "third_party"), *sdl,
++                "-include", str(header), "-c", str(root / "tests/test_playback_choice.cpp"), "-o", str(obj)], check=True)
++link[link.index(main_object)] = str(obj)
++link[link.index("-o") + 1] = str(executable)
++link += ["-Wl,--wrap=" + symbol for symbol in symbols.values()] + ["-Wl,--wrap=curl_easy_perform"]
++subprocess.run(link, cwd=build, check=True)
++with tempfile.TemporaryDirectory(prefix="stremio-playback-choice-") as directory:
++    environment = os.environ.copy(); environment["SDL_AUDIODRIVER"] = "dummy"
++    result = subprocess.run([str(executable), directory], env=environment, text=True,
++                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
++    (output / "playback-choice-test-output.txt").write_text(result.stdout)
++    print(result.stdout, end="")
++    raise SystemExit(result.returncode)
+--- a/tests/run_video_gl_allocation_tests.py
++++ b/tests/run_video_gl_allocation_tests.py
+@@ -41,8 +41,8 @@
+         result.check_returncode()
+     output = args.output or root/'build/tests/video-gl-allocation.json'
+     report = {'result': 'REPRODUCED' if args.expect_failure else 'PASS', 'checks': checks, 'failures': failures,
+-              'scope': 'Real OpenGL output and texture lifetime; injected exhausted API allocations at every stage; fragmented native-size first-fit model; clear/reopen; unrelated preexisting GL errors',
+-              'limits': 'The failure injection models an exhausted GL allocation after any driver retry. The physical ledger is an independent first-fit model using exact retained PS5 driver footprints, not a hardware trace or a reconstruction of the user session.',
++              'scope': 'Real OpenGL output and texture lifetime; exhausted 2D-output/rectangle-plane allocations at every stage; target-aware native-size first-fit model with reserved render staging for 4K10-bit and 1080p8-bit; clear/reopen; unrelated preexisting GL errors',
++              'limits': 'The failure injection models an exhausted GL allocation after any driver retry. The physical ledger is an independent first-fit model using retained PS5 driver footprints including rectangle render staging, not a hardware trace or a reconstruction of the user session.',
+               'source_sha256': {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in
+                                 (source, root/'src/video_gl.h', root/'tests/test_video_gl_allocation.cpp', Path(__file__))},
+               'stdout': result.stdout, 'stderr': result.stderr}
+--- a/tests/run_video_gl_tests.py
++++ b/tests/run_video_gl_tests.py
+@@ -1,5 +1,6 @@
+ #!/usr/bin/env python3
+ """Render real 8/10-bit video planes on host OpenGL and compare color output."""
++import argparse
+ import os
+ import hashlib
+ import json
+@@ -9,6 +10,9 @@
+ import subprocess
+ import tempfile
+ 
++parser = argparse.ArgumentParser()
++parser.add_argument('--output', type=Path)
++args = parser.parse_args()
+ root = Path(__file__).resolve().parents[1]
+ hui = root / 'vendor/ps5-homebrew-ui'
+ flags = shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','sdl2','egl','gl'],text=True))
+@@ -28,9 +32,9 @@
+     files = [root / name for name in ('src/video_gl.cpp', 'src/video_gl.h', 'src/video_evo_shaders.h',
+                                      'src/video_dovi.h', 'tests/test_video_gl.cpp', 'tests/run_video_gl_tests.py')]
+     report = {'result': 'PASS', 'checks': int(match[1]),
+-              'scope': 'Real host OpenGL shader compilation, texture rendering and readback: YUV8/10, PQ/HLG, source-resolution 1080p/4K output, bilinear texture filtering, distinct consecutive frames without blending, cadence/seek reset, invalid-picture retention and Dolby Vision parameters',
++              'scope': 'Real host OpenGL shader compilation, texture rendering and readback: rectangle YUV/BGRA planes and 2D output; nonuniform padded/odd/even YUV8/10 and BGRA against an independent image-space reference; PQ/HLG; source-resolution 1080p/4K; bilinear texture filtering; distinct consecutive frames; cadence/seek reset; invalid-picture retention; Dolby Vision; finite CPU upload-substage timing',
+               'limits': 'Host OpenGL validates rendering behavior; physical PS5 GPU performance and HDMI output require console testing.',
+               'source_sha256': {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}}
+-    target = root / 'build/tests/video-gl.json'
++    target = args.output or root / 'build/tests/video-gl.json'
+     target.parent.mkdir(parents=True, exist_ok=True)
+     target.write_text(json.dumps(report, indent=2) + '\n')
+--- a/tests/test_download_app.cpp
++++ b/tests/test_download_app.cpp
+@@ -419,12 +419,18 @@
+         app.watch_stop(false);
+         app.progress_[complete->media_id] = {complete->type, complete->title, "", "another-episode", 38, 1000, 0};
+         focus(app, first); app.on_button(Btn::Cross);
++        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla" && player_opens == 2,
++               "another episode's bookmark still requires confirmation and never offers Resume");
++        app.on_button(Btn::Cross);
+         expect(player_opens == 3 && !app.dd_visible && opened.start == 0,
+-               "progress belonging to another episode neither prompts nor seeks this download");
++               "progress belonging to another episode never seeks this download");
+         app.watch_stop(false);
+         app.progress_[complete->media_id] = {complete->type, complete->title, "", complete->video_id,
+                                            std::numeric_limits<double>::quiet_NaN(), 1000, 0};
+         focus(app, first); app.on_button(Btn::Cross);
++        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla" && player_opens == 3,
++               "invalid progress offers only beginning and Cancel without opening a decoder");
++        app.on_button(Btn::Cross);
+         expect(player_opens == 4 && !app.dd_visible && opened.start == 0,
+                "invalid stored progress cannot enter a resume label or decoder seek");
+         app.watch_stop(false);
+@@ -442,6 +448,9 @@
+         focus(app, progressive);
+         const int opens_before = player_opens;
+         app.on_button(Btn::Options);
++        expect(app.dd_visible && !app.watching() && player_opens == opens_before,
++               "the premature progressive request waits for its playback choice");
++        app.on_button(Btn::Cross);
+         expect(player_opens == opens_before && !app.watching() && app.view == "downloads",
+                "Options at 4.99 percent cannot play or open Search");
+         progressive_stage = 1;
+@@ -454,6 +463,9 @@
+                app.download_rows[app.download_sel].connections.empty(),
+                "active download rows carry the ETA without invented torrent counters for HTTP");
+         app.on_button(Btn::Options);
++        expect(app.dd_visible && app.dd_sel == 0 && player_opens == opens_before,
++               "a newly playable partial file asks before opening its growing-file input");
++        app.on_button(Btn::Cross);
+         expect(player_opens == opens_before + 1 && app.watching() && app.w_offline_ && app.w_growing_download_,
+                "Options routes through the real App to the growing-file Player input");
+         expect(opened.growing_download == app.w_growing_download_ && opened.headers.empty() && !opened.parallel &&
+@@ -770,14 +782,18 @@
+                "scheduled episode rows display the series, season, episode and episode title");
+         const auto first_entry = *app.downloads_.find(first);
+         app.d_video_id_ = first_entry.video_id;
+-        expect(app.play_saved_stream(source("Episode one", "bookmarked-one.mkv")) && app.watching() &&
+-               !app.dd_visible && opened.url == first_entry.local_path,
++        expect(app.play_saved_stream(source("Episode one", "bookmarked-one.mkv")) && app.dd_visible && !app.watching(),
++               "a complete saved source also asks before playback");
++        app.on_button(Btn::Cross);
++        expect(app.watching() && !app.dd_visible && opened.url == first_entry.local_path,
+                "selecting the same online source reuses its complete local file without a new transfer");
+         save_observed(app, 123.5, 1800);
+         const auto first_key = video_progress_key(first_entry.type, first_entry.media_id, first_entry.video_id);
+         expect(app.video_progress_.at(first_key).time == 123.5 && app.progress_.at(first_entry.media_id).time == 123.5,
+                "closing a zeroed decoder saves the last presented time before teardown");
+         focus(app, second); app.on_button(Btn::Options);
++        expect(app.dd_visible && app.dd_sel == 0 && !app.watching(), "a new episode asks before opening its local file");
++        app.on_button(Btn::Cross);
+         expect(app.watching() && !app.dd_visible && opened.start == 0, "the next episode does not inherit the previous episode's timestamp");
+         save_observed(app, 87, 1600);
+         expect(app.video_progress_.at(first_key).time == 123.5,
+@@ -819,7 +835,10 @@
+                "Circle cancels only the pending playback, preserving its running download");
+         app.offline_ = true; progressive_stage = 1;
+         until([&] { return app.downloads_.find(partial)->playable_while_downloading; }, "partial bookmark reaches a verified prefix");
+-        expect(app.play_saved_stream(partial_stream) && app.watching() && opened.start == 0 && !app.w_torrent_slot_,
++        expect(app.play_saved_stream(partial_stream) && app.dd_visible && !app.watching() && !app.w_torrent_slot_,
++               "a ready same-source partial download asks without another torrent reservation");
++        app.on_button(Btn::Cross);
++        expect(app.watching() && opened.start == 0 && !app.w_torrent_slot_,
+                "a ready same-source download opens progressive playback without another torrent reservation");
+         save_observed(app, 45, 1000, 500, 10000);
+         const auto partial_entry = *app.downloads_.find(partial);
+@@ -837,6 +856,9 @@
+ 
+         app.video_progress_[partial_key].download_prefix = 501;
+         focus(app, partial); app.on_button(Btn::Options);
++        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla" && !app.watching(),
++               "an unverified saved prefix cannot offer an unavailable Resume position");
++        app.on_button(Btn::Cross);
+         expect(app.watching() && !app.dd_visible && opened.start == 0 && opened.progressive_resume_limit == 0,
+                "a recovered prefix below the saved bound starts safely without seeking unavailable data");
+         save_observed(app, 10, 1000, 500, 10000);
+@@ -845,12 +867,17 @@
+         app.video_progress_[partial_key].download_prefix = 500;
+         focus(app, partial); app.on_button(Btn::Options);
+         expect(app.dd_visible, "the same bookmark becomes available when its prefix is verified again");
+-        const auto delayed_choice = app.dd_chosen_;
+-        app.on_button(Btn::Circle);
++        const int opens_before_rollback = player_opens;
+         app.video_progress_[partial_key].download_prefix = 501;
+-        delayed_choice(1);
++        app.on_button(Btn::Cross);
++        expect(!app.watching() && player_opens == opens_before_rollback && !app.toast.empty(),
++               "a rollback after offering Resume refuses playback instead of silently starting at zero");
++        app.play_download(partial, true);
++        expect(app.dd_visible && app.dd_sel == 0 && app.dd_options[1].label == "Annulla",
++               "after prefix rollback the user can explicitly choose a safe beginning");
++        app.on_button(Btn::Cross);
+         expect(app.watching() && opened.start == 0 && opened.progressive_resume_limit == 0,
+-               "a rollback between showing Resume and confirming it is rechecked before opening the player");
++               "a fresh explicit beginning remains available after a rejected Resume");
+         app.watch_stop(false);
+         progressive_stage = 2;
+         until([&] { return app.downloads_.find(partial)->state == DownloadState::Complete; }, "partial bookmark download completes");
+--- a/tests/test_next_episode.cpp
++++ b/tests/test_next_episode.cpp
+@@ -1,6 +1,8 @@
+ // Exercise real App end-of-episode ordering, one-shot countdown and input.
+ // Network, artwork and decoder boundaries are controlled; no console required.
+ #include "app.h"
++#include <filesystem>
++#include <fstream>
+ #include <iostream>
+ #include <stdexcept>
+ 
+@@ -38,10 +40,10 @@
+     for (const auto& entry : inventory) if (entry.id == id) return entry;
+     return {};
+ }
+-void wrapped_local(App*, const std::string&, bool, double) asm(WRAP_LOCAL_START);
+-void wrapped_local(App*, const std::string& id, bool progressive, double start) {
+-    expect(!progressive && start == 0, "next local video starts complete and from its beginning");
+-    ++local_plays; local_played = id;
++void wrapped_open(Player*, const Player::Options&) asm(WRAP_PLAYER_OPEN);
++void wrapped_open(Player*, const Player::Options& options) {
++    expect(!options.growing_download && options.start == 0, "confirmed next local video starts complete and from its beginning");
++    ++local_plays; local_played = options.url;
+ }
+ std::string wrapped_get(ArtCache*, const std::string&, ArtKind,
+     std::function<void(const std::string&)>, ArtPriority, const void*) asm(WRAP_ART_GET);
+@@ -77,9 +79,12 @@
+         app.w_ended_handled_ = false; app.w_offline_ = false;
+         app.w_stream_.binge_group = "same-binge"; app.w_stream_.addon_url = "https://provider.invalid/installation";
+         app.next_episode_visible = false; app.watched_.clear(); app.autoplay_pending_ = false;
++        app.dd_visible = false; app.dd_chosen_ = nullptr; app.launch_visible = false;
++        app.progress_.clear(); app.video_progress_.clear();
+     }
+-    static void run() {
++    static void run(const std::string& directory) {
+         App app; prepare(app);
++        app.base_dir_ = app.data_dir_ = directory;
+         expect(app.settings_.next_episode_delay_seconds == 15, "default countdown is fifteen seconds");
+         const int old_season = app.d_season_idx_, old_selection = app.d_episode_sel;
+         art_ready = false; app.watch_finish_episode();
+@@ -159,17 +164,26 @@
+         app.d_stream_list_ = {unrelated, provider, binge};
+         app.d_stream_buckets_ = {app.d_stream_list_}; app.d_pending_ = 1; app.d_answered_ = 1;
+         app.detail_refresh_streams();
++        expect(app.dd_visible && !app.launch_visible && !app.watching(),
++               "the automatic next source asks before launching playback");
+         const int launch_generation = app.w_gen_;
+         app.detail_refresh_streams();
+-        expect(app.w_stream_.url == binge.url && app.w_gen_ == launch_generation && !app.autoplay_pending_,
+-               "matching binge stream is preferred and starts once");
++        expect(app.dd_visible && app.w_gen_ == launch_generation && !app.autoplay_pending_,
++               "repeated source refresh does not replace or bypass the next-episode choice");
++        app.on_button(Btn::Cross);
++        expect(app.w_stream_.url == binge.url && app.launch_visible && app.w_gen_ == launch_generation + 1,
++               "confirming the choice launches the matching binge source exactly once");
+         g_tasks.stop();
+         prepare(app); app.w_offline_ = true; app.view = "downloads";
+         app.d_item_.id = "unrelated"; app.w_download_id_ = "local-one";
+         DownloadEntry one, two, three;
+         one.id = "local-one"; one.media_id = "series"; one.type = "series"; one.video_id = "s1e1";
+-        one.season = 1; one.episode = 1; one.state = DownloadState::Complete; one.local_path = "first.mkv";
++        one.season = 1; one.episode = 1; one.state = DownloadState::Complete;
++        one.local_path = directory + "/first.mkv";
++        std::ofstream(one.local_path) << "local fixture";
+         two = one; two.id = "local-two"; two.video_id = "s1e2"; two.episode = 2;
++        two.local_path = directory + "/second.mkv";
++        std::ofstream(two.local_path) << "local fixture";
+         two.subtitle = "S1E2 · Local next title"; two.background_path = "local-next.rgba";
+         three = two; three.id = "local-three"; three.video_id = "s1e3"; three.episode = 3;
+         inventory = {one, three, two};
+@@ -177,7 +191,10 @@
+         expect(app.next_episode_visible && app.next_episode_title == "Local next title" &&
+                app.next_episode_thumb == "local-next.rgba", "completed offline episode offers exact adjacent downloaded video with local artwork");
+         app.on_button(Btn::Cross);
+-        expect(local_plays == 1 && local_played == "local-two" && stream_requests == 0,
++        expect(app.dd_visible && local_plays == 0 && !app.watching(),
++               "offline next asks before opening its local player");
++        app.on_button(Btn::Cross);
++        expect(local_plays == 1 && app.w_download_id_ == "local-two" && local_played == two.local_path && stream_requests == 0,
+                "offline next starts existing local player path without any provider request");
+         prepare(app, "s1e2"); app.w_offline_ = true; app.view = "downloads"; app.w_download_id_ = "local-two";
+         DownloadEntry next_season = two; next_season.id = "local-next-season";
+@@ -186,7 +203,10 @@
+         expect(app.next_episode_visible && app.next_episode_id_ == "s2e1",
+                "complete cached metadata can establish the exact offline season boundary");
+         app.on_button(Btn::Cross);
+-        expect(local_played == "local-next-season" && stream_requests == 0, "known offline season boundary stays entirely local");
++        expect(app.dd_visible && local_plays == 0, "a new offline season also requires the playback choice");
++        app.on_button(Btn::Cross);
++        expect(app.w_download_id_ == "local-next-season" && local_played == next_season.local_path && stream_requests == 0,
++               "known offline season boundary stays entirely local");
+         prepare(app, "s1e2"); app.w_offline_ = true; app.view = "downloads";
+         app.d_item_.id = "unrelated"; app.w_download_id_ = "local-two";
+         inventory = {two, next_season}; app.watch_finish_episode();
+@@ -207,7 +227,8 @@
+         app.watching_ = false;
+     }
+ };
+-int main() {
+-    try { AppProtocolTest::run(); std::cout << "Next episode: " << checks << " checks passed\n"; }
++int main(int argc, char** argv) {
++    if (argc != 2) return 2;
++    try { AppProtocolTest::run(argv[1]); std::cout << "Next episode: " << checks << " checks passed\n"; }
+     catch (const std::exception& error) { std::cerr << "FAIL: " << error.what() << '\n'; return 1; }
+ }
+--- /dev/null
++++ b/tests/test_playback_choice.cpp
+@@ -0,0 +1,229 @@
++// Real App playback requests and dropdown input; only external player, artwork
++// and HTTP boundaries are replaced. No actual decoder or provider is opened.
++// SPDX-License-Identifier: GPL-3.0-or-later
++#include "app.h"
++#include <curl/curl.h>
++#include <chrono>
++#include <cmath>
++#include <filesystem>
++#include <iostream>
++#include <limits>
++#include <stdexcept>
++#include <thread>
++
++namespace {
++int checks = 0, player_opens = 0, audio_releases = 0;
++std::atomic<int> unexpected_http{0}, unexpected_json{0};
++Player::Options opened;
++void expect(bool value, const char* message) {
++    ++checks;
++    if (!value) throw std::runtime_error(message);
++}
++template<class Predicate> void until(Predicate condition, const char* message) {
++    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
++    do {
++        g_tasks.drain();
++        if (condition()) return;
++        std::this_thread::sleep_for(std::chrono::milliseconds(2));
++    } while (std::chrono::steady_clock::now() < deadline);
++    throw std::runtime_error(std::string("Timed out: ") + message);
++}
++Stream source(const std::string& name = "chosen") {
++    Stream value;
++    value.name = name; value.kind = StreamKind::Direct;
++    value.url = "https://media.invalid/" + name + ".mkv";
++    value.request_headers = {"X-Fixture: " + name};
++    // Already supplied by the fixture provider: no media hash probe is needed.
++    value.video_hash = "0123456789abcdef"; value.has_video_size = true; value.video_size = 1000000;
++    return value;
++}
++}
++
++void wrapped_player_open(Player*, const Player::Options&) asm(WRAP_PLAYER_OPEN);
++void wrapped_player_open(Player*, const Player::Options& options) { ++player_opens; opened = options; }
++std::string wrapped_art_get(ArtCache*, const std::string&, ArtKind,
++    std::function<void(const std::string&)>, ArtPriority, const void*) asm(WRAP_ART_GET);
++std::string wrapped_art_get(ArtCache*, const std::string&, ArtKind,
++    std::function<void(const std::string&)>, ArtPriority, const void*) { return {}; }
++std::string wrapped_art_peek(ArtCache*, const std::string&, ArtKind) asm(WRAP_ART_PEEK);
++std::string wrapped_art_peek(ArtCache*, const std::string&, ArtKind) { return {}; }
++std::string wrapped_art_get_async(ArtCache*, const std::string&, ArtKind,
++    std::function<void(const std::string&)>, ArtPriority, const void*) asm(WRAP_ART_GET_ASYNC);
++std::string wrapped_art_get_async(ArtCache*, const std::string&, ArtKind,
++    std::function<void(const std::string&)>, ArtPriority, const void*) { return {}; }
++std::string wrapped_art_peek_cached(ArtCache*, const std::string&, ArtKind) asm(WRAP_ART_PEEK_CACHED);
++std::string wrapped_art_peek_cached(ArtCache*, const std::string&, ArtKind) { return {}; }
++bool wrapped_fetch(const std::string&, json&, std::string&, long, const std::atomic<bool>*) asm(WRAP_FETCH_JSON);
++bool wrapped_fetch(const std::string&, json&, std::string& error, long, const std::atomic<bool>*) {
++    ++unexpected_json; error = "Unexpected fixture JSON request"; return false;
++}
++extern "C" CURLcode __wrap_curl_easy_perform(CURL*) { ++unexpected_http; return CURLE_COULDNT_CONNECT; }
++
++struct AppProtocolTest {
++    static void prepare(App& app, const std::string& directory) {
++        app.data_dir_ = app.base_dir_ = directory;
++        app.offline_ = true; app.login_visible = false;
++        app.settings_.ui_language = "it"; app.settings_.ui_language_mode = "it";
++        app.settings_.auto_subtitles = false;
++        app.view = "detail"; app.zone = "content"; app.d_zone = "streams";
++        app.d_item_.id = "fixture:series"; app.d_item_.type = "series"; app.d_item_.name = "Fixture series";
++        app.d_meta_loaded_ = true; app.d_series = true;
++        app.d_meta_.id = app.d_item_.id; app.d_meta_.type = app.d_item_.type;
++        app.d_meta_.name = "Complete fixture title";
++        Video first, second;
++        first.id = "fixture:episode:1"; first.title = "First episode"; first.season = 1; first.episode = 1;
++        second.id = "fixture:episode:2"; second.title = "Second episode"; second.season = 1; second.episode = 2;
++        app.d_meta_.videos = {first, second}; app.d_video_id_ = first.id;
++        app.before_playback = [] { ++audio_releases; };
++        std::string error;
++        expect(app.downloads_.init(directory, &error), "download inventory initializes without a provider");
++        app.downloads_.set_enabled(false);
++    }
++    static std::string key(const App& app) {
++        return video_progress_key(app.d_item_.type, app.d_item_.id, app.d_video_id_);
++    }
++    static void bookmark(App& app, double position = 123.5, double duration = 1800) {
++        app.video_progress_[key(app)] = {app.d_item_.type, app.d_item_.name, "", app.d_video_id_, position, duration, 1};
++    }
++    static void stopped(App& app) {
++        if (app.watching()) app.watch_stop(false);
++        if (app.dd_visible) app.on_button(Btn::Circle);
++        app.launch_visible = false;
++    }
++    static void prompt(App& app, const Stream& stream, bool resume) {
++        const int prior_opens = player_opens, prior_audio = audio_releases;
++        const auto prior_tasks = g_tasks.pending();
++        const int prior_busy = app.busy_count_, prior_generation = app.w_gen_;
++        app.play_stream(stream, false);
++        expect(app.dd_visible && app.dd_options.size() == 2, "every playable source first opens a two-action choice");
++        expect(!app.watching() && !app.launch_visible && !app.w_torrent_slot_ && !app.t_visible,
++               "choice does not open playback, a launch overlay, torrent reservation or statistics");
++        expect(player_opens == prior_opens && audio_releases == prior_audio && app.busy_count_ == prior_busy &&
++               g_tasks.pending() == prior_tasks && app.w_gen_ == prior_generation,
++               "waiting for the choice does not release audio, enqueue a resolver or change playback generation");
++        expect(app.dd_sel == (resume ? 1 : 0), "valid resume is focused, otherwise beginning is focused");
++        expect(app.dd_options[1].label == (resume ? "Riproduci da 2:03" : "Annulla"),
++               "choice offers the actual bookmark or Cancel, never a fabricated resume time");
++    }
++    static void choose(App& app, int choice, double expected_start, const std::string& expected_url) {
++        const int before = player_opens;
++        app.dd_sel = choice; app.on_button(Btn::Cross);
++        until([&] { return player_opens == before + 1; }, "confirmed source reaches Player::open");
++        expect(app.watching() && !app.dd_visible && opened.url == expected_url && opened.start == expected_start,
++               "the confirmed source opens once at the explicitly selected timestamp");
++    }
++    static void invalidated(App& app, const std::function<void()>& invalidate, const char* message) {
++        bookmark(app); prompt(app, source(), true);
++        const int before = player_opens, prior_busy = app.busy_count_;
++        invalidate(); app.on_button(Btn::Cross); g_tasks.drain();
++        expect(player_opens == before && app.busy_count_ == prior_busy && !app.watching() && !app.launch_visible, message);
++    }
++    static void run(App& app, const std::string& directory) {
++        prepare(app, directory);
++        const Stream stream = source();
++        prompt(app, stream, false);
++        app.dd_sel = 1; app.on_button(Btn::Cross);
++        expect(!app.dd_visible && player_opens == 0, "Cancel action on an unwatched source opens nothing");
++
++        prompt(app, stream, false);
++        choose(app, 0, 0, stream.url); stopped(app);
++
++        bookmark(app); prompt(app, stream, true);
++        expect(app.dd_options[0].label == "Riproduci dall'inizio", "the beginning option is explicit and localized");
++        const auto cancelled = app.dd_chosen_;
++        app.on_button(Btn::Circle);
++        const int before_cancelled = player_opens;
++        cancelled(1); g_tasks.drain();
++        expect(!app.dd_visible && player_opens == before_cancelled && !app.watching() && !app.launch_visible,
++               "Circle and a subsequently delivered stale choice cannot launch a cancelled request");
++        expect(app.video_progress_.at(key(app)).time == 123.5, "cancelling leaves the saved position intact");
++
++        Stream torrent = stream;
++        torrent.url.clear(); torrent.info_hash = "0123456789abcdef0123456789abcdef01234567";
++        prompt(app, torrent, true);
++        app.on_button(Btn::Circle);
++        expect(!app.w_torrent_slot_ && !app.t_visible && g_tasks.pending() == 0,
++               "cancelling a torrent choice never starts metadata resolution or claims the foreground engine");
++
++        prompt(app, stream, true); choose(app, 0, 0, stream.url); stopped(app);
++        bookmark(app); prompt(app, stream, true);
++        const auto confirmed = app.dd_chosen_;
++        choose(app, 1, 123.5, stream.url);
++        const int once = player_opens;
++        confirmed(1); g_tasks.drain();
++        expect(player_opens == once, "a repeated confirmation cannot open a second player");
++        stopped(app);
++
++        bookmark(app); Stream mutable_stream = source("captured"); prompt(app, mutable_stream, true);
++        const auto original_url = mutable_stream.url;
++        const auto original_headers = mutable_stream.request_headers;
++        mutable_stream = source("replacement");
++        choose(app, 1, 123.5, original_url);
++        expect(opened.headers == original_headers, "the selected source and its request headers are captured by value");
++        stopped(app);
++
++        invalidated(app, [&] { ++app.account_generation_; }, "account changes invalidate an outstanding playback choice");
++        invalidated(app, [&] { ++app.d_meta_gen_; }, "replacement metadata invalidates the old choice");
++        invalidated(app, [&] { ++app.d_gen_; }, "a replacement stream request invalidates the old choice");
++        invalidated(app, [&] { ++app.w_gen_; }, "a later playback request invalidates the old choice");
++        invalidated(app, [&] { app.d_video_id_ = "fixture:episode:2"; }, "a different episode cannot inherit an older choice");
++
++        app.video_progress_.clear();
++        app.progress_[app.d_item_.id] = {app.d_item_.type, app.d_item_.name, "", "fixture:episode:1", 99, 1800, 1};
++        prompt(app, stream, false); choose(app, 0, 0, stream.url);
++        expect(app.w_video_id_ == "fixture:episode:2", "the next episode starts with its own identity and no previous bookmark");
++        stopped(app);
++
++        app.progress_.clear(); bookmark(app, std::numeric_limits<double>::quiet_NaN());
++        prompt(app, stream, false); app.on_button(Btn::Circle);
++        bookmark(app, 1790, 1800);
++        prompt(app, stream, false); app.on_button(Btn::Circle);
++
++        app.video_progress_.clear(); app.settings_.auth_key = "FIXTURE_DEVICE_SESSION"; app.library_loaded_ = true;
++        app.library_[app.d_item_.id] = {{"type", "series"}, {"name", "Cloud fixture"},
++            {"state", {{"video_id", app.d_video_id_}, {"timeOffset", 123500}, {"duration", 1800000}}}};
++        prompt(app, stream, true); choose(app, 1, 123.5, stream.url); stopped(app);
++        app.settings_.auth_key.clear(); app.library_.clear();
++
++        bookmark(app); app.d_meta_.is_live = true;
++        prompt(app, stream, false);
++        expect(app.dd_options[0].label == "Avvia diretta", "a live source is identified without promising a seek to its beginning");
++        choose(app, 0, 0, stream.url); stopped(app);
++        app.d_meta_.is_live = false;
++
++        app.video_progress_.clear(); app.d_meta_.has_scheduled_videos = true;
++        prompt(app, stream, false);
++        expect(app.dd_options[0].label == "Riproduci dall'inizio", "scheduled on-demand episodes are not classified as live");
++        app.on_button(Btn::Circle);
++
++        bookmark(app); prompt(app, stream, true);
++        const auto superseded = app.dd_chosen_;
++        app.play_stream(source("new-choice"), false);
++        const int before_stale = player_opens;
++        superseded(1); g_tasks.drain();
++        expect(player_opens == before_stale && !app.launch_visible && app.dd_visible,
++               "superseding the dialog invalidates its previous captured callback");
++        choose(app, 1, 123.5, source("new-choice").url); stopped(app);
++
++        expect(unexpected_http == 0 && unexpected_json == 0, "source choice and fixture playback require no external HTTP requests");
++        app.before_playback = {}; app.shutdown();
++    }
++};
++
++int main(int argc, char** argv) {
++    if (argc != 2) return 2;
++    App app;
++    try {
++        g_tasks.start(2);
++        AppProtocolTest::run(app, argv[1]);
++        g_tasks.stop();
++        std::cout << "PASS: " << checks << " real App playback-choice assertions; decoder and HTTP boundaries controlled\n";
++        return 0;
++    } catch (const std::exception& error) {
++        app.before_playback = {};
++        app.shutdown();
++        g_tasks.stop();
++        std::cerr << "FAIL after " << checks << " assertions: " << error.what() << '\n';
++        return 1;
++    }
++}
+--- a/tests/test_player_cadence.cpp
++++ b/tests/test_player_cadence.cpp
+@@ -7,6 +7,7 @@
+ #include <vlc/vlc.h>
+ #include <atomic>
+ #include <chrono>
++#include <cmath>
+ #include <cstdio>
+ #include <cstring>
+ #include <fstream>
+@@ -149,12 +150,16 @@
+         double deadline = seconds() + 8;
+         while (seconds() < deadline && (frames < 14 || player.position() < .7)) pump();
+         require(frames >= 14 && player.position() >= .7, "fixture did not establish initial 1080p playback");
++        require(std::abs(player.source_fps() - 24.0) < .001,
++            "source frame rate must come from media metadata, not renderer pickup cadence");
+         require(guards_intact, "production decoder safety options were removed");
+         held = frame; held_hash = digest(held); armed = true;
+         deadline = seconds() + 8;
+         while (seconds() < deadline && (!injected || frames_after_stall < 65 || player.position() < 4)) pump();
+         require(injected && frames_after_stall >= 65 && player.position() >= 4,
+             "output did not resume and advance after the controlled display stall");
++        require(std::abs(player.source_fps() - 24.0) < .001,
++            "a presentation stall must not change the declared source frame rate");
+         require(digest(held) == held_hash, "recovering output overwrote a retained render lease");
+         libvlc_media_stats_t statistics{};
+         {
+--- a/tests/test_ps5vdec_startup.c
++++ b/tests/test_ps5vdec_startup.c
+@@ -22,7 +22,10 @@
+ #define VLC_ENOMEM (-12)
+ #define VLC_SUCCESS 0
+ typedef struct decoder_sys_t decoder_sys_t;
+-typedef struct { unsigned i_width, i_height, i_chroma; } video_format_t;
++typedef struct {
++    unsigned i_width, i_height, i_chroma;
++    unsigned i_visible_width, i_visible_height, i_frame_rate, i_frame_rate_base;
++} video_format_t;
+ typedef struct {
+     unsigned i_codec;
+     int i_profile, i_level, i_cat, i_extra;
+@@ -103,6 +106,9 @@
+ static int queue_fault, layout_fault;
+ static bool flexible_failure, flexible_null, create_failure, create_null, query_failure;
+ static bool depth_failure, level_failure;
++static bool avc_level52_query_failure, avc_level51_query_failure;
++static unsigned expected_width, expected_height;
++static VdecConfig attempted_configs[4];
+ static int allocation_failure_at, mapping_failure_at;
+ static unsigned direct_ordinal, map_ordinal;
+ static unsigned queue_queries, queue_creates, decoder_queries, decoder_creates, decoder_deletes;
+@@ -246,11 +252,18 @@
+     CHECK(live_allocations() == queue_owned && !decoder_live);
+     CHECK(config->compute_queue == compute_queue && compute_queue);
+     CHECK(config->this_size == sizeof(*config) && memory->this_size == sizeof(*memory));
+-    CHECK(config->max_frame_width == 3840 && config->max_frame_height == 2176);
++    CHECK(config->max_frame_width == (int32_t)expected_width &&
++          config->max_frame_height == (int32_t)expected_height);
+     in_decoder_attempt = true;
+     direct_ordinal = map_ordinal = 0;
++    CHECK(decoder_queries < sizeof(attempted_configs) / sizeof(*attempted_configs));
++    attempted_configs[decoder_queries] = *config;
+     ++decoder_queries;
+     if (query_failure) return -1004;
++    if (config->codec_type == VDEC_CODEC_AVC &&
++        ((avc_level52_query_failure && config->max_level == 52) ||
++         (avc_level51_query_failure && config->max_level == 51)))
++        return (int)UINT32_C(0x811d0200);
+     memory->cpu_memory_size = 32769;
+     memory->gpu_memory_size = 49153;
+     memory->cpu_gpu_memory_size = 65537;
+@@ -299,6 +312,16 @@
+         .video = { .i_width = 3840, .i_height = 2176 } } };
+ }
+ 
++static decoder_t avc_decoder(unsigned width, unsigned height, int profile, int level)
++{
++    expected_width = width ? (width + 15) & ~15u : 3840;
++    expected_height = height ? (height + 15) & ~15u : 2176;
++    return (decoder_t){ .fmt_in = { .i_codec = VLC_CODEC_H264, .i_profile = profile, .i_level = level,
++        .video = { .i_width = width, .i_height = height,
++            .i_visible_width = width, .i_visible_height = height,
++            .i_frame_rate = 25, .i_frame_rate_base = 1 } } };
++}
++
+ static void begin_case(const char *name, bool prepare)
+ {
+     current_case = name;
+@@ -309,6 +332,10 @@
+     queue_fault = layout_fault = allocation_failure_at = mapping_failure_at = 0;
+     flexible_failure = flexible_null = create_failure = create_null = query_failure = false;
+     depth_failure = level_failure = false;
++    avc_level52_query_failure = avc_level51_query_failure = false;
++    expected_width = 3840;
++    expected_height = 2176;
++    memset(attempted_configs, 0, sizeof(attempted_configs));
+     in_decoder_attempt = false;
+     queue_queries = queue_creates = decoder_queries = decoder_creates = decoder_deletes = 0;
+     flexible_maps = direct_allocations = direct_releases = flexible_releases = unmaps = 0;
+@@ -429,6 +456,76 @@
+         finish_case();
+     }
+ 
++    for (unsigned profile = 0; profile < 3; ++profile) {
++        const int profiles[] = { 66, 77, 100 };
++        char name[100];
++        snprintf(name, sizeof(name), "1080p AVC profile %d retries supported level after query refusal", profiles[profile]);
++        begin_case(name, true);
++        avc_level52_query_failure = true;
++        dec = avc_decoder(1920, 1080, profiles[profile], 41);
++        opens_and_closes(&dec);
++        CHECK(decoder_queries == 3 && decoder_creates == 1);
++        CHECK(attempted_configs[0].max_level == 52 && attempted_configs[0].decode_pipeline_depth == 4);
++        CHECK(attempted_configs[1].max_level == 52 && attempted_configs[1].decode_pipeline_depth == 1);
++        CHECK(attempted_configs[2].max_level == 51 && attempted_configs[2].decode_pipeline_depth == 1);
++        CHECK(attempted_configs[2].profile == 100 && attempted_configs[2].max_dpb_frame_count == -1);
++        CHECK(strstr(messages, "input codec=H264 size=1920x1080 visible=1920x1080") != NULL);
++        CHECK(strstr(messages, "input-level=41 rc=0x811d0200") != NULL);
++        CHECK(strstr(messages, "decoder-level=51 pipeline=1") != NULL);
++        finish_case();
++    }
++
++    begin_case("AVC level 5.1 and padded 1088 height remain eligible", true);
++    avc_level52_query_failure = true;
++    dec = avc_decoder(1920, 1088, 100, 51);
++    opens_and_closes(&dec);
++    CHECK(decoder_queries == 3 && attempted_configs[2].max_level == 51);
++    finish_case();
++
++    begin_case("AVC successful first configuration needs no retry", true);
++    dec = avc_decoder(1920, 1080, 100, 41);
++    opens_and_closes(&dec);
++    CHECK(decoder_queries == 1 && attempted_configs[0].max_level == 52);
++    finish_case();
++
++    begin_case("AVC rejected level 5.1 exhausts bounded retries without allocation", true);
++    avc_level52_query_failure = avc_level51_query_failure = true;
++    dec = avc_decoder(1920, 1080, 100, 41);
++    rejects(&dec, "stage=configurations-exhausted");
++    CHECK(decoder_queries == 3 && decoder_creates == 0 && flexible_maps == 0);
++    CHECK(direct_allocations == 1); /* The previously prepared compute queue only. */
++    finish_case();
++
++    for (unsigned invalid = 0; invalid < 8; ++invalid) {
++        const char *names[] = { "level 5.2", "unknown level", "zero level", "unknown profile",
++            "width above 1080p bound", "height above 1088 bound", "unknown width", "unknown height" };
++        char name[100];
++        snprintf(name, sizeof(name), "AVC %s never lowers the decoder level", names[invalid]);
++        begin_case(name, true);
++        avc_level52_query_failure = true;
++        dec = avc_decoder(invalid == 4 ? 2048 : invalid == 6 ? 0 : 1920,
++                          invalid == 5 ? 1090 : invalid == 7 ? 0 : 1080,
++                          invalid == 3 ? -1 : 100,
++                          invalid == 0 ? 52 : invalid == 1 ? -1 : invalid == 2 ? 0 : 41);
++        rejects(&dec, "stage=configurations-exhausted");
++        CHECK(decoder_queries == 2 && decoder_creates == 0);
++        CHECK(attempted_configs[1].max_level == 52);
++        CHECK(strstr(messages, "level=52 -> 51") == NULL);
++        finish_case();
++    }
++
++    for (unsigned failure = 0; failure < 2; ++failure) {
++        begin_case(failure ? "AVC decoder create failure does not lower level" :
++                   "AVC allocation failure does not lower level", true);
++        if (failure) create_failure = true;
++        else allocation_failure_at = 1;
++        dec = avc_decoder(1920, 1080, 100, 41);
++        rejects(&dec, failure ? "stage=decoder-create" : "component=gpu");
++        CHECK(decoder_queries == 2 && decoder_creates == (failure ? 2u : 0u));
++        CHECK(strstr(messages, "level=52 -> 51") == NULL);
++        finish_case();
++    }
++
+     for (int layout = 1; layout <= 8; ++layout) {
+         char name[80];
+         snprintf(name, sizeof(name), "decoder memory layout %d", layout);
+@@ -456,7 +553,9 @@
+         VdecConfig config = { .this_size = sizeof(config), .compute_queue = compute_queue,
+             .max_frame_width = 3840, .max_frame_height = 2176 };
+         VdecMemory memory;
+-        CHECK(bring_up(&dec, sys, &config, &memory) == EINVAL);
++        bool query_rejected = true;
++        CHECK(bring_up(&dec, sys, &config, &memory, &query_rejected) == EINVAL);
++        CHECK(!query_rejected);
+         CHECK(!decoder_creates && !flexible_maps && direct_allocations == 1);
+         CHECK(strstr(messages, "stage=memory-layout"));
+         free_sys(sys);
+--- a/tests/test_video_gl.cpp
++++ b/tests/test_video_gl.cpp
+@@ -55,6 +55,95 @@
+             std::abs(int(pixels[i+1])-g) <= tolerance && std::abs(int(pixels[i+2])-b) <= tolerance && pixels[i+3] == 255;
+     if (!equal) std::fprintf(stderr, "observed %d,%d,%d; expected %d,%d,%d\n", pixels[0],pixels[1],pixels[2],r,g,b);
+     check(equal, message);
++}
++
++int pattern_y(int x, int y) { return 24 + (x*19 + y*27) % 192; }
++int pattern_u(int x, int y) { return 96 + (x*7 + y*5) % 64; }
++int pattern_v(int x, int y) { return 104 + (x*3 + y*9) % 48; }
++
++Frame patterned_yuv(Layout layout, bool wide, int shift, int w, int h) {
++    Frame f;
++    f.layout = layout; f.wide = wide; f.shift = shift; f.w = w; f.h = h;
++    f.colors = YuvColors::Bt709;
++    const size_t bytes = wide ? 2 : 1;
++    const int cw = (w+1)/2, ch = (h+1)/2;
++    f.pitches[0] = size_t(w+7)*bytes;
++    f.pitches[1] = size_t(cw+5)*bytes*(layout == Layout::Nv12 ? 2 : 1);
++    f.pitches[2] = size_t(cw+3)*bytes;
++    f.offsets[0] = 32;
++    f.offsets[1] = f.offsets[0] + f.pitches[0]*h + 16;
++    f.offsets[2] = f.offsets[1] + f.pitches[1]*ch + 16;
++    f.pixels.resize(f.offsets[2] + f.pitches[2]*ch, 0xdd);
++    auto put = [&](size_t at, int value) {
++        if (wide) {
++            const uint16_t sample = uint16_t((value*4) << shift);
++            std::memcpy(f.pixels.data()+at, &sample, sizeof(sample));
++        } else f.pixels[at] = uint8_t(value);
++    };
++    for (int y=0; y<h; ++y) for (int x=0; x<w; ++x)
++        put(f.offsets[0] + f.pitches[0]*y + bytes*x, pattern_y(x,y));
++    for (int y=0; y<ch; ++y) for (int x=0; x<cw; ++x) {
++        if (layout == Layout::Nv12) {
++            put(f.offsets[1] + f.pitches[1]*y + bytes*2*x, pattern_u(x,y));
++            put(f.offsets[1] + f.pitches[1]*y + bytes*(2*x+1), pattern_v(x,y));
++        } else {
++            put(f.offsets[1] + f.pitches[1]*y + bytes*x, pattern_u(x,y));
++            put(f.offsets[2] + f.pitches[2]*y + bytes*x, pattern_v(x,y));
++        }
++    }
++    return f;
++}
++
++// Independent image-space reference: bilinear chroma at pixel centres, followed
++// by the BT.709 limited-range matrix. Padding never participates in this model.
++double pattern_chroma(const Frame& f, int x, int y, bool v) {
++    const int cw=(f.w+1)/2, ch=(f.h+1)/2;
++    const double sx=(x+.5)*cw/f.w-.5, sy=(y+.5)*ch/f.h-.5;
++    const int ix=int(std::floor(sx)), iy=int(std::floor(sy));
++    const double dx=sx-ix, dy=sy-iy;
++    auto at = [&](int px, int py) {
++        px=std::clamp(px,0,cw-1); py=std::clamp(py,0,ch-1);
++        return v ? pattern_v(px,py) : pattern_u(px,py);
++    };
++    return (at(ix,iy)*(1-dx)+at(ix+1,iy)*dx)*(1-dy) +
++           (at(ix,iy+1)*(1-dx)+at(ix+1,iy+1)*dx)*dy;
++}
++void check_pattern(const std::vector<unsigned char>& pixels, const Frame& f) {
++    bool equal = true;
++    for (int y=0; y<f.h; ++y) for (int x=0; x<f.w; ++x) {
++        const double luma=(pattern_y(x,y)-16)/219.0;
++        const double u=(pattern_chroma(f,x,y,false)-128)/224.0;
++        const double v=(pattern_chroma(f,x,y,true)-128)/224.0;
++        const std::array<double,3> rgb{luma+1.5748*v, luma-.187324*u-.468124*v, luma+1.8556*u};
++        const size_t at=(size_t(y)*f.w+x)*4;
++        for (int c=0;c<3;++c) {
++            const int expected=int(std::lround(std::clamp(rgb[c],0.0,1.0)*255));
++            if (std::abs(int(pixels[at+c])-expected)>2) equal=false;
++        }
++        equal = equal && pixels[at+3]==255;
++    }
++    check(equal,"nonuniform odd/padded YUV matches independent bilinear colour reference at every pixel");
++}
++void check_plane_targets(const Frame& f) {
++    const int count=f.layout==Layout::Bgra?1:f.layout==Layout::Nv12?2:3;
++    for (int i=0;i<count;++i) {
++        glActiveTexture(GL_TEXTURE0+i);
++        GLint name=0,width=0,height=0,min_filter=0,wrap_s=0,wrap_t=0;
++        glGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE,&name);
++        check(name!=0,"each uploaded source plane is bound as a rectangle texture");
++        if (!name) continue;
++        glGetTexLevelParameteriv(GL_TEXTURE_RECTANGLE,0,GL_TEXTURE_WIDTH,&width);
++        glGetTexLevelParameteriv(GL_TEXTURE_RECTANGLE,0,GL_TEXTURE_HEIGHT,&height);
++        glGetTexParameteriv(GL_TEXTURE_RECTANGLE,GL_TEXTURE_MIN_FILTER,&min_filter);
++        glGetTexParameteriv(GL_TEXTURE_RECTANGLE,GL_TEXTURE_WRAP_S,&wrap_s);
++        glGetTexParameteriv(GL_TEXTURE_RECTANGLE,GL_TEXTURE_WRAP_T,&wrap_t);
++        check(width==(i==0?f.w:(f.w+1)/2) && height==(i==0?f.h:(f.h+1)/2),
++              "rectangle planes retain their individual visible luma/chroma extents");
++        check(min_filter==GL_LINEAR && wrap_s==GL_CLAMP_TO_EDGE && wrap_t==GL_CLAMP_TO_EDGE,
++              "rectangle sampling is bilinear and clamps both edges");
++    }
++    glActiveTexture(GL_TEXTURE0);
++    check(glGetError()==GL_NO_ERROR,"mixed rectangle inputs and 2D output have no GL error");
+ }
+ 
+ int main() {
+@@ -116,6 +205,18 @@
+         near(read(gpu,hlg),255,255,255,1,"HLG reference white maps to SDR white");
+         auto odd = solid(Layout::Planar420,false,0,126,128,128,9,7);
+         near(read(gpu,odd),128,128,128,1,"odd chroma dimensions are retained");
++        for (const auto layout : {Layout::Planar420,Layout::Nv12}) {
++            for (const bool wide : {false,true}) {
++                for (int shift : {0,6}) {
++                    if (!wide && shift) continue;
++                    for (const auto dimensions : {std::array<int,2>{9,7},{10,8}}) {
++                        auto f=patterned_yuv(layout,wide,shift,dimensions[0],dimensions[1]);
++                        check_pattern(read(gpu,f),f);
++                        check_plane_targets(f);
++                    }
++                }
++            }
++        }
+         auto large = solid(Layout::Nv12,true,0,504,512,512,3840,2160);
+         auto pixels = read(gpu,large);
+         GLint width = 0,height = 0;
+@@ -128,11 +229,39 @@
+         const auto corners = read(gpu,bgra);
+         check(corners == std::vector<unsigned char>({255,0,0,255,0,255,0,255,0,0,255,255,255,255,255,255}),
+             "BGRA channels and source row order are preserved");
++        check_plane_targets(bgra);
++        Frame padded_bgra; padded_bgra.w=7; padded_bgra.h=5;
++        padded_bgra.offsets[0]=12; padded_bgra.pitches[0]=44;
++        padded_bgra.pixels.resize(12+44*5,0xdd);
++        std::vector<uint8_t> bgra_reference;
++        for (int y=0;y<5;++y) for (int x=0;x<7;++x) {
++            const uint8_t r=uint8_t(x*31),g=uint8_t(y*47),b=uint8_t((x+y)*17);
++            const size_t at=12+44*y+4*x;
++            const uint8_t values[]{b,g,r,255};
++            std::memcpy(padded_bgra.pixels.data()+at,values,4);
++            bgra_reference.insert(bgra_reference.end(),{r,g,b,255});
++        }
++        check(read(gpu,padded_bgra)==bgra_reference,"odd padded BGRA retains every row, channel and texel");
++        check_plane_targets(padded_bgra);
+         bgra.pixels.resize(3);
+         const auto clean_texture = gpu.texture();
+         check(!gpu.upload(bgra),"truncated frame is rejected before texture upload");
+         check(gpu.texture() == clean_texture,"a rejected picture retains the last clean image");
+         gpu.clear(); check(gpu.texture() == 0,"closing playback clears the displayed frame");
++        check(gpu.upload(odd),"timing sample accepts a newly allocated picture");
++        auto timing=gpu.last_upload_timing();
++        check(timing.reconfigured && std::isfinite(timing.allocation_ms) && timing.allocation_ms>=0 &&
++              std::isfinite(timing.plane_ms) && timing.plane_ms>=0 &&
++              std::isfinite(timing.draw_ms) && timing.draw_ms>=0,
++              "CPU upload substages expose finite nonnegative times without a GPU timing query");
++        check(gpu.upload(odd),"timing sample accepts a reused picture");
++        check(!gpu.last_upload_timing().reconfigured && gpu.last_upload_timing().allocation_ms==0,
++              "reused storage reports no allocation stage");
++        check(!gpu.upload(bgra),"timing sample rejects a truncated picture");
++        timing=gpu.last_upload_timing();
++        check(!timing.reconfigured && timing.allocation_ms==0 && timing.plane_ms==0 && timing.draw_ms==0,
++              "rejected descriptors never reuse the previous frame's timing");
++        gpu.clear();
+ 
+         auto read_presented = [&] {
+             glBindTexture(GL_TEXTURE_2D, gpu.texture());
+--- a/tests/test_video_gl_allocation.cpp
++++ b/tests/test_video_gl_allocation.cpp
+@@ -13,6 +13,7 @@
+ std::map<GLuint, Range> reservations;
+ std::map<GLuint, GLuint> attachments;
+ std::vector<GLuint> generated;
++std::vector<std::pair<GLenum,GLenum>> allocation_targets;
+ int allocation_index = 0, fail_at = 0, draws = 0, deletes = 0, binds = 0;
+ int deletes_while_attached = 0;
+ GLenum pending_error = GL_NO_ERROR;
+@@ -23,17 +24,22 @@
+     return (value + alignment - 1) / alignment * alignment;
+ }
+ 
+-bool reserve(GLuint texture, GLenum format, unsigned width, unsigned height) {
++bool reserve(GLuint texture, GLenum target, GLenum format, unsigned width, unsigned height) {
+     // Exact single-level native footprints from ps5-opengl dce74910:
+-    // RGBA8 is tiled; R16/RG16 have linear storage plus render staging.
++    // The 2D RGBA8 output is tiled. Rectangle sampled planes remain linear,
++    // but Mesa's advisory render-target bind also reserves render staging.
++    // Those planes are never attached to a framebuffer or drawn into.
+     size_t bytes = 0, alignment = 0;
+-    if (format == GL_RGBA8) {
++    if (target == GL_TEXTURE_2D && format == GL_RGBA8) {
+         bytes = aligned(size_t((width+127)/128)*((height+127)/128)*65536, 2097152);
+         alignment = 2097152;
+-    } else if (format == GL_R16) {
+-        const size_t linear = aligned(size_t(width)*2,256)*height;
+-        const size_t tiled = size_t((width+255)/256)*((height+127)/128)*65536;
+-        bytes = aligned(linear,65536)+tiled; alignment = 65536;
++    } else if (target == GL_TEXTURE_RECTANGLE &&
++               (format==GL_R8 || format==GL_RG8 || format==GL_R16 || format==GL_RG16 || format==GL_RGBA8)) {
++        const size_t bpp=format==GL_R8?1:format==GL_R16||format==GL_RG8?2:4;
++        const size_t tw=bpp<=2?256:128, th=bpp==1?256:128;
++        const size_t linear=aligned(size_t(width)*bpp,256)*height;
++        const size_t tiled=size_t((width+tw-1)/tw)*((height+th-1)/th)*65536;
++        bytes=aligned(aligned(linear,65536)+tiled,65536); alignment=65536;
+     } else { check(false,"fragmentation model only admits its audited formats"); return false; }
+     for (size_t i = 0; i < ranges.size(); ++i) {
+         const auto range = ranges[i];
+@@ -50,12 +56,14 @@
+     return false;
+ }
+ 
+-bool fail_storage(GLenum format, unsigned width, unsigned height) {
++bool fail_storage(GLenum target, GLenum format, unsigned width, unsigned height) {
+     ++allocation_index;
++    allocation_targets.emplace_back(target,format);
+     bool fail = fail_at && allocation_index == fail_at;
+     if (model) {
+-        GLint texture = 0; glGetIntegerv(GL_TEXTURE_BINDING_2D,&texture);
+-        fail = !reserve(GLuint(texture),format,width,height);
++        GLint texture = 0;
++        glGetIntegerv(target==GL_TEXTURE_RECTANGLE?GL_TEXTURE_BINDING_RECTANGLE:GL_TEXTURE_BINDING_2D,&texture);
++        fail = !reserve(GLuint(texture),target,format,width,height);
+     }
+     if (fail) pending_error = GL_OUT_OF_MEMORY;
+     return fail;
+@@ -108,11 +116,11 @@
+     __real_glDeleteFramebuffers(n,names);
+ }
+ void __wrap_glTexStorage2D(GLenum target,GLsizei levels,GLenum format,GLsizei width,GLsizei height) {
+-    if(!fail_storage(format,width,height)) __real_glTexStorage2D(target,levels,format,width,height);
++    if(!fail_storage(target,format,width,height)) __real_glTexStorage2D(target,levels,format,width,height);
+ }
+ void __wrap_glTexImage2D(GLenum target,GLint level,GLint internal,GLsizei width,GLsizei height,
+                        GLint border,GLenum format,GLenum type,const void* data) {
+-    if(!fail_storage(GLenum(internal),width,height))
++    if(!fail_storage(target,GLenum(internal),width,height))
+         __real_glTexImage2D(target,level,internal,width,height,border,format,type,data);
+ }
+ GLenum __wrap_glGetError() {
+@@ -144,12 +152,16 @@
+         auto next=solid(Layout::Planar420,true,0,504,512,512,128,72);
+         check(gpu.upload(old),"initial picture before failure is displayed");
+         drain_errors();
+-        allocation_index=0;fail_at=failed_allocation;generated.clear();
++        allocation_index=0;fail_at=failed_allocation;generated.clear();allocation_targets.clear();
+         const int before_draws=draws,before_attached=deletes_while_attached;
+         check(!gpu.upload(next),"every exhausted allocation rejects the incomplete picture");
+         check(gpu.last_failure()==VideoGl::Failure::Allocation,"allocation failure is classified separately from bad frame data");
+         check(draws==before_draws,"no GPU draw is submitted after any allocation failure");
+         check(gpu.texture()==0,"failed reconfiguration exposes no incomplete output texture");
++        check(!allocation_targets.empty() && allocation_targets[0]==std::pair<GLenum,GLenum>{GL_TEXTURE_2D,GL_RGBA8},
++              "the large 2D render target is allocated before any input plane");
++        check(std::all_of(allocation_targets.begin()+1,allocation_targets.end(),[](auto entry){return entry.first==GL_TEXTURE_RECTANGLE;}),
++              "injected plane failures exercise rectangle storage, not stale 2D bindings");
+         check(deletes_while_attached==before_attached,"reconfiguration detaches old FBO storage before deletion");
+         for(auto texture:generated) check(!glIsTexture(texture),"failure releases every partial texture object");
+         fail_at=0;drain_errors();
+@@ -208,6 +220,23 @@
+         check(gpu.upload(f),"preexisting unrelated UI error does not reject a valid source frame");
+         check(glGetError()==GL_NO_ERROR,"resource setup separates and consumes the prior UI error");
+     }
++    {
++        VideoGl gpu;check(gpu.init(),"1080p rectangle budget test initializes real GPU shader");
++        constexpr size_t MiB=1048576;
++        // A 1080p SDR frame exercises the actual R8 path affected by CPU
++        // tiling. Count the driver-reserved staging too, even though no input
++        // rectangle is rendered into and upload maps its linear storage.
++        auto f=solid(Layout::Planar420,false,0,126,128,128,1920,1080);
++        ranges={{0,20*MiB}}; reservations.clear();allocation_targets.clear();
++        allocation_index=0;model=true;
++        check(gpu.upload(f),"1080p rectangle inputs and 2D output fit the audited native budget");
++        size_t used=0;for(auto [texture,range]:reservations) used+=range.bytes;
++        check(used==18087936,"1080p native accounting includes linear R8 planes plus their reserved staging");
++        check(reservations.size()==4,"rectangle budget tracks four distinct texture allocations");
++        if(gpu.texture()) near(read_texture(gpu,f.w,f.h),128,128,128,1,"budgeted rectangle upload preserves the 1080p image");
++        gpu.clear();check(reservations.empty(),"rectangle input and 2D output reservations all release after stop");
++        model=false;drain_errors();
++    }
+     eglMakeCurrent(display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
+     eglDestroyContext(display,context);eglTerminate(display);
+     std::printf("GPU allocation tests: %d checks, %d failures (real host GL; injected API exhaustion and modeled native extents)\n",checks,failures);
+--- a/vendor/vlc-ps5/modules/ps5vdec.c
++++ b/vendor/vlc-ps5/modules/ps5vdec.c
+@@ -988,11 +988,18 @@
+ 
+ /* The decoder's memory and the decoder itself, for this config; on failure
+  * what was taken is given back (so a lighter config can be tried). */
+-static int bring_up(decoder_t *dec, decoder_sys_t *sys, const VdecConfig *config, VdecMemory *mem)
+-{
++static int bring_up(decoder_t *dec, decoder_sys_t *sys, const VdecConfig *config,
++                    VdecMemory *mem, bool *query_rejected)
++{
++    *query_rejected = false;
+     *mem = (VdecMemory){ .this_size = sizeof(*mem) };
++    msg_Warn(dec, "ps5vdec: configuration codec=%u profile=%u level=%u size=%dx%d dpb=%d pipeline=%u",
++             config->codec_type, config->profile, config->max_level,
++             config->max_frame_width, config->max_frame_height,
++             config->max_dpb_frame_count, config->decode_pipeline_depth);
+     int rc = sceVideodec2QueryDecoderMemoryInfo(config, mem);
+     if (rc != 0) {
++        *query_rejected = true;
+         msg_Warn(dec, "ps5vdec: rejected stage=memory-query rc=%#x level=%u pipeline=%u",
+                  (unsigned)rc, config->max_level, config->decode_pipeline_depth);
+         return rc;
+@@ -1099,6 +1106,17 @@
+         return VLC_EGENERIC;
+     }
+     bool small = w && h && w <= 1920 && h <= 1088;
++    /* The supplied EVO ABI reference records AVC High / level 5.1 / depth 1
++     * as a working 1080p configuration. Only retry that lower ceiling for a
++     * stream whose declared profile, level and coded size fit it. An unknown
++     * level or size must not be silently treated as a lower-level stream. */
++    const bool avc_level51_compatible = codec == VDEC_CODEC_AVC && small &&
++        (in->i_profile == 66 || in->i_profile == 77 || in->i_profile == 100) &&
++        in->i_level > 0 && in->i_level <= 51;
++    msg_Warn(dec, "ps5vdec: input codec=%s size=%ux%u visible=%ux%u profile=%d level=%d fps=%u/%u",
++             codec == VDEC_CODEC_AVC ? "H264" : "HEVC", w, h,
++             in->video.i_visible_width, in->video.i_visible_height,
++             in->i_profile, in->i_level, in->video.i_frame_rate, in->video.i_frame_rate_base);
+ 
+     void *queue = get_compute_queue();
+     if (!queue) {
+@@ -1143,19 +1161,29 @@
+     /* the decoder's picture store, plus a few waiting to be shown */
+     sys->frame_count = small ? MAX_FRAMES : 10;
+     VdecMemory mem;
+-    int rc = bring_up(dec, sys, &config, &mem);
++    bool query_rejected;
++    int rc = bring_up(dec, sys, &config, &mem, &query_rejected);
+     if (rc != 0 && config.decode_pipeline_depth > 1) {
+         /* depth 4 costs memory (cpu+gpu 90 -> 189 MiB at 4K): when it can't
+          * have it, one at a time still plays most videos */
+         msg_Warn(dec, "ps5vdec: retry pipeline=%u -> 1 rc=%#x", config.decode_pipeline_depth, (unsigned)rc);
+         config.decode_pipeline_depth = 1;
+-        rc = bring_up(dec, sys, &config, &mem);
++        rc = bring_up(dec, sys, &config, &mem, &query_rejected);
++    }
++    if (rc != 0 && query_rejected && avc_level51_compatible && config.max_level == 52) {
++        /* One bounded compatibility retry after a rejected query, never after
++         * allocation or decoder-creation failure. Keep the existing queue,
++         * memory guards, DPB policy and the already reduced pipeline depth. */
++        msg_Warn(dec, "ps5vdec: retry codec=H264 level=52 -> 51 pipeline=%u input-level=%d rc=%#x",
++                 config.decode_pipeline_depth, in->i_level, (unsigned)rc);
++        config.max_level = 51;
++        rc = bring_up(dec, sys, &config, &mem, &query_rejected);
+     }
+     if (rc != 0 && config.max_level == 156) {
+         /* level 5.2 not taken: 5.1, the one known to work */
+         msg_Warn(dec, "ps5vdec: retry level=156 -> 153 rc=%#x", (unsigned)rc);
+         config.max_level = 153;
+-        rc = bring_up(dec, sys, &config, &mem);
++        rc = bring_up(dec, sys, &config, &mem, &query_rejected);
+     }
+     if (rc != 0) {
+         msg_Warn(dec, "ps5vdec: rejected stage=configurations-exhausted rc=%#x", (unsigned)rc);

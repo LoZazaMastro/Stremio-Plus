@@ -1,0 +1,63 @@
+{
+  "result": "PASS",
+  "finalized_utc": "2026-10-23T12:06:25.813850+00:00",
+  "scope": "Metadata-only refresh of dependency inventory and bundle support; no production/source/binary/cache mutations",
+  "production_source_tree_sha256": "9016a56286cf954b99942ccb067acea4cf39297c36fa288be7a69da03baf5144",
+  "input_records_byte_identical_as_json_objects": true,
+  "input_record_count": 39,
+  "dependency_payload_count": 37,
+  "groups_unchanged": true,
+  "helper_and_readme_unchanged": true,
+  "restore_tests_rerun": false,
+  "restore_tests_reuse_reason": "All 39 input identities/layout records and the restore helper are unchanged; only completed engine receipt metadata and host archive identities were refreshed.",
+  "static_archives_verified_against_receipts": 261,
+  "receipts": {
+    "ps5": {
+      "receipt": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc/build-receipt-ps5.json",
+      "receipt_sha256": "6a4081c4c7a923db249da0a0f277c92f79bdcaaa2cbe3f32bc7d690b3ef0e5ba",
+      "archive_count": 132,
+      "static_archive_bytes": 67395390,
+      "checksum_verification": "PASS"
+    },
+    "host": {
+      "receipt": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/build-receipt-host.json",
+      "receipt_sha256": "eab79287276875ddcfcee66026dbae0d661c453d63fdbf19ab3ce522fc9f49c4",
+      "archive_count": 129,
+      "static_archive_bytes": 99857114,
+      "checksum_verification": "PASS"
+    }
+  },
+  "support_files": [
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/README.md",
+      "bytes": 5897,
+      "sha256": "cce67daf440fa07685e396f8ba40743159b2ee7c3b2f593956703cb6695c73a1"
+    },
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/inventory.json",
+      "bytes": 173639,
+      "sha256": "e0f802276cad421610b9f4f4bffc5a4aa177960660c3843b2b83920d7b0464f7"
+    },
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/restore-cache.py",
+      "bytes": 10952,
+      "sha256": "7c04e79d3607c50a7bbcdcc63891702a4d822987d2adb90a779e90d3148f941b"
+    },
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/SHA256SUMS",
+      "bytes": 4262,
+      "sha256": "430883cb3f671d080b62fae63c2479d35047dbe0f5641bda6417355ca349e49b"
+    }
+  ],
+  "inventory": {
+    "path": "/workspace/scratch/7fa7f080734e/validation-current/dependency-inventory.json",
+    "bytes": 173639,
+    "sha256": "e0f802276cad421610b9f4f4bffc5a4aa177960660c3843b2b83920d7b0464f7"
+  },
+  "summary": {
+    "path": "/workspace/scratch/7fa7f080734e/validation-current/dependency-inventory-summary.json",
+    "bytes": 6799,
+    "sha256": "5f67f2ebbfe5cdc7595b494d3ed569a928bc3ec1036902844753a19c81dc1e7b"
+  },
+  "production_patch_0014_sha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53"
+}

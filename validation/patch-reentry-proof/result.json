@@ -1,0 +1,112 @@
+{
+  "pass": true,
+  "scope": "isolated pristine VLC archive and complete actual configure patch loop; no production/cache files changed",
+  "patches": 25,
+  "filesCompared": 4383,
+  "candidateSha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53",
+  "vmemSha256": "9536b17408367ed6398c56a822e457dfcaed45241640baa7dabe965c14674914",
+  "firstGeneratedTreeMatchesOriginal": true,
+  "secondPassTreeUnchanged": true,
+  "secondPassActions": [
+    {
+      "patch": "0001-freetype-ps5-default-fonts.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0002-posix-error-ps5-no-strerror_l.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0003-interrupt-ps5-sliced-poll.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0004-thread-ps5-cpu-count.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0005-freetype-ps5-fallback-fonts.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0006-netconf-ps5-no-proxy-helper.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0007-no-named-locales-ps5.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0008-libass-ps5-default-font.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0009-dvdnav-ps5-stream-demux.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0010-bluray-ps5-menu-state.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0011-freetype-ps5-utf8-without-iconv.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0012-adaptive-ps5-http-res-malloc.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0013-avcodec-opus-bare-header.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0014-vmem-ps5-colour-info.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0015-picture-ps5-big-pictures-direct-memory.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0016-vmem-ps5-parallel-copy.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0017-smb2-ps5-bigger-reads.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0018-stremio-subtitle-callback.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0019-static-vc1-module-name.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0020-growing-input-direct-access.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0021-reference-safe-rebuffering.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0022-stremio-video-metadata.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0023-stremio-decoder-error.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0024-reset-frame-discard-after-preroll.patch",
+      "action": "already-applied"
+    },
+    {
+      "patch": "0025-vmem-ps5-keep-visible.patch",
+      "action": "already-applied"
+    }
+  ]
+}

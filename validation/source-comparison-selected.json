@@ -1,0 +1,558 @@
+{
+  "created_at_utc": "2026-10-23T12:01:48.795584+00:00",
+  "scope": "Content comparison only; does not rerun tests, validate linking or establish the hash of a final native package.",
+  "reports": [
+    {
+      "report": "baseline-host/home-startup-ffmpeg/result.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "src/home_startup.h",
+          "recorded_sha256": "e14d452bf2f9ae0f6ef48b33e977eaf14d31caa0068c4b2c68cb17b888acae1b",
+          "current_sha256": "e14d452bf2f9ae0f6ef48b33e977eaf14d31caa0068c4b2c68cb17b888acae1b",
+          "status": "match"
+        },
+        {
+          "path": "src/app.h",
+          "recorded_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "current_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "status": "match"
+        },
+        {
+          "path": "src/app.cpp",
+          "recorded_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "current_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "status": "match"
+        },
+        {
+          "path": "src/app_board.cpp",
+          "recorded_sha256": "685ff7e72301ac7e4fb2a54756ec4f5699abd2b876ed0f3f6e7c500267a12ee7",
+          "current_sha256": "685ff7e72301ac7e4fb2a54756ec4f5699abd2b876ed0f3f6e7c500267a12ee7",
+          "status": "match"
+        },
+        {
+          "path": "src/home_ui.cpp",
+          "recorded_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "current_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "status": "match"
+        },
+        {
+          "path": "src/main.cpp",
+          "recorded_sha256": "e5b4d4672853149df47ca70686c65ebb2aa0b04e2cfeca76f14e4b7a582e14cf",
+          "current_sha256": "e5b4d4672853149df47ca70686c65ebb2aa0b04e2cfeca76f14e4b7a582e14cf",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_home_startup.cpp",
+          "recorded_sha256": "cc9f97a050a9b1f34a92b28ef550893850256bf1a908f36a7af11851814d61ea",
+          "current_sha256": "cc9f97a050a9b1f34a92b28ef550893850256bf1a908f36a7af11851814d61ea",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_home_startup_tests.py",
+          "recorded_sha256": "28d0ec49ffec4aa8b3daa98e4cbb5e59afcdaddb0499712c5822e7d4bd47f134",
+          "current_sha256": "28d0ec49ffec4aa8b3daa98e4cbb5e59afcdaddb0499712c5822e7d4bd47f134",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/ui/components/carousel.cpp",
+          "recorded_sha256": "1b3618658e49cd8182a619b9e962e2c8168b99cd9be932b7d9d8246ddaec5b05",
+          "current_sha256": "1b3618658e49cd8182a619b9e962e2c8168b99cd9be932b7d9d8246ddaec5b05",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/ui/components/carousel.hpp",
+          "recorded_sha256": "85a01b36d5542e634858b2e72995b5de5a6537c0318019df63194df5af30dfe3",
+          "current_sha256": "85a01b36d5542e634858b2e72995b5de5a6537c0318019df63194df5af30dfe3",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-host/playback-volume-app-ffmpeg/result.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "src/playback_volume.h",
+          "recorded_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "current_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "status": "match"
+        },
+        {
+          "path": "src/player_vlc_audio.h",
+          "recorded_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "current_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "status": "match"
+        },
+        {
+          "path": "src/player.h",
+          "recorded_sha256": "af453a36044027d8934ec1275a406b87a2064fd9990233aa301c902b3cc30a49",
+          "current_sha256": "af453a36044027d8934ec1275a406b87a2064fd9990233aa301c902b3cc30a49",
+          "status": "match"
+        },
+        {
+          "path": "src/player.cpp",
+          "recorded_sha256": "bb24639ebafba1ab66061dbcfea9cfd754051da9d0e7df365d2bebd64ef210dd",
+          "current_sha256": "bb24639ebafba1ab66061dbcfea9cfd754051da9d0e7df365d2bebd64ef210dd",
+          "status": "match"
+        },
+        {
+          "path": "src/app.h",
+          "recorded_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "current_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "status": "match"
+        },
+        {
+          "path": "src/app.cpp",
+          "recorded_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "current_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "status": "match"
+        },
+        {
+          "path": "src/app_watch.cpp",
+          "recorded_sha256": "a3544e5185b253788254ba4ce7dc5f26ac258c763070299b170dc395c8cb16b2",
+          "current_sha256": "a3544e5185b253788254ba4ce7dc5f26ac258c763070299b170dc395c8cb16b2",
+          "status": "match"
+        },
+        {
+          "path": "src/home_ui.cpp",
+          "recorded_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "current_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/core/input.hpp",
+          "recorded_sha256": "2d6ce7f8cebb9b86121d6677a379f765c772e305217deed9cd56c2d289bdc6ce",
+          "current_sha256": "2d6ce7f8cebb9b86121d6677a379f765c772e305217deed9cd56c2d289bdc6ce",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/core/input.cpp",
+          "recorded_sha256": "59ac34483f2c363a15f1a409ee4b0f4ba38fd391a747d5b47bd62b05b8da3140",
+          "current_sha256": "59ac34483f2c363a15f1a409ee4b0f4ba38fd391a747d5b47bd62b05b8da3140",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_playback_volume_app.cpp",
+          "recorded_sha256": "125ab86add7e2574ccafa1d93c1590216377b6e7a604ddcf5d74cb160b65e20b",
+          "current_sha256": "125ab86add7e2574ccafa1d93c1590216377b6e7a604ddcf5d74cb160b65e20b",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_playback_volume_app_tests.py",
+          "recorded_sha256": "2b03b09e686e94b8d1e6df5fa73fa208509e7794545de36caecd55463772b9fa",
+          "current_sha256": "2b03b09e686e94b8d1e6df5fa73fa208509e7794545de36caecd55463772b9fa",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-host/home-startup-vlc/result.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "src/home_startup.h",
+          "recorded_sha256": "e14d452bf2f9ae0f6ef48b33e977eaf14d31caa0068c4b2c68cb17b888acae1b",
+          "current_sha256": "e14d452bf2f9ae0f6ef48b33e977eaf14d31caa0068c4b2c68cb17b888acae1b",
+          "status": "match"
+        },
+        {
+          "path": "src/app.h",
+          "recorded_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "current_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "status": "match"
+        },
+        {
+          "path": "src/app.cpp",
+          "recorded_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "current_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "status": "match"
+        },
+        {
+          "path": "src/app_board.cpp",
+          "recorded_sha256": "685ff7e72301ac7e4fb2a54756ec4f5699abd2b876ed0f3f6e7c500267a12ee7",
+          "current_sha256": "685ff7e72301ac7e4fb2a54756ec4f5699abd2b876ed0f3f6e7c500267a12ee7",
+          "status": "match"
+        },
+        {
+          "path": "src/home_ui.cpp",
+          "recorded_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "current_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "status": "match"
+        },
+        {
+          "path": "src/main.cpp",
+          "recorded_sha256": "e5b4d4672853149df47ca70686c65ebb2aa0b04e2cfeca76f14e4b7a582e14cf",
+          "current_sha256": "e5b4d4672853149df47ca70686c65ebb2aa0b04e2cfeca76f14e4b7a582e14cf",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_home_startup.cpp",
+          "recorded_sha256": "cc9f97a050a9b1f34a92b28ef550893850256bf1a908f36a7af11851814d61ea",
+          "current_sha256": "cc9f97a050a9b1f34a92b28ef550893850256bf1a908f36a7af11851814d61ea",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_home_startup_tests.py",
+          "recorded_sha256": "28d0ec49ffec4aa8b3daa98e4cbb5e59afcdaddb0499712c5822e7d4bd47f134",
+          "current_sha256": "28d0ec49ffec4aa8b3daa98e4cbb5e59afcdaddb0499712c5822e7d4bd47f134",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/ui/components/carousel.cpp",
+          "recorded_sha256": "1b3618658e49cd8182a619b9e962e2c8168b99cd9be932b7d9d8246ddaec5b05",
+          "current_sha256": "1b3618658e49cd8182a619b9e962e2c8168b99cd9be932b7d9d8246ddaec5b05",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/ui/components/carousel.hpp",
+          "recorded_sha256": "85a01b36d5542e634858b2e72995b5de5a6537c0318019df63194df5af30dfe3",
+          "current_sha256": "85a01b36d5542e634858b2e72995b5de5a6537c0318019df63194df5af30dfe3",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-host/playback-volume-app-vlc/result.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "src/playback_volume.h",
+          "recorded_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "current_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "status": "match"
+        },
+        {
+          "path": "src/player_vlc_audio.h",
+          "recorded_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "current_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "status": "match"
+        },
+        {
+          "path": "src/player.h",
+          "recorded_sha256": "af453a36044027d8934ec1275a406b87a2064fd9990233aa301c902b3cc30a49",
+          "current_sha256": "af453a36044027d8934ec1275a406b87a2064fd9990233aa301c902b3cc30a49",
+          "status": "match"
+        },
+        {
+          "path": "src/player_vlc.cpp",
+          "recorded_sha256": "83c82c0fd599fd4fcb5e237bbd6b6a4c1e664c64ebfdd762fc9083bdc395372d",
+          "current_sha256": "83c82c0fd599fd4fcb5e237bbd6b6a4c1e664c64ebfdd762fc9083bdc395372d",
+          "status": "match"
+        },
+        {
+          "path": "src/app.h",
+          "recorded_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "current_sha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+          "status": "match"
+        },
+        {
+          "path": "src/app.cpp",
+          "recorded_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "current_sha256": "e042f5b29d19187d07cdddea0a1f16b18c765588acc4e1b71940d67050b1492e",
+          "status": "match"
+        },
+        {
+          "path": "src/app_watch.cpp",
+          "recorded_sha256": "a3544e5185b253788254ba4ce7dc5f26ac258c763070299b170dc395c8cb16b2",
+          "current_sha256": "a3544e5185b253788254ba4ce7dc5f26ac258c763070299b170dc395c8cb16b2",
+          "status": "match"
+        },
+        {
+          "path": "src/home_ui.cpp",
+          "recorded_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "current_sha256": "ec57466bf64f2a97484d23bfde1b74d232489544a6cbad588950e2ef9d2d8e6e",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/core/input.hpp",
+          "recorded_sha256": "2d6ce7f8cebb9b86121d6677a379f765c772e305217deed9cd56c2d289bdc6ce",
+          "current_sha256": "2d6ce7f8cebb9b86121d6677a379f765c772e305217deed9cd56c2d289bdc6ce",
+          "status": "match"
+        },
+        {
+          "path": "vendor/ps5-homebrew-ui/src/core/input.cpp",
+          "recorded_sha256": "59ac34483f2c363a15f1a409ee4b0f4ba38fd391a747d5b47bd62b05b8da3140",
+          "current_sha256": "59ac34483f2c363a15f1a409ee4b0f4ba38fd391a747d5b47bd62b05b8da3140",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_playback_volume_app.cpp",
+          "recorded_sha256": "125ab86add7e2574ccafa1d93c1590216377b6e7a604ddcf5d74cb160b65e20b",
+          "current_sha256": "125ab86add7e2574ccafa1d93c1590216377b6e7a604ddcf5d74cb160b65e20b",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_playback_volume_app_tests.py",
+          "recorded_sha256": "2b03b09e686e94b8d1e6df5fa73fa208509e7794545de36caecd55463772b9fa",
+          "current_sha256": "2b03b09e686e94b8d1e6df5fa73fa208509e7794545de36caecd55463772b9fa",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-host/playback-volume.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "src/playback_volume.h",
+          "recorded_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "current_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "status": "match"
+        },
+        {
+          "path": "src/player_vlc_audio.h",
+          "recorded_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "current_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_playback_volume.cpp",
+          "recorded_sha256": "0e80c6c1b3e004a63e7076ee3e5c501e6b3628a2c3738e5ca9e4a23fa0957b42",
+          "current_sha256": "0e80c6c1b3e004a63e7076ee3e5c501e6b3628a2c3738e5ca9e4a23fa0957b42",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_playback_volume_tests.py",
+          "recorded_sha256": "9c188cf7a2d6a637175ce9cc0a0ec60e0568fe6ebd12711298a8a62b0192455a",
+          "current_sha256": "9c188cf7a2d6a637175ce9cc0a0ec60e0568fe6ebd12711298a8a62b0192455a",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-host/vlc-output.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "src/player_vlc_audio.h",
+          "recorded_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "current_sha256": "15bf48f3fcc018f4ae961bebf473957d660463ba4f34f7c597e66d98edcd8da7",
+          "status": "match"
+        },
+        {
+          "path": "src/playback_volume.h",
+          "recorded_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "current_sha256": "add716c2e7032c84aff41e3490ad72324f3b3803dff0eb124948ecc5054686c2",
+          "status": "match"
+        },
+        {
+          "path": "src/player_vlc_copy.cpp",
+          "recorded_sha256": "844a82078b739762375ac2319567cc8e75f4cc2df4a54ad3df873312e349c96a",
+          "current_sha256": "844a82078b739762375ac2319567cc8e75f4cc2df4a54ad3df873312e349c96a",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_vlc_output.cpp",
+          "recorded_sha256": "68cae4263d89275b9f9f970026e714c58036b7f57b9201b48180ff59ef107d12",
+          "current_sha256": "68cae4263d89275b9f9f970026e714c58036b7f57b9201b48180ff59ef107d12",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_vlc_output_tests.py",
+          "recorded_sha256": "7d27a79c9bf7dde7222c3403b8d574ef52ff26b496ad9e804576da855d3b1f73",
+          "current_sha256": "7d27a79c9bf7dde7222c3403b8d574ef52ff26b496ad9e804576da855d3b1f73",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-safety/native-heap/result.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "native/heap.c",
+          "recorded_sha256": "c3c4e4f9023d48b11cf60885917af1a489383c3661cb3451f803fa6dce1e9b70",
+          "current_sha256": "c3c4e4f9023d48b11cf60885917af1a489383c3661cb3451f803fa6dce1e9b70",
+          "status": "match"
+        },
+        {
+          "path": "native/vlc_memory.c",
+          "recorded_sha256": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+          "current_sha256": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+          "status": "match"
+        },
+        {
+          "path": "native/dlmalloc.c",
+          "recorded_sha256": "be7be56b40b4b31417e74e77687f9b96127ea6cae534cf236aee40a4c739508d",
+          "current_sha256": "be7be56b40b4b31417e74e77687f9b96127ea6cae534cf236aee40a4c739508d",
+          "status": "match"
+        },
+        {
+          "path": "src/diagnostics_native.h",
+          "recorded_sha256": "c7d57720a0781a42c119630b04036278e04c6ace99d177c750d1e535aa24600a",
+          "current_sha256": "c7d57720a0781a42c119630b04036278e04c6ace99d177c750d1e535aa24600a",
+          "status": "match"
+        },
+        {
+          "path": "src/native_memory.h",
+          "recorded_sha256": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+          "current_sha256": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_native_heap.c",
+          "recorded_sha256": "086dad8d6f3f63bfd24491a1c7cc2b71addad0739c818634796d816ecfa0c509",
+          "current_sha256": "086dad8d6f3f63bfd24491a1c7cc2b71addad0739c818634796d816ecfa0c509",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_native_heap_tests.py",
+          "recorded_sha256": "20566ba8a7c1314ea220619985db3e780614da85bc7503e4742fe5cdf3fa3a96",
+          "current_sha256": "20566ba8a7c1314ea220619985db3e780614da85bc7503e4742fe5cdf3fa3a96",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-safety/native-video-memory/result.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "native/vlc_memory.c",
+          "recorded_sha256": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+          "current_sha256": "f566acbb8884b83b5ffe9ac000b3dadebcd0e420d48f0c3bab8583e090a23cf1",
+          "status": "match"
+        },
+        {
+          "path": "src/native_memory.h",
+          "recorded_sha256": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+          "current_sha256": "9547bc2b2e0d65f3d1da4baabce46b4d3b72285d2656a2dbf56cd85d12017a0f",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_native_video_memory.c",
+          "recorded_sha256": "dfcc3202df20387d1c885c89243e299135b7602762f2bee79753152fd5e5d4a9",
+          "current_sha256": "dfcc3202df20387d1c885c89243e299135b7602762f2bee79753152fd5e5d4a9",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_native_video_memory_tests.py",
+          "recorded_sha256": "17f367589ecc8285db1e16bd92aebf8a23d79dbd037490c76e0a28a7006beb68",
+          "current_sha256": "17f367589ecc8285db1e16bd92aebf8a23d79dbd037490c76e0a28a7006beb68",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-safety/ps5-audio/result.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "src/player_vlc_passthrough.cpp",
+          "recorded_sha256": "6e4d76d4183aa9d386f890ab53a11713549f183f9a2c2473443c6c376fc924a7",
+          "current_sha256": "6e4d76d4183aa9d386f890ab53a11713549f183f9a2c2473443c6c376fc924a7",
+          "status": "match"
+        },
+        {
+          "path": "src/player_iec61937.cpp",
+          "recorded_sha256": "1596601b438e3a4d06991ca2db563429e89ae4e98eb30f14083151cc4d2c691d",
+          "current_sha256": "1596601b438e3a4d06991ca2db563429e89ae4e98eb30f14083151cc4d2c691d",
+          "status": "match"
+        },
+        {
+          "path": "src/player_iec61937.h",
+          "recorded_sha256": "043a5e9877680d4ce8de31f0ad2da9ba0b68c3d01a7d36ae1e6246cbd82b8753",
+          "current_sha256": "043a5e9877680d4ce8de31f0ad2da9ba0b68c3d01a7d36ae1e6246cbd82b8753",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_ps5_audio.cpp",
+          "recorded_sha256": "3d8f2f160dd7f3ffb5650d52c93d48d2cade7f08fe249c6b3a6b243ceea40f80",
+          "current_sha256": "3d8f2f160dd7f3ffb5650d52c93d48d2cade7f08fe249c6b3a6b243ceea40f80",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_ps5_audio_tests.py",
+          "recorded_sha256": "8ebbfa7b28f9e4b011826da3ce273dd9e190a5a58c6ebfc0e5932ec57cc6c2ed",
+          "current_sha256": "8ebbfa7b28f9e4b011826da3ce273dd9e190a5a58c6ebfc0e5932ec57cc6c2ed",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "baseline-safety/ps5vdec-startup.json",
+      "phase": "pre-upstream-backport",
+      "files": [
+        {
+          "path": "vendor/vlc-ps5/modules/ps5vdec.c",
+          "recorded_sha256": "12dafd115056d02be87bf984e99403b55f73813e4ab6dcdee72542b7868c6bee",
+          "current_sha256": "12dafd115056d02be87bf984e99403b55f73813e4ab6dcdee72542b7868c6bee",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_ps5vdec_startup.c",
+          "recorded_sha256": "112125c94811b4a2a1f5431d02cf06d211c93dbba7cd3028d7b06f902deb6709",
+          "current_sha256": "112125c94811b4a2a1f5431d02cf06d211c93dbba7cd3028d7b06f902deb6709",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_ps5vdec_startup_tests.py",
+          "recorded_sha256": "06ef705dd7810aa2ec6b85941b36f5269e96f6e0ae9d9521cd3bc210172fd21b",
+          "current_sha256": "06ef705dd7810aa2ec6b85941b36f5269e96f6e0ae9d9521cd3bc210172fd21b",
+          "status": "match"
+        }
+      ]
+    },
+    {
+      "report": "backport-vp9/vp9-output/result.json",
+      "phase": "vp9-fifo-backport",
+      "files": [
+        {
+          "path": "src/hwdec_ps5.cpp",
+          "recorded_sha256": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+          "current_sha256": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+          "status": "match"
+        },
+        {
+          "path": "src/hwdec_ps5.h",
+          "recorded_sha256": "c63920efca2862d91ad31edfe3399034f259dcf7453f78f537d27ebf099436c6",
+          "current_sha256": "c63920efca2862d91ad31edfe3399034f259dcf7453f78f537d27ebf099436c6",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_vp9_output.cpp",
+          "recorded_sha256": "febeccc2102be1582e29caf8c7494d94c70c14c77cccb60f7d80bc10cb5b8545",
+          "current_sha256": "e05c4dab67b81ab082f1202cb187dffa77a8b2f0fecf44d0f332bf5ad8fdbad8",
+          "status": "changed"
+        },
+        {
+          "path": "tests/run_vp9_output_tests.py",
+          "recorded_sha256": "42d06d99e19f4db9803bf4a2860848fa1e8d2d790ea13fe4da3c0bb0f5d3cd34",
+          "current_sha256": "7c52ee7bf694a8d43847c2fc63c40f153c9fe04b888ad644a8bccd3d2ec36dfe",
+          "status": "changed"
+        }
+      ]
+    },
+    {
+      "report": "backport-vp9/vp9-output-pinned/result.json",
+      "phase": "vp9-fifo-backport",
+      "files": [
+        {
+          "path": "src/hwdec_ps5.cpp",
+          "recorded_sha256": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+          "current_sha256": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+          "status": "match"
+        },
+        {
+          "path": "src/hwdec_ps5.h",
+          "recorded_sha256": "c63920efca2862d91ad31edfe3399034f259dcf7453f78f537d27ebf099436c6",
+          "current_sha256": "c63920efca2862d91ad31edfe3399034f259dcf7453f78f537d27ebf099436c6",
+          "status": "match"
+        },
+        {
+          "path": "tests/test_vp9_output.cpp",
+          "recorded_sha256": "e05c4dab67b81ab082f1202cb187dffa77a8b2f0fecf44d0f332bf5ad8fdbad8",
+          "current_sha256": "e05c4dab67b81ab082f1202cb187dffa77a8b2f0fecf44d0f332bf5ad8fdbad8",
+          "status": "match"
+        },
+        {
+          "path": "tests/run_vp9_output_tests.py",
+          "recorded_sha256": "7c52ee7bf694a8d43847c2fc63c40f153c9fe04b888ad644a8bccd3d2ec36dfe",
+          "current_sha256": "7c52ee7bf694a8d43847c2fc63c40f153c9fe04b888ad644a8bccd3d2ec36dfe",
+          "status": "match"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "results": {
+    "result": "PASS",
+    "cases": 17,
+    "checks": 220,
+    "hardware_boundary": "mocked",
+    "real_ffmpeg_bitstream_filter": true,
+    "ps5_tested": false,
+    "ffmpeg_version": "8.1.2",
+    "libavcodec_version": 4070502,
+    "libavutil_version": 3938918
+  },
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "ffmpeg_prefix": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/prefix-host",
+  "pkg_config_static": true,
+  "library_versions": {
+    "libavcodec": "62.28.102",
+    "libavutil": "60.26.102"
+  },
+  "scope": "Complete production native HwDecoder code and real FFmpeg VP9 bitstream filter; deterministic sceVideodec2 boundary",
+  "limits": "Does not exercise PS5 decode, native memory allocation, GPU buffer ownership or firmware timing.",
+  "source_sha256": {
+    "src/hwdec_ps5.cpp": "7d63281d95202786eef7d6926dd6dd785d3f2329410debfe439eb077324704cf",
+    "src/hwdec_ps5.h": "c63920efca2862d91ad31edfe3399034f259dcf7453f78f537d27ebf099436c6",
+    "tests/test_vp9_output.cpp": "e05c4dab67b81ab082f1202cb187dffa77a8b2f0fecf44d0f332bf5ad8fdbad8",
+    "tests/run_vp9_output_tests.py": "7c52ee7bf694a8d43847c2fc63c40f153c9fe04b888ad644a8bccd3d2ec36dfe"
+  }
+}

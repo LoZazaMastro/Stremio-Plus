@@ -1,0 +1,205 @@
+{
+  "baseline": "Stremio-Plus-0.5.19-repository.zip",
+  "baselineSha256": "f0c5b4881ea7969ba4b566341c384b3ae49fa4f3cb3b1d0fbefdfc100d583b71",
+  "scope": "Source/assets/docs/tests only; generated validation archive excluded from diff. Production files match the verified native receipt.",
+  "changes": [
+    {
+      "path": "BUILDING.md",
+      "beforeSha256": "79d28e4733c0a504d3a0d042f1d9a61ddfc998312a320e6c30f86595301baef2",
+      "afterSha256": "552b99192ce48f335fb8528998388d20fe9ae40097215bf4d649b3c1fd5635eb",
+      "status": "modified"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "beforeSha256": "c7c5ce222590074ed63798e1eb985877772288b765fc78289426b522c9929101",
+      "afterSha256": "c7980222863dd83bd7ca0768fe8006aa76b6041ec43a16c7a2ffbbaa577beee5",
+      "status": "modified"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "beforeSha256": "d5fc140abbec14499fb119acc9ad0c99a5ab45cd1679a6a27c7e5504f58cb0a6",
+      "afterSha256": "7c4deb898c327dc08797135c968e50b7c62ca24dbfb6a32853226b2399b47055",
+      "status": "modified"
+    },
+    {
+      "path": "README.md",
+      "beforeSha256": "f82f04fbb63832dc70aaa029d608cb6a11ae17a37167d6a8b087df5066db3ec6",
+      "afterSha256": "c515747e194e9f8d7f6a4f6fb155e07b90eaf5638ddad1584c693bf1ebc6af22",
+      "status": "modified"
+    },
+    {
+      "path": "app/sce_sys/param.json",
+      "beforeSha256": "648a5aa89a5f292f7b037c51211f55c55efc675356d75277e346c56f968cb415",
+      "afterSha256": "827f582264b6938f60fac002821165989d595f87b6f02e887599ac297abee580",
+      "status": "modified"
+    },
+    {
+      "path": "docs/LOCAL_0_5_20_RESUME_CHOICE.md",
+      "beforeSha256": null,
+      "afterSha256": "4dfb4ebbe2de9cfb4b20f4057dfb5f550f06a6d98e959b30224dc173b4e5ecdc",
+      "status": "added"
+    },
+    {
+      "path": "docs/LOCAL_0_5_20_VALIDATION.md",
+      "beforeSha256": null,
+      "afterSha256": "05a6c5c9e56388b40328726714fff3ec3982ff20d02ec8f9b7fb6c866a779bdc",
+      "status": "added"
+    },
+    {
+      "path": "docs/PROVA_PS5_IT.md",
+      "beforeSha256": "044af99285bb6f1f9fc162ab04ed883849086467f4a00cd69a18dc4ebc9e6127",
+      "afterSha256": "49806212cb0b993167a7a15424063ddb9167d6fc6a82fb534c73a34062920675",
+      "status": "modified"
+    },
+    {
+      "path": "src/app.h",
+      "beforeSha256": "b11af94c0df53ab970f312e84096a6948a04a373db0efdf8a5dcb81e3f996f95",
+      "afterSha256": "19844d387393141e2257fddc83993e58af8de757c19ccdc22f4ee58b82ef17bb",
+      "status": "modified"
+    },
+    {
+      "path": "src/app_browse.cpp",
+      "beforeSha256": "de581a1e51d5578351a43fbd9c224319d8bc089fc1c4f0b31bb340ad9b841a9a",
+      "afterSha256": "a22f6ef9c01b422e5f431dc3c1a6ad1d39d1be0b95d49361af91b421a9100889",
+      "status": "modified"
+    },
+    {
+      "path": "src/app_detail.cpp",
+      "beforeSha256": "41db4186d1531fff179ca75bfc37e39fc25abc9c5684834331965109a04dccdd",
+      "afterSha256": "1764c52db804bb8eb4eb15dc1a8ac9b76d90a89c7facf9fb0a782d7dd8279287",
+      "status": "modified"
+    },
+    {
+      "path": "src/app_downloads.cpp",
+      "beforeSha256": "265486634c96f2909cf944bea5acdfc9ee8eee41b4fdd749f5eca55b14b31683",
+      "afterSha256": "21dd3895ab3290f2383af71b072934e7e31af1c225460016c8f3313185c3bfa2",
+      "status": "modified"
+    },
+    {
+      "path": "src/app_watch.cpp",
+      "beforeSha256": "a3544e5185b253788254ba4ce7dc5f26ac258c763070299b170dc395c8cb16b2",
+      "afterSha256": "3494e0b2c2bad14d03dffed15515c6bc17026dd0c76e17412d9f988b0eb91791",
+      "status": "modified"
+    },
+    {
+      "path": "src/diagnostics.cpp",
+      "beforeSha256": "e3c44128599bcca2ae5159005d9f00d883dac6f5069a45b5fb93e7785c628d3d",
+      "afterSha256": "aecaa25a9ce5cd6182a020fbbd22d7a731cf5bbbf536514cc41d69213544ec0e",
+      "status": "modified"
+    },
+    {
+      "path": "src/main.cpp",
+      "beforeSha256": "e5b4d4672853149df47ca70686c65ebb2aa0b04e2cfeca76f14e4b7a582e14cf",
+      "afterSha256": "6009c3002f9bd6114024e4ae37f609ce9009edb19755912d8b2016488dbf15d6",
+      "status": "modified"
+    },
+    {
+      "path": "src/player.cpp",
+      "beforeSha256": "bb24639ebafba1ab66061dbcfea9cfd754051da9d0e7df365d2bebd64ef210dd",
+      "afterSha256": "5210647b8a671a7a6140cf8bc65cb52b3d0f73845a314aaedcc9d5ce7acc928c",
+      "status": "modified"
+    },
+    {
+      "path": "src/player.h",
+      "beforeSha256": "af453a36044027d8934ec1275a406b87a2064fd9990233aa301c902b3cc30a49",
+      "afterSha256": "599680445327f1dc337f31764b7d422a05c09bdefbff7e8cd352be49a3f7a729",
+      "status": "modified"
+    },
+    {
+      "path": "src/player_vlc.cpp",
+      "beforeSha256": "83c82c0fd599fd4fcb5e237bbd6b6a4c1e664c64ebfdd762fc9083bdc395372d",
+      "afterSha256": "016d5be248e1b67e5f6b351c5f15c197ebbffa160cb632d009fff12f37a313ba",
+      "status": "modified"
+    },
+    {
+      "path": "src/video_gl.cpp",
+      "beforeSha256": "ecdefaab33da0acba1beecd4d953fe5b5b669c98a3cdb7a5f3d0f8917abe4704",
+      "afterSha256": "231fc93ea7423a175ab07fcf84d32da8f98ce347278d42a2af9c5e2163dc8f8f",
+      "status": "modified"
+    },
+    {
+      "path": "src/video_gl.h",
+      "beforeSha256": "3a5adc703db74a136ee0e3e5638f31f7f4b88bc7759e3256639cdd564b87b34c",
+      "afterSha256": "022c3441f8fce271c9c7b15875f56f71052304e07e47d537cb06913b59ca5785",
+      "status": "modified"
+    },
+    {
+      "path": "tests/diagnostics_test.cpp",
+      "beforeSha256": "6d165669555a6d0720cc55d2105efe3ac8db982b8c00a85402119a8d22fb0376",
+      "afterSha256": "ef95536cfceb8ba64dd8bb6a48182fa086f810176417c60e9c8898cddd421586",
+      "status": "modified"
+    },
+    {
+      "path": "tests/run_next_episode_tests.py",
+      "beforeSha256": "86b7cb9bdcbf45b37b4854b85752d9384fc08ee4ba4a94ec77bc6aae0ba39262",
+      "afterSha256": "1a0655e8dfbcb86c1faf1492e36d54fcf059b16257340845caa21a6996aa727a",
+      "status": "modified"
+    },
+    {
+      "path": "tests/run_playback_choice_tests.py",
+      "beforeSha256": null,
+      "afterSha256": "117e113fca2620c6b47918015c68d30743c42f9a61dd56daf2a4b2776969785b",
+      "status": "added"
+    },
+    {
+      "path": "tests/run_video_gl_allocation_tests.py",
+      "beforeSha256": "f86c6baa6326e8b8b634b20fa94f860ad68825ef7c8e39fa60d124f1e50230c9",
+      "afterSha256": "c4bac7aed1ea72eefd1d6384a7711d28b6de91a2c3bd1e92ffe72b1ee4f3d1e0",
+      "status": "modified"
+    },
+    {
+      "path": "tests/run_video_gl_tests.py",
+      "beforeSha256": "ce2c1767b77c82f66d81bc255151fbedc8acca0b7dc42cfdd78965f0dbc3ecd0",
+      "afterSha256": "458eb2ec2c2a52b0df9fa55ae593726c02f9e453cf60a2b47adaa718a921c2e7",
+      "status": "modified"
+    },
+    {
+      "path": "tests/test_download_app.cpp",
+      "beforeSha256": "896cfa59f8b266af013fb404972258606d15d0203451c8a2aa616d53f5a9e15e",
+      "afterSha256": "bf60f762864a63ba4190bb092545b5e508c020bae113bf242cd0d4cae913f179",
+      "status": "modified"
+    },
+    {
+      "path": "tests/test_next_episode.cpp",
+      "beforeSha256": "b2174a5fdeeea985ecf5db8c5e32937d157bf85b316d7850cb69e5f7de0d7d49",
+      "afterSha256": "4f41d7f713b2c574f16db346b914823440ed32c5cc7b643d7b556037c9951374",
+      "status": "modified"
+    },
+    {
+      "path": "tests/test_playback_choice.cpp",
+      "beforeSha256": null,
+      "afterSha256": "9ae4f43f1db97bb9253f72b2788b05a9255159dec543631dd8893b8178a51891",
+      "status": "added"
+    },
+    {
+      "path": "tests/test_player_cadence.cpp",
+      "beforeSha256": "38f0f2cd8a87f26fe12cd878206b987cf033c61ef66c2b9d97193e4e5f4d72d3",
+      "afterSha256": "8e1fc47201eb20dd8cb91f53208b8d2b7a1a1f97b5bdba5de3c8696fce30b62a",
+      "status": "modified"
+    },
+    {
+      "path": "tests/test_ps5vdec_startup.c",
+      "beforeSha256": "112125c94811b4a2a1f5431d02cf06d211c93dbba7cd3028d7b06f902deb6709",
+      "afterSha256": "230cfa0ce012329149cc093202f61ba3b4d9f2f233b4e6292c48e4a73cee703b",
+      "status": "modified"
+    },
+    {
+      "path": "tests/test_video_gl.cpp",
+      "beforeSha256": "a89254d3dcf4282771a64a2de32cb168dd1accb550d71e992d1ace5029605f08",
+      "afterSha256": "493660a59521031d17936e6bdd5cac2602b4a193ab19bd96b4b5f7ca06ba8c8a",
+      "status": "modified"
+    },
+    {
+      "path": "tests/test_video_gl_allocation.cpp",
+      "beforeSha256": "c6f7c40e9d3eff02c5daa1edb4e32cb083a2106264844e3e6768b01e419aa8f2",
+      "afterSha256": "d3570af34097b7aa34e13662f8db39048b25e60910ed067ec741ae379b433890",
+      "status": "modified"
+    },
+    {
+      "path": "vendor/vlc-ps5/modules/ps5vdec.c",
+      "beforeSha256": "12dafd115056d02be87bf984e99403b55f73813e4ab6dcdee72542b7868c6bee",
+      "afterSha256": "df3cff5cbd4a20bc4d47d05acd6cd1abc0f26fc62cae728c63ebfae3c9119d7b",
+      "status": "modified"
+    }
+  ]
+}

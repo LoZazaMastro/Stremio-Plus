@@ -1,0 +1,134 @@
+[
+  {
+    "path": "/workspace/scratch/7fa7f080734e/validation-current/ps5-native-app-boilerplate-f98de734b68b.bundle",
+    "bytes": 17491039,
+    "sha256": "bd6571e031cb494d7381626e311071b9832f753a8d22b36ea31c2486c81d13c3",
+    "expected_commit": "f98de734b68b0b980d38ff03a330066afd6ae16d",
+    "required_shallow_file": "/workspace/scratch/7fa7f080734e/validation-current/ps5-native-app-boilerplate-f98de734b68b.bundle.shallow",
+    "shallow_bytes": 41,
+    "shallow_sha256": "e0174caf95d0a1cfbdf5550b2d051209a44f2396462eebf10431430ea22de276",
+    "checks": [
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-6me3664p",
+          "bundle",
+          "verify",
+          "/workspace/scratch/7fa7f080734e/validation-current/ps5-native-app-boilerplate-f98de734b68b.bundle"
+        ],
+        "exit": 0,
+        "output": "The bundle contains this ref:\nf98de734b68b0b980d38ff03a330066afd6ae16d HEAD\nThe bundle records a complete history.\nThe bundle uses this hash algorithm: sha1\n/workspace/scratch/7fa7f080734e/validation-current/ps5-native-app-boilerplate-f98de734b68b.bundle is okay\n"
+      },
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-6me3664p",
+          "fetch",
+          "--no-tags",
+          "/workspace/scratch/7fa7f080734e/validation-current/ps5-native-app-boilerplate-f98de734b68b.bundle",
+          "HEAD"
+        ],
+        "exit": 0,
+        "output": "From /workspace/scratch/7fa7f080734e/validation-current/ps5-native-app-boilerplate-f98de734b68b.bundle\n * branch            HEAD       -> FETCH_HEAD\n"
+      },
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-6me3664p",
+          "checkout",
+          "-q",
+          "--detach",
+          "FETCH_HEAD"
+        ],
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-6me3664p",
+          "fsck",
+          "--no-reflogs",
+          "--connectivity-only"
+        ],
+        "exit": 0,
+        "output": ""
+      }
+    ],
+    "result": "PASS",
+    "actual_commit": "f98de734b68b0b980d38ff03a330066afd6ae16d",
+    "actual_tree": "723111f8b760d912f975edce4a821085c1167c2a",
+    "local_branches": [],
+    "tracked_sources_clean": true
+  },
+  {
+    "path": "/workspace/scratch/7fa7f080734e/validation-current/MkPFS-6cb8313dfe0c.bundle",
+    "bytes": 5134753,
+    "sha256": "3b35a0921b757dbae36b1b7a7b8659eae0a4869ef71376673e9e38e315e325a4",
+    "expected_commit": "6cb8313dfe0c988ac52617794553f343243d3a56",
+    "required_shallow_file": "/workspace/scratch/7fa7f080734e/validation-current/MkPFS-6cb8313dfe0c.bundle.shallow",
+    "shallow_bytes": 41,
+    "shallow_sha256": "689d61ed0d9b69562c25f21f549b9fe8b14caa930249c09f43e936703a7fe324",
+    "checks": [
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-h6sgqtxl",
+          "bundle",
+          "verify",
+          "/workspace/scratch/7fa7f080734e/validation-current/MkPFS-6cb8313dfe0c.bundle"
+        ],
+        "exit": 0,
+        "output": "The bundle contains this ref:\n6cb8313dfe0c988ac52617794553f343243d3a56 HEAD\nThe bundle records a complete history.\nThe bundle uses this hash algorithm: sha1\n/workspace/scratch/7fa7f080734e/validation-current/MkPFS-6cb8313dfe0c.bundle is okay\n"
+      },
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-h6sgqtxl",
+          "fetch",
+          "--no-tags",
+          "/workspace/scratch/7fa7f080734e/validation-current/MkPFS-6cb8313dfe0c.bundle",
+          "HEAD"
+        ],
+        "exit": 0,
+        "output": "From /workspace/scratch/7fa7f080734e/validation-current/MkPFS-6cb8313dfe0c.bundle\n * branch            HEAD       -> FETCH_HEAD\n"
+      },
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-h6sgqtxl",
+          "checkout",
+          "-q",
+          "--detach",
+          "FETCH_HEAD"
+        ],
+        "exit": 0,
+        "output": ""
+      },
+      {
+        "command": [
+          "git",
+          "-C",
+          "/tmp/stremio-offline-git-h6sgqtxl",
+          "fsck",
+          "--no-reflogs",
+          "--connectivity-only"
+        ],
+        "exit": 0,
+        "output": ""
+      }
+    ],
+    "result": "PASS",
+    "actual_commit": "6cb8313dfe0c988ac52617794553f343243d3a56",
+    "actual_tree": "034378333170989698f7428c322e58b582c68604",
+    "local_branches": [],
+    "tracked_sources_clean": true
+  }
+]

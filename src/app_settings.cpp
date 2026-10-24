@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include "app.h"
+#include "account_link_session.h"
 
 // ---------------------------------------------------------------------------
 // Sign in with a code
@@ -10,6 +11,14 @@ namespace {
 // The Link API has no TTL field. This is the application's own pairing
 // window; an expired screen cannot accept a late approval from its old poll.
 constexpr int kLinkWindowSeconds = 5 * 60;
+
+void discard_link_session(const account_link::Result& result) {
+    // A cancelled/expired login must not leave a newly created device session
+    // behind. Never revoke the credential originally returned by link/read.
+    if (result.stage != account_link::Stage::Ready || !result.separately_issued) return;
+    const auto key = result.key;
+    g_tasks.run([key]() { api_logout(key); });
+}
 }
 
 void App::request_login_code() {
@@ -86,17 +95,37 @@ void App::login_poll() {
 	login_polling_ = true;
 	int gen = login_gen_;
 	std::string code = login_code_raw_;
-	g_tasks.run<ApiResult>([code]() { return link_read(code); },
-	                       [this, gen](ApiResult& r) {
-		                       if (gen != login_gen_ || !login_visible || login_state != LoginState::ready) return;
-		                       if (now_seconds() >= login_expires_) {
-			                       login_poll();
-			                       return;
-		                       }
-		                       login_polling_ = false;
-		                       login_next_poll_ = now_seconds() + 3;
-		                       if (r.ok) login_done(jstr(r.result, "authKey"));
-	                       });
+	g_tasks.run<account_link::Result>(
+	    [code]() {
+		    const auto approval = link_read(code);
+		    return account_link::complete(approval.ok, jstr(approval.result, "authKey"),
+		        [](const std::string& token) {
+			        // This runs on the worker, not the UI thread. This is the
+			        // official account login step after device-code approval.
+			        const auto session = api_call("loginWithToken",
+			            json{{"type", "LoginWithToken"}, {"token", token}});
+			        return account_link::SessionReply{session.ok, jstr(session.result, "authKey")};
+		        });
+	    },
+	    [this, gen](account_link::Result& result) {
+		    if (gen != login_gen_ || !login_visible || login_state != LoginState::ready) {
+			    discard_link_session(result);
+			    return;
+		    }
+		    if (now_seconds() >= login_expires_) {
+			    discard_link_session(result);
+			    login_poll();
+			    return;
+		    }
+		    login_polling_ = false;
+		    login_next_poll_ = now_seconds() + 3;
+		    if (result.stage == account_link::Stage::Ready) login_done(result.key);
+		    else if (result.stage == account_link::Stage::Failed) {
+			    // A failed exchange is not another pending approval. Clear the
+			    // consumed code and offer retry, without exposing server tokens.
+			    login_done("");
+		    }
+	    });
 }
 
 void App::login_close() {
@@ -140,6 +169,9 @@ void App::login_done(const std::string& auth_key) {
 	settings_.auth_key = auth_key;
 	downloads_.set_enabled(!offline_);
 	save_settings();
+	// Persist the device session before exposing the signed-in screen, instead
+	// of relying on the ordinary settings debounce after the browser closes.
+	flush_settings(true);
 	show_toast(ui_language == "it" ? "Accesso effettuato" : "Signed in");
 	const int account_gen = account_generation_;
 	bg<ApiResult>([auth_key]() { return api_get_user(auth_key); },
@@ -154,6 +186,7 @@ void App::login_done(const std::string& auth_key) {
 	              });
 	library_.clear();
 	library_loaded_ = false;
+	library_initial_settled_ = false;
 	load_addons();
 	load_library();
 	settings_refresh();
@@ -196,6 +229,7 @@ void App::sign_out() {
 	user.clear();
 	library_.clear();
 	library_loaded_ = false;
+	library_initial_settled_ = false;
 	save_settings();
 	// Session removal must not wait for the ordinary settings debounce. The
 	// epoch also prevents an older settings writer from restoring the token.

@@ -1,0 +1,18 @@
+{
+  "pass": true,
+  "checks": 722,
+  "filesCompared": 227,
+  "sourceTreeSha256": "70fc195d4b6582e49edca77bb29c1224b72c8d11df3affd00d84cf1e703929d0",
+  "outputs": {
+    "PPSA74126.zip": {
+      "bytes": 38278146,
+      "sha256": "95f24d39bb4466cffa3873e43131d56e4c834fc91b833460df3362763935ee3a",
+      "path": "/workspace/scratch/7fa7f080734e/deliverables-0.5.20/PPSA74126.zip"
+    },
+    "PPSA74126.ffpfsc": {
+      "bytes": 42991616,
+      "sha256": "4e3337fcb708d622eb90322b235e09e1fb9364356673eb3be9143044e24e0a61",
+      "path": "/workspace/scratch/7fa7f080734e/deliverables-0.5.20/PPSA74126.ffpfsc"
+    }
+  }
+}

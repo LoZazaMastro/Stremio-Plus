@@ -1,0 +1,374 @@
+{
+  "scope": "Current session only; rotated historical sessions excluded. Measurements are from the user PS5 log of 0.5.19, not from the new candidate.",
+  "attachment": "Downloads(4).zip",
+  "attachment_sha256": "2a9b01967f73f406b11317f14c07c4445201a7107e20f6b7200f26814cbc0183",
+  "session": "1a169d41e94-d2",
+  "app_version": "0.5.19",
+  "build_id": "0.5.19 Oct 23 2026 13:36:01",
+  "started_utc": "2026-10-23T17:34:31.572Z",
+  "current_session_events": 252,
+  "source": {
+    "codec": "H.264",
+    "width": 1920,
+    "height": 1080,
+    "declared_fps": 25,
+    "decoder": "software",
+    "audio": "active_eac3 passthrough",
+    "output_width": 3840,
+    "output_height": 2160,
+    "firmware": "not recorded in this log"
+  },
+  "summary": {
+    "callback_intervals": 5253,
+    "pickup_intervals": 4694,
+    "sum_output_drops": 559,
+    "dropped_fraction": 0.10641538168665525,
+    "presented_fps_min": 22.26,
+    "presented_fps_max": 22.37,
+    "upload_mean_ms_weighted": 42.938323397913564
+  },
+  "player_windows": [
+    {
+      "utc": "2026-10-23T17:35:12.092Z",
+      "presented_fps": 22.26,
+      "drops": 83,
+      "position_s": 41.0,
+      "buffer_percent": 100
+    },
+    {
+      "utc": "2026-10-23T17:35:42.107Z",
+      "presented_fps": 22.36,
+      "drops": 79,
+      "position_s": 70.92,
+      "buffer_percent": 100
+    },
+    {
+      "utc": "2026-10-23T17:36:12.122Z",
+      "presented_fps": 22.36,
+      "drops": 79,
+      "position_s": 100.92,
+      "buffer_percent": 100
+    },
+    {
+      "utc": "2026-10-23T17:36:42.164Z",
+      "presented_fps": 22.37,
+      "drops": 79,
+      "position_s": 131.16,
+      "buffer_percent": 100
+    },
+    {
+      "utc": "2026-10-23T17:37:12.175Z",
+      "presented_fps": 22.36,
+      "drops": 80,
+      "position_s": 161.04,
+      "buffer_percent": 100
+    },
+    {
+      "utc": "2026-10-23T17:37:42.193Z",
+      "presented_fps": 22.35,
+      "drops": 79,
+      "position_s": 190.96,
+      "buffer_percent": 100
+    },
+    {
+      "utc": "2026-10-23T17:38:12.204Z",
+      "presented_fps": 22.32,
+      "drops": 80,
+      "position_s": 221.12,
+      "buffer_percent": 100
+    }
+  ],
+  "cadence_windows": [
+    {
+      "utc": "2026-10-23T17:35:12.092Z",
+      "callback": {
+        "samples": 751,
+        "mean_ms": 40.0,
+        "max_ms": 44.54
+      },
+      "pickup": {
+        "samples": 668,
+        "mean_ms": 44.94,
+        "max_ms": 58.88
+      }
+    },
+    {
+      "utc": "2026-10-23T17:35:42.107Z",
+      "callback": {
+        "samples": 750,
+        "mean_ms": 40.0,
+        "max_ms": 40.1
+      },
+      "pickup": {
+        "samples": 671,
+        "mean_ms": 44.73,
+        "max_ms": 58.3
+      }
+    },
+    {
+      "utc": "2026-10-23T17:36:12.122Z",
+      "callback": {
+        "samples": 750,
+        "mean_ms": 40.0,
+        "max_ms": 40.1
+      },
+      "pickup": {
+        "samples": 671,
+        "mean_ms": 44.73,
+        "max_ms": 65.1
+      }
+    },
+    {
+      "utc": "2026-10-23T17:36:42.164Z",
+      "callback": {
+        "samples": 751,
+        "mean_ms": 40.0,
+        "max_ms": 40.09
+      },
+      "pickup": {
+        "samples": 672,
+        "mean_ms": 44.71,
+        "max_ms": 58.44
+      }
+    },
+    {
+      "utc": "2026-10-23T17:37:12.175Z",
+      "callback": {
+        "samples": 751,
+        "mean_ms": 40.0,
+        "max_ms": 41.85
+      },
+      "pickup": {
+        "samples": 671,
+        "mean_ms": 44.72,
+        "max_ms": 58.28
+      }
+    },
+    {
+      "utc": "2026-10-23T17:37:42.193Z",
+      "callback": {
+        "samples": 750,
+        "mean_ms": 40.0,
+        "max_ms": 40.09
+      },
+      "pickup": {
+        "samples": 671,
+        "mean_ms": 44.74,
+        "max_ms": 58.6
+      }
+    },
+    {
+      "utc": "2026-10-23T17:38:12.204Z",
+      "callback": {
+        "samples": 750,
+        "mean_ms": 40.0,
+        "max_ms": 40.07
+      },
+      "pickup": {
+        "samples": 670,
+        "mean_ms": 44.79,
+        "max_ms": 58.59
+      }
+    }
+  ],
+  "presentation_windows": [
+    {
+      "utc": "2026-10-23T17:35:32.302Z",
+      "loop": {
+        "samples": 671,
+        "mean_ms": 44.73,
+        "max_ms": 58.85
+      },
+      "upload": {
+        "samples": 671,
+        "mean_ms": 42.94,
+        "max_ms": 47.52
+      },
+      "swap_wait": {
+        "samples": 671,
+        "mean_ms": 1.46,
+        "max_ms": 1.57
+      },
+      "video_swap_return": {
+        "samples": 671,
+        "mean_ms": 44.73,
+        "max_ms": 58.85
+      }
+    },
+    {
+      "utc": "2026-10-23T17:36:02.338Z",
+      "loop": {
+        "samples": 672,
+        "mean_ms": 44.7,
+        "max_ms": 58.78
+      },
+      "upload": {
+        "samples": 672,
+        "mean_ms": 42.91,
+        "max_ms": 47.18
+      },
+      "swap_wait": {
+        "samples": 672,
+        "mean_ms": 1.46,
+        "max_ms": 1.71
+      },
+      "video_swap_return": {
+        "samples": 672,
+        "mean_ms": 44.7,
+        "max_ms": 58.78
+      }
+    },
+    {
+      "utc": "2026-10-23T17:36:32.366Z",
+      "loop": {
+        "samples": 671,
+        "mean_ms": 44.75,
+        "max_ms": 65.24
+      },
+      "upload": {
+        "samples": 671,
+        "mean_ms": 42.95,
+        "max_ms": 49.34
+      },
+      "swap_wait": {
+        "samples": 671,
+        "mean_ms": 1.46,
+        "max_ms": 1.73
+      },
+      "video_swap_return": {
+        "samples": 671,
+        "mean_ms": 44.75,
+        "max_ms": 65.24
+      }
+    },
+    {
+      "utc": "2026-10-23T17:37:02.367Z",
+      "loop": {
+        "samples": 671,
+        "mean_ms": 44.71,
+        "max_ms": 58.34
+      },
+      "upload": {
+        "samples": 671,
+        "mean_ms": 42.93,
+        "max_ms": 46.71
+      },
+      "swap_wait": {
+        "samples": 671,
+        "mean_ms": 1.46,
+        "max_ms": 1.59
+      },
+      "video_swap_return": {
+        "samples": 671,
+        "mean_ms": 44.71,
+        "max_ms": 58.34
+      }
+    },
+    {
+      "utc": "2026-10-23T17:37:32.384Z",
+      "loop": {
+        "samples": 671,
+        "mean_ms": 44.74,
+        "max_ms": 58.37
+      },
+      "upload": {
+        "samples": 671,
+        "mean_ms": 42.95,
+        "max_ms": 47.39
+      },
+      "swap_wait": {
+        "samples": 671,
+        "mean_ms": 1.46,
+        "max_ms": 1.65
+      },
+      "video_swap_return": {
+        "samples": 671,
+        "mean_ms": 44.73,
+        "max_ms": 58.37
+      }
+    },
+    {
+      "utc": "2026-10-23T17:38:02.400Z",
+      "loop": {
+        "samples": 670,
+        "mean_ms": 44.8,
+        "max_ms": 58.51
+      },
+      "upload": {
+        "samples": 670,
+        "mean_ms": 42.95,
+        "max_ms": 48.81
+      },
+      "swap_wait": {
+        "samples": 670,
+        "mean_ms": 1.48,
+        "max_ms": 2.14
+      },
+      "video_swap_return": {
+        "samples": 670,
+        "mean_ms": 44.8,
+        "max_ms": 58.51
+      }
+    }
+  ],
+  "hardware_events": [
+    {
+      "utc": "2026-10-23T17:34:37.875Z",
+      "message": "vlc/libvlc: ps5vdec: rejected stage=memory-query rc=0x811d0200 level=52 pipeline=4"
+    },
+    {
+      "utc": "2026-10-23T17:34:37.875Z",
+      "message": "vlc/libvlc: ps5vdec: retry pipeline=4 -> 1 rc=0x811d0200"
+    },
+    {
+      "utc": "2026-10-23T17:34:37.895Z",
+      "message": "vlc/libvlc: ps5vdec: rejected stage=memory-query rc=0x811d0200 level=52 pipeline=1"
+    },
+    {
+      "utc": "2026-10-23T17:34:37.895Z",
+      "message": "vlc/libvlc: ps5vdec: rejected stage=[opaque:redacted] rc=0x811d0200"
+    }
+  ],
+  "decoder_windows": [
+    {
+      "utc": "2026-10-23T17:34:42.084Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=2 vout_lost_pictures=0 vmem_drops=0"
+    },
+    {
+      "utc": "2026-10-23T17:35:12.092Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=1547 vout_lost_pictures=0 vmem_drops=83"
+    },
+    {
+      "utc": "2026-10-23T17:35:42.107Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=3043 vout_lost_pictures=0 vmem_drops=162"
+    },
+    {
+      "utc": "2026-10-23T17:36:12.122Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=4559 vout_lost_pictures=0 vmem_drops=241"
+    },
+    {
+      "utc": "2026-10-23T17:36:42.164Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=6043 vout_lost_pictures=0 vmem_drops=320"
+    },
+    {
+      "utc": "2026-10-23T17:37:12.175Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=7551 vout_lost_pictures=0 vmem_drops=400"
+    },
+    {
+      "utc": "2026-10-23T17:37:42.193Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=9047 vout_lost_pictures=0 vmem_drops=479"
+    },
+    {
+      "utc": "2026-10-23T17:38:12.204Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=10555 vout_lost_pictures=0 vmem_drops=559"
+    }
+  ],
+  "interpretation": [
+    "Software decoder supplied callbacks at 40 ms for a 25 fps source; output consumed roughly22.3 fps.",
+    "A roughly43 ms synchronous upload/conversion cannot sustain a40 ms source interval.",
+    "Pinned Mesa and PS5 driver source select CPU tiled transfer for default renderable2D R8/RG8 textures. Rectangle input planes select linear storage. This code path is corrected in0.5.20; actual performance requires a new PS5 run.",
+    "The native hardware query refusal is independent of the demonstrated output throughput deficit.",
+    "UI loop timing and swap return do not measure physical HDMI scanout. Mode-refused/25fps on60Hz cadence may still create judder after upload is corrected.",
+    "clean_shutdown:false is not itself crash evidence; crash-last.txt contains older history."
+  ]
+}

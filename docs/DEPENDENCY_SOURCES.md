@@ -1,9 +1,10 @@
-# Dependency source locations for Stremio Plus 0.5.18
+# Dependency source locations for the local Stremio Plus 0.5.19 candidate
 
-The [0.5.18 source tag](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.18)
-contains the application source, assets, local modifications, build scripts,
-tests and retained license notices for the `PPSA74126` release. GitHub's
-source ZIP and tar archive for that tag contain the same repository files.
+The supplied repository archive contains the application source, assets,
+local modifications, build scripts, tests and retained license notices for
+the `PPSA74126` candidate. It has no published tag; the dependency versions
+retain the pinned core libraries from the 0.5.18 source basis, with selected
+VLC PS5 v0.6.0 corrections documented below.
 [BUILDING.md](../BUILDING.md) describes the native build and packaging steps.
 
 This index identifies the additional upstream sources used by the native
@@ -13,15 +14,11 @@ source provenance records; changing a filename does not change its contents.
 The built application contains a `build-receipt.json` recording the source
 file hashes, linked playback dependency hashes and packaged file hashes.
 
-The release also provides
-[the application source bundle](https://github.com/LoZazaMastro/Stremio-Plus/releases/download/0.5.18/Stremio-Plus-0.5.18-source.zip)
-and [the dependency source bundle](https://github.com/LoZazaMastro/Stremio-Plus/releases/download/0.5.18/Stremio-Plus-0.5.18-dependency-source.zip).
-Extract both into the same parent directory. They share a
-`Stremio-Plus-0.5.18-source/` folder containing the application repository,
-dependency archives, checksum lists and the unchanged native build receipt.
-The separate repository ZIP is a convenience copy of the tagged repository.
-The upstream source archives are unchanged from the verified dependency set;
-the dependency bundle's delivery README and its checksum identify this release.
+The local delivery includes available dependency archives, checksum lists
+and instructions to restore the build cache. Its inventory distinguishes
+source archives from the binary SDK/PacBrew packages and identifies source
+downloads that are documented here but not bundled. It does not depend on
+the older, unavailable dependency-source attachment.
 
 ## Application, UI and adapted playback components
 
@@ -48,8 +45,12 @@ the VLC build. [The checksum list](../vendor/vlc-ps5/sources.sha256) can be
 used directly with `sha256sum --check` after downloading them into
 `.deps/vlc/dl/`.
 
-The repository contains all 24 numbered VLC patches, including the playback
-recovery and seek corrections, as well as the retained dependency patches.
+The repository contains all 25 numbered VLC patches, including the playback
+recovery and seek corrections, the selected upstream coded/visible output
+correction, and the retained dependency patches. The PS5 port update is
+limited to the adaptations recorded in
+[its notice](../vendor/vlc-ps5/NOTICE.md); it is not a wholesale replacement
+of the native decoder or its memory protections.
 [tools/setup-vlc.sh](../tools/setup-vlc.sh),
 [vendor/vlc-ps5/configure-vlc.sh](../vendor/vlc-ps5/configure-vlc.sh) and
 [vendor/vlc-ps5/deps/build-deps.sh](../vendor/vlc-ps5/deps/build-deps.sh)
@@ -85,13 +86,33 @@ these exact revisions:
 | --- | --- | --- |
 | sdk v0.42 | [4eb701204fc3f8d31e84cf8ca272974e2be9c867](https://codeload.github.com/ps5-payload-dev/sdk/tar.gz/4eb701204fc3f8d31e84cf8ca272974e2be9c867) | `fc9f5974e540c4d4af912f0661cf44075651e67a4d0070a6e8ad44e01bee8ac2` |
 | pacbrew-repo v0.40.2 | [1687e827675c66e1b040751c7f0811222bd3aea0](https://codeload.github.com/ps5-payload-dev/pacbrew-repo/tar.gz/1687e827675c66e1b040751c7f0811222bd3aea0) | `0b05d8c04597acf3b8a056b22b83b19e017ceac59f3cb1af0c149229997ecbbe` |
-| ps5-native-app-boilerplate f98de734b68b | [f98de734b68b0b980d38ff03a330066afd6ae16d](https://codeload.github.com/blackbearreloaded/ps5-native-app-boilerplate/tar.gz/f98de734b68b0b980d38ff03a330066afd6ae16d) | `c937ca4d5ef170d2c0bf2dc8ad98b09321b8b667f4a92397773cdff8a8cb0532` |
+| ps5-native-app-boilerplate f98de734b68b, existing public fork | [f98de734b68b0b980d38ff03a330066afd6ae16d](https://codeload.github.com/drakmor/ps5-native-app-boilerplate/tar.gz/f98de734b68b0b980d38ff03a330066afd6ae16d) | `da57cd98c1a41d0c26dfc239d747db0387fabd932a6b20b2a7cf1d859615eaff` |
 
 The SDK source supplies its libc, headers, startup support and module stubs.
 The PacBrew source supplies the corresponding `PKGBUILD` recipes and local
 patches for the SDK libraries. The boilerplate source supplies the native
 converter, signer, startup implementation and generated `libc.prx` runtime
 sources. Its original license notices remain applicable.
+
+### Verified dependency mirrors (23 October 2026)
+
+The original `blackbearreloaded` download endpoints returned HTTP 404 in
+the local build environment. Setup therefore retains the original version,
+commit and integrity checks, and can fall back to these existing public copies:
+
+| Dependency | Verified fallback | Identity checked locally |
+| --- | --- | --- |
+| ps5-opengl SDK 1.0.0 | [MyLuxy/overdrive-deps release asset](https://github.com/MyLuxy/overdrive-deps/releases/download/ps5-opengl-v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz) | Original archive SHA-256 `f93643c04c843d56143b00951df1f8042ea7706ae9f19e4e9abf158e1ead77c5`; original SDK manifest SHA-256 `f4b91f672be037fbac3f82494f1225deaf4c227a03f37ac3ffa56abb213b943f`, followed by every manifest entry |
+| Native application boilerplate | [drakmor/ps5-native-app-boilerplate](https://github.com/drakmor/ps5-native-app-boilerplate/tree/f98de734b68b0b980d38ff03a330066afd6ae16d) | Original commit `f98de734b68b0b980d38ff03a330066afd6ae16d`, tree `723111f8b760d912f975edce4a821085c1167c2a`, clean tracked sources and the runtime's existing checksum |
+
+The OpenGL mirror supplies the exact original archive bytes. The boilerplate
+is fetched by its original Git commit into a detached dependency checkout;
+no branch, commit or remote write is needed. The codeload source archive from
+the existing fork has the SHA-256 listed above. It differs from the previously
+documented, unavailable original codeload archive hash
+`c937ca4d5ef170d2c0bf2dc8ad98b09321b8b667f4a92397773cdff8a8cb0532`;
+the Git commit and source tree are unchanged. The two archive hashes are
+not interchangeable. A failed checksum is never accepted as a mirror fallback.
 
 The application's [toolchain setup](../tools/setup-toolchain.sh) records the
 separate SHA-256 values of the binary SDK and port packages consumed by the
@@ -166,11 +187,12 @@ patch series. These source identities document the inputs; they do not claim
 that an arbitrary host environment will reproduce the Ubuntu package byte
 for byte.
 
-## Obtaining and modifying the release
+## Obtaining and modifying the candidate
 
-Use the matching application tag together with the source locations above.
-Local application and playback changes are committed in that tag; no private
-patches, account configuration or runtime logs are required to rebuild it.
+Use the delivered repository together with the dependency archives and
+source locations above. All local application and playback changes are
+included; no private patches, account configuration or user runtime logs
+are required to rebuild it.
 Run the native build and packaging commands in `BUILDING.md` to produce the
 folder ZIP and FFPFSC image. The source and component notices remain available
 alongside the release's download instructions, and each component retains its

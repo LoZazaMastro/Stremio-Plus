@@ -1,0 +1,901 @@
+{
+  "scope": "Copies of completed final build/test records; archiving is not another test run.",
+  "files": [
+    {
+      "path": "final-native/app-build.log",
+      "bytes": 53118,
+      "sha256": "65357923969ef844e3d1a6e4d6a6e0cde1a91aca26aad14bcd499ff89607ad87",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/app-build.log"
+    },
+    {
+      "path": "final-native/app-object-integrity.log",
+      "bytes": 52,
+      "sha256": "73236471e4f8eccaff25d27fb6256d4679ed977ad18cc060614507064a01206f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/app-object-integrity.log"
+    },
+    {
+      "path": "final-native/build-receipt-verify.log",
+      "bytes": 93,
+      "sha256": "abc003716a42f881c72995d600cce43560acad9b418cf5e9aeb015f3910e5153",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/build-receipt-verify.log"
+    },
+    {
+      "path": "final-native/build-receipt.json",
+      "bytes": 236160,
+      "sha256": "f6dafb8cc70a7aeb48897853084b73433a2c391d015fffb7725641d864696158",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/build-receipt.json"
+    },
+    {
+      "path": "final-native/core-build-result.json",
+      "bytes": 583,
+      "sha256": "fe2aacf91056b3112fd25236987abd97587b81d2813a37a2db59348c77b45db6",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/core-build-result.json"
+    },
+    {
+      "path": "final-native/core-build.log",
+      "bytes": 359,
+      "sha256": "b160cafa77de47a1c1095faf62f38540e8f7f757c989e273365bdab5e06df624",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/core-build.log"
+    },
+    {
+      "path": "final-native/core-compiler.log",
+      "bytes": 28297,
+      "sha256": "37e2a605074d890cd53ec9144ad103bc903684ca7b032d39481decdbdd6a4a26",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/core-compiler.log"
+    },
+    {
+      "path": "final-native/imports.log",
+      "bytes": 51,
+      "sha256": "2eb7ee6c46f3608837c894b93dd9d9165b097f9cb55a4277615cfb569d4c3e89",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/imports.log"
+    },
+    {
+      "path": "final-native/native-address-correspondence.json",
+      "bytes": 1317,
+      "sha256": "0c7b85f2be1934a6f0e3fd4d3f315d4947930bc29fe1983147bcef0ce78a7f9b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-address-correspondence.json"
+    },
+    {
+      "path": "final-native/native-app-cpp-o-dwarf-verify.log",
+      "bytes": 404,
+      "sha256": "672866679d622618d56b68a45a4e59c7148ef57206288f2f1e06b9b8b3546574",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-app-cpp-o-dwarf-verify.log"
+    },
+    {
+      "path": "final-native/native-artifact-validation.json",
+      "bytes": 69949,
+      "sha256": "266b4e9b9c0644c1aabf9ed1a32df9a7847d6e0257c55025089b0c2aeba157f5",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-artifact-validation.json"
+    },
+    {
+      "path": "final-native/native-artifact-validation.log",
+      "bytes": 1931,
+      "sha256": "8fd84219b77662b1caff24ada152568ff9ded7dd6c07bfc09145d402e3172974",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-artifact-validation.log"
+    },
+    {
+      "path": "final-native/native-debug-check.log",
+      "bytes": 3171,
+      "sha256": "cf2dc54fa4cfa370ab8081d8a2fc3e5562403bb661e222777d5f95c37d9d4ee3",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-debug-check.log"
+    },
+    {
+      "path": "final-native/native-debug-info.json",
+      "bytes": 3171,
+      "sha256": "cf2dc54fa4cfa370ab8081d8a2fc3e5562403bb661e222777d5f95c37d9d4ee3",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-debug-info.json"
+    },
+    {
+      "path": "final-native/native-dwarf-verify.log",
+      "bytes": 40428670,
+      "sha256": "2f435797d70c56fe4664a142db57e0b589201f165772643d3eb827b0960668fd",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-dwarf-verify.log"
+    },
+    {
+      "path": "final-native/native-final-summary.json",
+      "bytes": 3868,
+      "sha256": "9cbece6740fb80256a89d8a12421780f25646a96c99fc5fd4b9e8f3e6bc54ea6",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-final-summary.json"
+    },
+    {
+      "path": "final-native/native-hwdec_ps5-cpp-o-dwarf-verify.log",
+      "bytes": 416,
+      "sha256": "4b56f94870a5be8fc24340ac5b18ab5482b339498239ebffa04052cb9a0414cd",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-hwdec_ps5-cpp-o-dwarf-verify.log"
+    },
+    {
+      "path": "final-native/native-libc.json",
+      "bytes": 273,
+      "sha256": "5cec12b06a01016740b423ed9bf8ee3552872ab8b49cd6084ba22b06f637ccef",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-libc.json"
+    },
+    {
+      "path": "final-native/native-pie-sections.log",
+      "bytes": 3598,
+      "sha256": "93f3a372a926a65f8e908000cd30c3b70f7145f8c36b58c71289fbdae73f6d0a",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-pie-sections.log"
+    },
+    {
+      "path": "final-native/native-process.json",
+      "bytes": 202,
+      "sha256": "13a38d765bc4d7ee64500852ad97a4a60b21ab20fafb0f758a5780ee75bbcd17",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-process.json"
+    },
+    {
+      "path": "final-native/native-startup-audit.json",
+      "bytes": 219,
+      "sha256": "27a4d2388e7196c375d8de8cc8b3212939b3654ff4cfa12101a0c33ce65cf7a2",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-startup-audit.json"
+    },
+    {
+      "path": "final-native/native-symbols-bundle.json",
+      "bytes": 380,
+      "sha256": "0ec578d33492e5aae8bd40c092e29d51f7c6061235285d7cfaf9febe47436f8f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/native-symbols-bundle.json"
+    },
+    {
+      "path": "final-native/pack.log",
+      "bytes": 120113,
+      "sha256": "529dbb2cdf960953e627ca3ead18387bb3c9429693cc233cc211c2018b0074c8",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/pack.log"
+    },
+    {
+      "path": "final-native/patch-reentry-proof.json",
+      "bytes": 3010,
+      "sha256": "6beaa95000bc0d14e7108fb28fec108b507b6e7ae9657ad1df9def1eb661e3b2",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/patch-reentry-proof.json"
+    },
+    {
+      "path": "final-native/symbols-bundle.log",
+      "bytes": 473,
+      "sha256": "197f45b3b395262028ca2a4024e4f972ea624bdad3417c9731428a4e2648912e",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/symbols-bundle.log"
+    },
+    {
+      "path": "final-native/symbols-checksums.log",
+      "bytes": 257,
+      "sha256": "48e99ca0bc097d4e1b526d4dec449483b84e536af2eafbec97a1567195ef8dc7",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/symbols-checksums.log"
+    },
+    {
+      "path": "final-native/tree.log",
+      "bytes": 6924,
+      "sha256": "11e6d6a9dcd5b1343f4c3d6822b67264339014a2e736d59c87b52def6c4a9fcf",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/tree.log"
+    },
+    {
+      "path": "final-native/unpack.log",
+      "bytes": 366,
+      "sha256": "b9e2fef3ea38d7eeb2a50d76218be9584090b03259a668cde25d55735b07c37f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/unpack.log"
+    },
+    {
+      "path": "final-native/vlc-build-receipt-ps5.json",
+      "bytes": 130818,
+      "sha256": "6a4081c4c7a923db249da0a0f277c92f79bdcaaa2cbe3f32bc7d690b3ef0e5ba",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-native/vlc-build-receipt-ps5.json"
+    },
+    {
+      "path": "final-host-upstream/app-after-reentry.log",
+      "bytes": 160,
+      "sha256": "c03bda3f0b8b32977e71340de9af3e7c119b8c3025ddf9c32fb49faab8682499",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/app-after-reentry.log"
+    },
+    {
+      "path": "final-host-upstream/app-build.log",
+      "bytes": 301,
+      "sha256": "c012dd269bda58c1f54229d785572758e3a337026eaac12928249c84d1bc778b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/app-build.log"
+    },
+    {
+      "path": "final-host-upstream/app-configure.log",
+      "bytes": 155,
+      "sha256": "9d0f4275a6ac004fbc433a726f270ab8fbafd1827c597dd3e4077067481b59c4",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/app-configure.log"
+    },
+    {
+      "path": "final-host-upstream/baseline-vlc-build-receipt-host.json",
+      "bytes": 127752,
+      "sha256": "87ca9b200fd95f793b92dce17d66b138ac553bf235380a1d095221dd657f3ce6",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/baseline-vlc-build-receipt-host.json"
+    },
+    {
+      "path": "final-host-upstream/before.json",
+      "bytes": 2525,
+      "sha256": "f1b73ad7dfe921642924708c82a5c2547d28f56f8173cba5f38adb91ae93f54f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/before.json"
+    },
+    {
+      "path": "final-host-upstream/core-build-final.log",
+      "bytes": 378,
+      "sha256": "02479d7a016585237509a40a08ebb4e65d6c4ca305bf91a1ff164f17b3b0ba68",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/core-build-final.log"
+    },
+    {
+      "path": "final-host-upstream/core-build.log",
+      "bytes": 481,
+      "sha256": "31f1a9a309cd6fd465d715ee06970dc2e8809b7bdaa03bc27c0def48ce52694f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/core-build.log"
+    },
+    {
+      "path": "final-host-upstream/core-compiler-final.log",
+      "bytes": 47098,
+      "sha256": "714be5b71124d1aa6f2ab62ca4e1c60a7a1cef75e9eaf1b7e83826081da88087",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/core-compiler-final.log"
+    },
+    {
+      "path": "final-host-upstream/core-object-integrity-final.log",
+      "bytes": 54,
+      "sha256": "a897c85b23ffd5df3879181b15eba82cdbc7e7ef54be8aea0f6c2be5c06965d0",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/core-object-integrity-final.log"
+    },
+    {
+      "path": "final-host-upstream/core-object-integrity.log",
+      "bytes": 54,
+      "sha256": "a897c85b23ffd5df3879181b15eba82cdbc7e7ef54be8aea0f6c2be5c06965d0",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/core-object-integrity.log"
+    },
+    {
+      "path": "final-host-upstream/core-reentry-compiler.log",
+      "bytes": 23825,
+      "sha256": "cd5301d9917ef7233cd1cb62a46d818427459199b3fd167087bb2b95b04a776e",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/core-reentry-compiler.log"
+    },
+    {
+      "path": "final-host-upstream/core-reentry-final.log",
+      "bytes": 378,
+      "sha256": "02479d7a016585237509a40a08ebb4e65d6c4ca305bf91a1ff164f17b3b0ba68",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/core-reentry-final.log"
+    },
+    {
+      "path": "final-host-upstream/host-build-result.json",
+      "bytes": 1794,
+      "sha256": "78b84abf2bbe2e46e655aac569e117d52747c2db6e058d7462d326932e2f950b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/host-build-result.json"
+    },
+    {
+      "path": "final-host-upstream/initial-core-compiler.log",
+      "bytes": 449238,
+      "sha256": "2a1b2470fe8fea1c0537d035b6b37a21f3a0799b12c26740478362149cc86f47",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/initial-core-compiler.log"
+    },
+    {
+      "path": "final-host-upstream/object-recovery.json",
+      "bytes": 543,
+      "sha256": "2bddc969c1c43e9b2c5b8a6f48a3e5807ec3fe2b955f50500873785484dbf19a",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/object-recovery.json"
+    },
+    {
+      "path": "final-host-upstream/object-recovery.log",
+      "bytes": 8150,
+      "sha256": "3b1c3d326bca62f8e0cf84c7dc6d736a6407f4258b108abb5f2d49ca1ad44a75",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/object-recovery.log"
+    },
+    {
+      "path": "final-host-upstream/receipt-verify-final.log",
+      "bytes": 55,
+      "sha256": "625a6561ae12451c07d8334151ce040005b22c6a54146eea07220f670daeaa48",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/receipt-verify-final.log"
+    },
+    {
+      "path": "final-host-upstream/receipt-verify.log",
+      "bytes": 55,
+      "sha256": "625a6561ae12451c07d8334151ce040005b22c6a54146eea07220f670daeaa48",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/receipt-verify.log"
+    },
+    {
+      "path": "final-host-upstream/setup-reentry-failure.log",
+      "bytes": 269,
+      "sha256": "dba3b86c94f3fe607dec903d3c33b305662127559b104c9dabf55d3d90bc41d2",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/setup-reentry-failure.log"
+    },
+    {
+      "path": "final-host-upstream/vlc-build-receipt-host-before-reentryfix.json",
+      "bytes": 127906,
+      "sha256": "86b1978c6c5b78acda35bcbb8e9ad390f1298fbcfb69024a02450b79d8abdeb2",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/vlc-build-receipt-host-before-reentryfix.json"
+    },
+    {
+      "path": "final-host-upstream/vlc-build-receipt-host.json",
+      "bytes": 127906,
+      "sha256": "eab79287276875ddcfcee66026dbae0d661c453d63fdbf19ab3ce522fc9f49c4",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/final-host-upstream/vlc-build-receipt-host.json"
+    },
+    {
+      "path": "final-host-tests/player-geometry/h264-1080-nv12-reference.txt",
+      "bytes": 4680,
+      "sha256": "b272796dfb2dcc454f2e6b9b8bc4b652051b4fc050ad1cde68338fadcac03280",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/h264-1080-nv12-reference.txt"
+    },
+    {
+      "path": "final-host-tests/player-geometry/h264-1080-nv12.log",
+      "bytes": 3839,
+      "sha256": "b028b08a398adb0900ac7dd41040252f4b1c661f0bc2920b7643f29c66a7470a",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/h264-1080-nv12.log"
+    },
+    {
+      "path": "final-host-tests/player-geometry/h264-1080-reference.txt",
+      "bytes": 4680,
+      "sha256": "cb7dc87852dca1c7fb05deb0c5871c1d01fecfd2a5eb8c2f396d426fd7757989",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/h264-1080-reference.txt"
+    },
+    {
+      "path": "final-host-tests/player-geometry/h264-1080.log",
+      "bytes": 3695,
+      "sha256": "1a1604714f0f2137050488108444be75d8a62753a789c3f3db4be8ca5531b407",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/h264-1080.log"
+    },
+    {
+      "path": "final-host-tests/player-geometry/h264-720-reference.txt",
+      "bytes": 4680,
+      "sha256": "060e93d1b774f68f527c8cdd42738bc7486fc604923c5e61bf3d27922b1de7be",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/h264-720-reference.txt"
+    },
+    {
+      "path": "final-host-tests/player-geometry/h264-720.log",
+      "bytes": 3681,
+      "sha256": "cbecee63e202334706d3caed4c9c646c075a9880f23c6e1f9b30155eb0e00315",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/h264-720.log"
+    },
+    {
+      "path": "final-host-tests/player-geometry/hevc-1080-main10-reference.txt",
+      "bytes": 4680,
+      "sha256": "5899d6e2eaa7176a77810c32af0222b8a53ffd54f0cd83b8eee2a71911177f83",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/hevc-1080-main10-reference.txt"
+    },
+    {
+      "path": "final-host-tests/player-geometry/hevc-1080-main10.log",
+      "bytes": 3626,
+      "sha256": "235d3ab6ef6d37f96064d6b37a690ac80f7c29bbcb40b067878147062ea7c289",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/hevc-1080-main10.log"
+    },
+    {
+      "path": "final-host-tests/player-geometry/hevc-1080-p010-reference.txt",
+      "bytes": 4680,
+      "sha256": "b341bd4e996c4f34964efbbd26aa20a5f316b3392c8b3dc9e6c1cf17b3e8a59a",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/hevc-1080-p010-reference.txt"
+    },
+    {
+      "path": "final-host-tests/player-geometry/hevc-1080-p010.log",
+      "bytes": 3768,
+      "sha256": "5e7a1a0a79af37bf54a9c8003b0e1db9415353a7e5da48fd113fd9b50b1f8b6f",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/hevc-1080-p010.log"
+    },
+    {
+      "path": "final-host-tests/player-geometry/result.json",
+      "bytes": 50932,
+      "sha256": "6b27b14ae44660ed0f666b221dd33d7b468551bff3c96aa492ab0d2947034612",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/result.json"
+    },
+    {
+      "path": "final-host-tests/player-memory/result.json",
+      "bytes": 37435,
+      "sha256": "83f05982b502d6861a4759bf164866790e1dfae8a2c86a56012279d4ecec362d",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-memory/result.json"
+    },
+    {
+      "path": "final-host-tests/player-memory/test-output.txt",
+      "bytes": 4742,
+      "sha256": "ef1e7f2b776862fabc1163f6ca34b690bf869ee63c85568446877a82a586c750",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-memory/test-output.txt"
+    },
+    {
+      "path": "final-host-tests/player-cadence/baseline.log",
+      "bytes": 3050,
+      "sha256": "1cb43ab16beed95e87bfc400276f58301e2d1e51ce6e5a6fe5712cde23a95eb9",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-cadence/baseline.log"
+    },
+    {
+      "path": "final-host-tests/player-cadence/fixed.log",
+      "bytes": 4386,
+      "sha256": "5595df78a21b516dca13a3345724d6e23c29db6d48b040f03dd91c03ae107b1c",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-cadence/fixed.log"
+    },
+    {
+      "path": "final-host-tests/player-cadence/result.json",
+      "bytes": 1439,
+      "sha256": "f1ad9e52bc3cb029979105a7aa6a28dde8bb2760043d621a73763467aba0578f",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-cadence/result.json"
+    },
+    {
+      "path": "final-host-tests/playback-volume-app-vlc/output.txt",
+      "bytes": 413,
+      "sha256": "1ee836408a8718a255f22b808d75422f6d5950182967d21a8a8a55dafbfc6f3c",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/playback-volume-app-vlc/output.txt"
+    },
+    {
+      "path": "final-host-tests/playback-volume-app-vlc/result.json",
+      "bytes": 1499,
+      "sha256": "05d448a4472f918a741c7ef80bd81c72b47506d371b698707d8fa0d5284229f2",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/playback-volume-app-vlc/result.json"
+    },
+    {
+      "path": "final-host-tests/home-startup-vlc/output.txt",
+      "bytes": 30,
+      "sha256": "7078d1aecc9ebcfe5619d7e3165951a40b5d7a24c68e8580295051160bfcf7b8",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/home-startup-vlc/output.txt"
+    },
+    {
+      "path": "final-host-tests/home-startup-vlc/result.json",
+      "bytes": 1246,
+      "sha256": "66f093b68eee3fd27af0bca42d1ec00bf8c69e2723483cf56da732f1f35e7d06",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/home-startup-vlc/result.json"
+    },
+    {
+      "path": "final-host-tests/player-geometry-final.log",
+      "bytes": 3730,
+      "sha256": "19211b6d4c8b2c7704114756a59858c7fbf6005e3ea1a638116e104916af207c",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/player-geometry-final.log"
+    },
+    {
+      "path": "final-host-tests/player-memory-final.log",
+      "bytes": 4951,
+      "sha256": "007df80c9c3024e3332334d21909295fbd67565f7acea4d7516bd816ea7e36b7",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/player-memory-final.log"
+    },
+    {
+      "path": "final-host-tests/player-cadence-final.log",
+      "bytes": 5377,
+      "sha256": "28c26bc0a63d61bffe10aa469cde65345ecd62f04d670aea0273e86b368e8d13",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/player-cadence-final.log"
+    },
+    {
+      "path": "final-host-tests/playback-volume-app-vlc-final.log",
+      "bytes": 511,
+      "sha256": "507ee5d83f809dbcc2b511292d234bc5bb3ad747d8425bfe87623eef6576dcde",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/playback-volume-app-vlc-final.log"
+    },
+    {
+      "path": "final-host-tests/home-startup-vlc-final.log",
+      "bytes": 121,
+      "sha256": "58934e0464d96fd6418106b1eefc4d79356c79f780cd7f163820efd97199c419",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/home-startup-vlc-final.log"
+    },
+    {
+      "path": "video-geometry-comparison/crop-reference-ffmpeg8-explicit.jsonl",
+      "bytes": 23030,
+      "sha256": "f489d71b9b1007c5487920dfd0329340a9a2f155a3ed8e8dc5a218fec0f36f59",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/crop-reference-ffmpeg8-explicit.jsonl"
+    },
+    {
+      "path": "video-geometry-comparison/crop-reference-ffmpeg8.jsonl",
+      "bytes": 22886,
+      "sha256": "e1fe69efec9eb17c555e006cb9236c03656fd47e55d7971b21132c362ba9532b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/crop-reference-ffmpeg8.jsonl"
+    },
+    {
+      "path": "video-geometry-comparison/crop-reference.cpp",
+      "bytes": 2982,
+      "sha256": "d55c6d14be53003300fc76066c0d27907a3a0f0d58fd494a4696d05b5755af4b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/crop-reference.cpp"
+    },
+    {
+      "path": "video-geometry-comparison/crop-rerun-commands.json",
+      "bytes": 985,
+      "sha256": "1fac00c39cc07d0a04e76c6a88ca58fe186551f7602e1b38ab68960352fc12c8",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/crop-rerun-commands.json"
+    },
+    {
+      "path": "video-geometry-comparison/patch-reentry-result.json",
+      "bytes": 3010,
+      "sha256": "6beaa95000bc0d14e7108fb28fec108b507b6e7ae9657ad1df9def1eb661e3b2",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/patch-reentry-result.json"
+    },
+    {
+      "path": "video-geometry-comparison/patch0014-context-only.diff",
+      "bytes": 681,
+      "sha256": "42432b2cb2301ad490a4a06ffcde7867a9c1a88c5f1f95686e959df6dc167028",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/patch0014-context-only.diff"
+    },
+    {
+      "path": "video-geometry-comparison/reference-crop-explicit.txt",
+      "bytes": 4680,
+      "sha256": "76488f69d8f151e5378b6c1625523c72415ed1039b9f92d879dabb0b034de865",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-crop-explicit.txt"
+    },
+    {
+      "path": "video-geometry-comparison/reference-h264-1080-nv12.txt",
+      "bytes": 4680,
+      "sha256": "b272796dfb2dcc454f2e6b9b8bc4b652051b4fc050ad1cde68338fadcac03280",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-h264-1080-nv12.txt"
+    },
+    {
+      "path": "video-geometry-comparison/reference-h264-1080.txt",
+      "bytes": 4680,
+      "sha256": "cb7dc87852dca1c7fb05deb0c5871c1d01fecfd2a5eb8c2f396d426fd7757989",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-h264-1080.txt"
+    },
+    {
+      "path": "video-geometry-comparison/reference-h264-720.txt",
+      "bytes": 4680,
+      "sha256": "060e93d1b774f68f527c8cdd42738bc7486fc604923c5e61bf3d27922b1de7be",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-h264-720.txt"
+    },
+    {
+      "path": "video-geometry-comparison/reference-h264-cropped-exact.txt",
+      "bytes": 4680,
+      "sha256": "76488f69d8f151e5378b6c1625523c72415ed1039b9f92d879dabb0b034de865",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-h264-cropped-exact.txt"
+    },
+    {
+      "path": "video-geometry-comparison/reference-h264-cropped.txt",
+      "bytes": 4680,
+      "sha256": "d50e6f95f66b8ea70882d173e465ad13a64302acdae87a4d84fcf7a4441277ad",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-h264-cropped.txt"
+    },
+    {
+      "path": "video-geometry-comparison/reference-hevc-1080-main10.txt",
+      "bytes": 4680,
+      "sha256": "5899d6e2eaa7176a77810c32af0222b8a53ffd54f0cd83b8eee2a71911177f83",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-hevc-1080-main10.txt"
+    },
+    {
+      "path": "video-geometry-comparison/reference-hevc-1080-p010.txt",
+      "bytes": 4680,
+      "sha256": "b341bd4e996c4f34964efbbd26aa20a5f316b3392c8b3dc9e6c1cf17b3e8a59a",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/reference-hevc-1080-p010.txt"
+    },
+    {
+      "path": "video-geometry-comparison/review.json",
+      "bytes": 52318,
+      "sha256": "9060701c3e2e29c9820e9959551969e18b4c4a91a88fca57a90b1082d12f7cc4",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/review.json"
+    },
+    {
+      "path": "video-geometry-comparison/run-vmem-probe.py",
+      "bytes": 5805,
+      "sha256": "ad3457f8dedead13c2b44a136777fddf1608bb58c6105ffd2a5247fb60f7316e",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/run-vmem-probe.py"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-1280x720.log",
+      "bytes": 1563,
+      "sha256": "a60b69ab2f0951efa97c28298e48d140e87efb115419f58d728669ab99d35c7e",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-1280x720.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-1920x1080.log",
+      "bytes": 1574,
+      "sha256": "4324a69f96b7e59bc8e95ae16e1de596890bf3be67742e7ddbff0edcc7c00490",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-1920x1080.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-1920x1088.log",
+      "bytes": 1574,
+      "sha256": "79586c0096341461f7554c94c3a7e863b535a044e2d74a5bc6c2c079646eb994",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-1920x1088.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-ab-pixel-test.log",
+      "bytes": 5828,
+      "sha256": "7a4c50bf674c281452247f0711ea12f174953fcdc1dd3a2191a0b72d2bfc0d24",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-ab-pixel-test.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-ab-results.json",
+      "bytes": 38818,
+      "sha256": "6df7b36c2ce9eb553ef4f313ea19037605b9edd0480e5c928f500eeb5b674938",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-ab-results.json"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-1280x720.log",
+      "bytes": 1583,
+      "sha256": "429a9f49da8633fbbae4baadec36337333a84386cc839f3e37aaf1fe352050b0",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-1280x720.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-1920x1080.log",
+      "bytes": 1594,
+      "sha256": "a26d43974070860e1fc1dfede3bdd7ca213641a364318c6b5326096038ee0231",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-1920x1080.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-h264-1080-nv12.log",
+      "bytes": 3790,
+      "sha256": "3d3b92a084261fc5a9448d1c56b36d56130b17807071e0d34903d2954e20acd2",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-h264-1080-nv12.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-h264-1080.log",
+      "bytes": 3793,
+      "sha256": "791a1e5eea605cf8facf9ee85a41750dd113e42166998a24950e44d52bf0e8c1",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-h264-1080.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-h264-720.log",
+      "bytes": 3780,
+      "sha256": "279fe766dc29b65bf116a57a800cc271c87df329c0542bb2197d7721222a347b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-h264-720.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-h264-cropped-exact.log",
+      "bytes": 3781,
+      "sha256": "d3f503b94a55a32d6ffa7c0e5b769c8f853d94523729bf82ce1565addc96f4b3",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-h264-cropped-exact.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-h264-cropped.log",
+      "bytes": 3781,
+      "sha256": "be9f581fcc89c736ac88143e3fcc80b3088858a093d1af318d81362e66588aa1",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-h264-cropped.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-hevc-1080-main10.log",
+      "bytes": 3724,
+      "sha256": "6b00762907658386b78db1a4281b8925d5d0b9fe901af8c0ac986ec0cd7f9a70",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-hevc-1080-main10.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-hevc-1080-p010.log",
+      "bytes": 3719,
+      "sha256": "9830ad30b201570292842ce4569aa3fef347713dd202a9b66e5d4755ff5a2010",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-hevc-1080-p010.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-baseline-results.json",
+      "bytes": 958,
+      "sha256": "e91b7708ef1b16c0d4cc17c701472d517d6c7a926fd00a8ba1ff5935c7c1022a",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-baseline-results.json"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-1280x720.log",
+      "bytes": 1466,
+      "sha256": "6b10f2f6dc94b6d3f7a0d082e34bc804a8046f40cf697f3ef94e0381b7d45e9e",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-1280x720.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-1920x1080.log",
+      "bytes": 1478,
+      "sha256": "2683d069c686e7af67d0b6040458d217508420a51467f77744156cdff29a85ac",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-1920x1080.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-h264-1080-nv12.log",
+      "bytes": 3815,
+      "sha256": "6b1e09ffa4ca891b464fd86244e2dceb2795a3bf81c84426ce5750c618ffb280",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-h264-1080-nv12.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-h264-1080.log",
+      "bytes": 3677,
+      "sha256": "bebd98b964670c3792b2f58fd7a2aab9f6ef9bdaec31592db32864e2f5bba542",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-h264-1080.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-h264-720.log",
+      "bytes": 3663,
+      "sha256": "d204bf42fde9ede6ea7b05d3dc0261677f1d4b82db6d960ebfdfb90b37f9e23c",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-h264-720.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-h264-cropped-exact.log",
+      "bytes": 3664,
+      "sha256": "3b36aae605864732a07e4c281a1cec930fa4bec66a1a92fb5ac4d5ad821af921",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-h264-cropped-exact.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-h264-cropped.log",
+      "bytes": 3664,
+      "sha256": "05776a1e0733914be301bd79fb50810a88c68c25dec0edd7f339552bb16c4bce",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-h264-cropped.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-hevc-1080-main10.log",
+      "bytes": 3608,
+      "sha256": "626df023e9be9744aff34bd68509717c5c5e82faf693120c89f371b26a7bf08d",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-hevc-1080-main10.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-candidate-hevc-1080-p010.log",
+      "bytes": 3744,
+      "sha256": "7f8a9b5169eaee38eb07243e6740e1b40c6e3b473dbfb7cd1ac704f67ded232e",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-candidate-hevc-1080-p010.log"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-player-backport.diff",
+      "bytes": 4092,
+      "sha256": "fd1a8c62041dc2166f27834fbfdfe2413c7b83ab5f02a471474132cb2ae80974",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-player-backport.diff"
+    },
+    {
+      "path": "video-geometry-comparison/vmem-probe.cpp",
+      "bytes": 8483,
+      "sha256": "e5958566bf317b573afbb70ea612609ec456cd2a819d854458c844168bb938cd",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/vmem-probe.cpp"
+    },
+    {
+      "path": "video-geometry-comparison/baseline/source-identity.json",
+      "bytes": 367,
+      "sha256": "e931fbf50b453897094ca8154a8a1e5198287a294466c4fcc6c0697802973889",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/baseline/source-identity.json"
+    },
+    {
+      "path": "video-geometry-comparison/baseline/object-identities.json",
+      "bytes": 659,
+      "sha256": "0e1550d7c4a0fbe53f6e33f297d32df4cddd6bf1b5aa9afcf99b9e31ca6b2b60",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/baseline/object-identities.json"
+    },
+    {
+      "path": "video-geometry-comparison/baseline/player_vlc.cpp",
+      "bytes": 66243,
+      "sha256": "7687a9e06be775fcbc8a5958e358e5ec2f856345fb7a4b06e7fe7cc42e8cba2f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/upstream-vlc-review/baseline/player_vlc.cpp"
+    },
+    {
+      "path": "patch-reentry-proof/0014-vmem-ps5-colour-info.patch",
+      "bytes": 465,
+      "sha256": "06b10f160cae49631adb9cf7aeba64ab1dde53091822fea890da5ea3313c1f53",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/patch-reentry-proof/0014-vmem-ps5-colour-info.patch"
+    },
+    {
+      "path": "patch-reentry-proof/baseline-first.log",
+      "bytes": 3323,
+      "sha256": "56d3364e30e85c14dc83078b4c3f02291226ee95db2aa100f83b41c9e701c43c",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/patch-reentry-proof/baseline-first.log"
+    },
+    {
+      "path": "patch-reentry-proof/candidate-first.log",
+      "bytes": 3323,
+      "sha256": "56d3364e30e85c14dc83078b4c3f02291226ee95db2aa100f83b41c9e701c43c",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/patch-reentry-proof/candidate-first.log"
+    },
+    {
+      "path": "patch-reentry-proof/candidate-second.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/patch-reentry-proof/candidate-second.log"
+    },
+    {
+      "path": "patch-reentry-proof/result.json",
+      "bytes": 3010,
+      "sha256": "6beaa95000bc0d14e7108fb28fec108b507b6e7ae9657ad1df9def1eb661e3b2",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/patch-reentry-proof/result.json"
+    },
+    {
+      "path": "dependency-recovery/boilerplate-recovery.json",
+      "bytes": 237,
+      "sha256": "68e727ad05dcab66a6521aaf31b8a0028af43be5e66fe7520e2f56879bb2983a",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/boilerplate-recovery.json"
+    },
+    {
+      "path": "dependency-recovery/native-toolchain-check.cpp",
+      "bytes": 142,
+      "sha256": "5834e432d100f2cf3ad828723da6e5c9315b6f82baac8d069f93b16095dfd1a1",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/native-toolchain-check.cpp"
+    },
+    {
+      "path": "dependency-recovery/native-toolchain-check.json",
+      "bytes": 1401,
+      "sha256": "e426223faffe69a07a64e000a853a1d66f8039a138d8a79181032a2d0b56ca05",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/native-toolchain-check.json"
+    },
+    {
+      "path": "dependency-recovery/native-toolchain-recovered.json",
+      "bytes": 1051,
+      "sha256": "58500169762b6e2a14ed286718d61ad07c6a4aa662d57cc77787bcb9c9599d7f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/native-toolchain-recovered.json"
+    },
+    {
+      "path": "dependency-recovery/native-toolchain-recovered.log",
+      "bytes": 2004,
+      "sha256": "73e02957baded07327379574e4aa8c24936f2f68c1f7e12a4a2c4c2ae448d4e6",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/native-toolchain-recovered.log"
+    },
+    {
+      "path": "dependency-recovery/native-toolchain-mirror-script.log",
+      "bytes": 639,
+      "sha256": "da231428948d17e98bd7744c3ed999a124ce554ad34e6aaab10d621f4ba184c0",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/native-toolchain-mirror-script.log"
+    },
+    {
+      "path": "dependency-recovery/offline-git-bundles.json",
+      "bytes": 4582,
+      "sha256": "f0bef9c121facf233612b8cd28f9990a2a077dd4c790e80ad05bee165aa71d54",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/offline-git-bundles.json"
+    },
+    {
+      "path": "dependency-recovery/offline-mkpfs-wheels.json",
+      "bytes": 4883,
+      "sha256": "7851dc20db22c0f286cfaa5f03c337652568e89eb502610aa96691f186c1449f",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/offline-mkpfs-wheels.json"
+    },
+    {
+      "path": "dependency-recovery/offline-restore-helper-tests.json",
+      "bytes": 4464,
+      "sha256": "bf7628174fe86890e5911d2127bbe9226562ec18f82f5733f9aa9034e214e882",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/offline-restore-helper-tests.json"
+    },
+    {
+      "path": "dependency-recovery/dependency-inventory-summary.json",
+      "bytes": 6799,
+      "sha256": "5f67f2ebbfe5cdc7595b494d3ed569a928bc3ec1036902844753a19c81dc1e7b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/dependency-inventory-summary.json"
+    },
+    {
+      "path": "dependency-recovery/dependency-inventory-finalization.json",
+      "bytes": 2857,
+      "sha256": "01907c3a3f61accfb70e3fec085f398f6f6d6c5850bdf7fbf6ae4339794160ab",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/dependency-inventory-finalization.json"
+    },
+    {
+      "path": "dependency-bundle/README.md",
+      "bytes": 5897,
+      "sha256": "cce67daf440fa07685e396f8ba40743159b2ee7c3b2f593956703cb6695c73a1",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/README.md"
+    },
+    {
+      "path": "dependency-bundle/inventory.json",
+      "bytes": 173639,
+      "sha256": "e0f802276cad421610b9f4f4bffc5a4aa177960660c3843b2b83920d7b0464f7",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/inventory.json"
+    },
+    {
+      "path": "dependency-bundle/SHA256SUMS",
+      "bytes": 4262,
+      "sha256": "430883cb3f671d080b62fae63c2479d35047dbe0f5641bda6417355ca349e49b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/SHA256SUMS"
+    },
+    {
+      "path": "dependency-bundle/restore-cache.py",
+      "bytes": 10952,
+      "sha256": "7c04e79d3607c50a7bbcdcc63891702a4d822987d2adb90a779e90d3148f941b",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/restore-cache.py"
+    },
+    {
+      "path": "preserved-safeguards.json",
+      "bytes": 24370,
+      "sha256": "cc39802e370d658021e70299891fff95b7caf36cf18f0e98f89063af0165aded",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/preserved-safeguards.json"
+    },
+    {
+      "path": "final-native/application-build-receipt.json",
+      "bytes": 236160,
+      "sha256": "f6dafb8cc70a7aeb48897853084b73433a2c391d015fffb7725641d864696158",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/dist/PPSA74126/build-receipt.json"
+    },
+    {
+      "path": "final-native/native-startup-audit.json",
+      "bytes": 219,
+      "sha256": "27a4d2388e7196c375d8de8cc8b3212939b3654ff4cfa12101a0c33ce65cf7a2",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/native/native-startup-audit.json"
+    },
+    {
+      "path": "final-native/native-process.json",
+      "bytes": 202,
+      "sha256": "13a38d765bc4d7ee64500852ad97a4a60b21ab20fafb0f758a5780ee75bbcd17",
+      "source": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/native/native-process.json"
+    },
+    {
+      "path": "local-verification-tools/verify-native-artifacts.py",
+      "bytes": 5773,
+      "sha256": "aa7b12d6cc8ee8a154877f26230a64ff04c0bfbe264443454849174de0638fa6",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/verify-native-artifacts.py"
+    },
+    {
+      "path": "local-verification-tools/check-native-debug.py",
+      "bytes": 2827,
+      "sha256": "34893e0a5563aba29d0b7068a41b6b498ccf5d4ba256a66d4d43a8ef1c579711",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/check-native-debug.py"
+    },
+    {
+      "path": "local-verification-tools/make-symbols-bundle.py",
+      "bytes": 6023,
+      "sha256": "58522065844833b698ba2b0dbe8d69b0381a8c293ec1f0901125e106625606c6",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/make-symbols-bundle.py"
+    },
+    {
+      "path": "local-verification-tools/test-restore-cache.py",
+      "bytes": 5456,
+      "sha256": "527ff9fac4938f44617b77c0f7bfbd0727c35d589c6700f7443a7457e0e0cb81",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/test-restore-cache.py"
+    },
+    {
+      "path": "local-verification-tools/inventory-dependencies.py",
+      "bytes": 13144,
+      "sha256": "caa5f8bee4468e5be43a06aea61c49d4cca59e872cae794f3beb48fb9d3a9e4c",
+      "source": "/workspace/scratch/7fa7f080734e/validation-current/inventory-dependencies.py"
+    }
+  ],
+  "copied_files": 149,
+  "bytes": 43044915
+}

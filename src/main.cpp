@@ -20,6 +20,7 @@
 #include "audio/cues.hpp"
 #include "audio/mixer.hpp"
 #include "core/input.hpp"
+#include "core/frame_stats.hpp"
 #include "core/save_file.hpp"
 #include "gfx/gl_program.hpp"
 #include "gfx/renderer.hpp"
@@ -616,6 +617,9 @@ int run_interface(App& app, const Options& o) {
 
     std::int64_t previous = hui::sys::monotonic_us(), report_start = previous;
     std::uint64_t frames = 0, report_frames = 0;
+    hui::FrameStats loop_times, upload_times, swap_times, video_swap_times;
+    hui::FrameStats allocation_times, plane_times, conversion_times;
+    std::int64_t previous_video_swap = 0;
     bool quit = false, first = true;
 #ifdef PLATFORM_PS5
     bool first_video_heap_snapshot = true;
@@ -624,6 +628,9 @@ int run_interface(App& app, const Options& o) {
     bool last_video_accepted = false;
     while (!quit && !app.wants_exit()) {
         const auto now = hui::sys::monotonic_us();
+        // Keep the real interval before animation dt is clamped. The latter
+        // deliberately hides long frames and cannot diagnose playback hitches.
+        loop_times.add(double(now - previous) / 1000.0);
         const float dt = std::clamp(float(now - previous)/1000000.0f, 0.0f, 0.05f);
         previous = now; elapsed += dt;
         hui::InputFrame input;
@@ -661,16 +668,20 @@ int run_interface(App& app, const Options& o) {
         if (feedback.rumble_strength > 0) pad.rumble(feedback.rumble_strength, feedback.rumble_seconds);
         pad.tick(dt);
 #endif
-#ifdef PLATFORM_PS5
         bool video_uploaded = false;
-#endif
         if (app.take_video_frame(frame)) {
+            const auto upload_started = hui::sys::monotonic_us();
             const bool accepted = video.upload(frame);
+            upload_times.add(double(hui::sys::monotonic_us() - upload_started) / 1000.0);
+            const auto& upload_timing = video.last_upload_timing();
+            if (upload_timing.reconfigured) allocation_times.add(upload_timing.allocation_ms);
+            if (accepted) {
+                plane_times.add(upload_timing.plane_ms);
+                conversion_times.add(upload_timing.draw_ms);
+            }
             if (accepted) {
                 app.video_frame_presented();
-#ifdef PLATFORM_PS5
                 video_uploaded = true;
-#endif
             }
             else {
                 diagnostics_note("video", "GPU frame rejected");
@@ -689,7 +700,7 @@ int run_interface(App& app, const Options& o) {
                     frame.layout == Player::VideoFrame::Layout::Nv12 ? "NV12/P010" : "YUV420P";
                 runtime["color_range"] = frame.full_range ? "full" : "limited";
                 runtime["color_transfer"] = frame.hlg ? "HLG" : frame.colors == YuvColors::Hdr10 ? "PQ" : "SDR";
-                runtime["source_fps"] = video.fps();
+                runtime["source_fps"] = app.source_video_fps();
                 runtime["dolby_vision_reshape"] = video.dolby_vision_active();
                 runtime["audio_output"] = app.audio_output_status();
                 runtime["video_frame_accepted"] = accepted;
@@ -703,9 +714,28 @@ int run_interface(App& app, const Options& o) {
             last_video_accepted = false;
             textures.set_playback(false);
         }
-        textures.begin_frame(); ui.update(app, dt);
+        textures.begin_frame();
+        // Warm only the initial visible artwork while the loading page owns
+        // the screen. Network completion alone does not mean GPU textures are
+        // ready. Off-screen work never holds this bounded first reveal open.
+        bool startup_textures_ready = true;
+        if (app.home_startup_visible()) {
+            for (const auto& path : app.home_startup_artwork())
+                if (!textures.get(path)) startup_textures_ready = false;
+        }
+        app.update_home_startup(startup_textures_ready);
+        ui.update(app, dt);
         compose(0, false);
+        const auto swap_started = hui::sys::monotonic_us();
         const bool swapped = surface.swap();
+        const auto swap_finished = hui::sys::monotonic_us();
+        swap_times.add(double(swap_finished - swap_started) / 1000.0);
+        if (!app.watching() || app.w_paused || app.w_buffering || !swapped) previous_video_swap = 0;
+        else if (video_uploaded) {
+            if (previous_video_swap > 0)
+                video_swap_times.add(double(swap_finished - previous_video_swap) / 1000.0);
+            previous_video_swap = swap_finished;
+        }
         if (!swapped) { diagnostics_note("display", "Present failed"); quit = true; }
 #ifdef PLATFORM_PS5
         if (swapped && video_uploaded && first_video_heap_snapshot) {
@@ -727,12 +757,43 @@ int run_interface(App& app, const Options& o) {
             const double fps = double(report_frames)*1000000.0/double(now-report_start);
             runtime["fps"] = fps; runtime["addon_count"] = app.addon_rows.size();
             runtime["output_width"] = surface.width; runtime["output_height"] = surface.height;
+            runtime["source_fps"] = app.source_video_fps();
             runtime["video_processing"] = {{"upscaler", "bilinear"}, {"smoothing", "off"},
-                {"dolby_vision_reshape", video.dolby_vision_active()}, {"source_fps", video.fps()},
+                {"dolby_vision_reshape", video.dolby_vision_active()},
+                {"source_fps", app.source_video_fps()}, {"accepted_frame_fps", video.fps()},
+                {"upload_path", VideoGl::upload_path()},
                 {"audio_passthrough_requested", app.settings().audio_passthrough},
                 {"audio_output", app.audio_output_status()}};
+            const auto timing_json = [](const hui::FrameStats& value) {
+                return json{{"samples", value.count()}, {"mean_ms", value.mean_ms()},
+                    {"max_ms", value.max_ms()}, {"histogram", value.buckets()}};
+            };
+            runtime["presentation_timing"] = {
+                {"scope", "CPU monotonic timings; conversion_submit is GL submission, not GPU completion or HDMI scanout"},
+                {"histogram_upper_ms", json::array({8.4, 17.5, 25.0, 34.0, 50.0, 100.0})},
+                {"histogram_last_bucket", "100 ms and above"},
+                {"loop", timing_json(loop_times)}, {"upload", timing_json(upload_times)},
+                {"allocation", timing_json(allocation_times)}, {"plane_transfer", timing_json(plane_times)},
+                {"conversion_submit", timing_json(conversion_times)},
+                {"swap_wait", timing_json(swap_times)}, {"accepted_video_swap", timing_json(video_swap_times)}};
             diagnostics_set_runtime(runtime);
             dlog("UI frame pacing: %.1f FPS over 30s, %zu draw calls, video=%d", fps, renderer.last_draw_calls(), int(app.watching()));
+            char loop_text[256], upload_text[256], swap_text[256], video_swap_text[256];
+            loop_times.format(loop_text, sizeof(loop_text));
+            upload_times.format(upload_text, sizeof(upload_text));
+            swap_times.format(swap_text, sizeof(swap_text));
+            video_swap_times.format(video_swap_text, sizeof(video_swap_text));
+            dlog("presentation timing: loop {%s} upload {%s} swap_wait {%s} video_swap_return {%s} refresh_code=%llu",
+                 loop_text, upload_text, swap_text, video_swap_text,
+                 static_cast<unsigned long long>(surface.refresh.refresh_code()));
+            char allocation_text[256], plane_text[256], conversion_text[256];
+            allocation_times.format(allocation_text, sizeof(allocation_text));
+            plane_times.format(plane_text, sizeof(plane_text));
+            conversion_times.format(conversion_text, sizeof(conversion_text));
+            dlog("video upload timing: path=%s allocation {%s} plane_transfer {%s} conversion_submit {%s} source_fps=%.6f",
+                 VideoGl::upload_path(), allocation_text, plane_text, conversion_text, app.source_video_fps());
+            loop_times.reset(); upload_times.reset(); swap_times.reset(); video_swap_times.reset();
+            allocation_times.reset(); plane_times.reset(); conversion_times.reset();
 #ifdef PLATFORM_PS5_NATIVE
             if (app.watching()) stremio_heap_snapshot(STREMIO_HEAP_PLAYBACK_PERIODIC);
             log_video_memory(app.watching() ? "playing" : "idle");

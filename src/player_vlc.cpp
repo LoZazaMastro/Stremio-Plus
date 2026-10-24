@@ -13,6 +13,7 @@
 #include "torrent/torrent_stream.h"
 #include "stremio.h"
 #include "util.h"
+#include "core/frame_stats.hpp"
 
 #include <vlc/vlc.h>
 #include <vlc_common.h>
@@ -203,10 +204,12 @@ struct Player::Vlc {
     std::atomic<int> buffering_percent{0}, serial{0}, subtitle_serial{0}, wanted_audio{-2}, wanted_subtitle{-1};
     std::atomic<double> requested_seek{-1}, presented{0}, known_seek{0}, native_position{0};
     std::atomic<uint64_t> decoded{0}, shown{0}, dropped{0};
+    std::atomic<int> decoded_pictures{0}, late_pictures{0};
     std::atomic<uint64_t> rendered_audio_frames{0}, setup_calls{0}, lock_calls{0}, display_calls{0};
     std::atomic<int64_t> last_picture_clock{0}, last_progress_clock{0}, picture_gap_limit{750000};
     std::atomic<double> last_display_position{-1};
-    bool local = false, software_fallback = false, metadata_ready = false;
+    bool local = false, metadata_ready = false;
+    std::atomic<bool> software_fallback{false};
     int applied_audio = -2, applied_subtitle = -2;
     bool applied_pause = false;
     std::atomic<double> seek_target{0};
@@ -222,10 +225,33 @@ struct Player::Vlc {
     std::string description, telemetry;
     double fps = 0;
 
+    // Bounded, allocation-free measurements at two distinct output stages.
+    // VLC's callback clock is not the television's scanout clock; the main
+    // loop logs swap intervals separately. Averages alone hide short hitches.
+    struct Cadence {
+        hui::FrameStats intervals, lateness;
+        int64_t previous = 0;
+        int serial = -1;
+        void sample(int64_t now, double due, int generation) {
+            if (serial != generation) { previous = 0; serial = generation; }
+            if (previous > 0 && now > previous) intervals.add(double(now - previous) / 1000.0);
+            previous = now;
+            if (std::isfinite(due) && due > 0)
+                lateness.add(std::max(0.0, double(now) / 1000.0 - due * 1000.0));
+        }
+        void clear_window() { intervals.reset(); lateness.reset(); }
+    };
+    std::mutex cadence_mutex;
+    Cadence callback_cadence, pickup_cadence;
+    double last_source_stamp = 0;
+    uint64_t repeated_source_stamps = 0;
+
     std::mutex frames_mutex;
     std::vector<std::shared_ptr<Session>> sessions;
     std::shared_ptr<Session> current_session;
     VideoFrame next_format;
+    unsigned next_coded_width = 0, next_coded_height = 0;
+    bool next_visible_origin_zero = false;
     video_format_t subtitle_format{};
 
     mutable std::mutex time_mutex;
@@ -331,6 +357,10 @@ struct Player::Vlc {
         frame.full_range = format->b_color_range_full;
         const unsigned width = format->i_visible_width ? format->i_visible_width : format->i_width;
         const unsigned height = format->i_visible_height ? format->i_visible_height : format->i_height;
+        self.next_coded_width = format->i_width;
+        self.next_coded_height = format->i_height;
+        self.next_visible_origin_zero = format->i_x_offset == 0 && format->i_y_offset == 0 &&
+            format->i_visible_width > 0 && format->i_visible_height > 0;
         frame.w = int(width);
         frame.h = int(height);
         frame.display_aspect = height ? double(width) / height : 16.0 / 9.0;
@@ -361,15 +391,28 @@ struct Player::Vlc {
             const bool interleaved = nv12 || p010;
             std::memcpy(chroma, interleaved ? (ten ? "P010" : "NV12") : (ten ? "I0AL" : "I420"), 4);
             VideoFrame frame;
-            { std::lock_guard lock(self.frames_mutex); frame = self.next_format; }
-            // VLC supplies coded dimensions here (for example 3840x2176).
-            // Request the visible source rectangle, preserving its 4K image
-            // without exposing codec padding or stretching the picture.
-            if (frame.w > 0 && frame.h > 0 && frame.w <= int(*width) && frame.h <= int(*height)) {
-                *width = unsigned(frame.w);
-                *height = unsigned(frame.h);
+            bool keep_coded_size = false;
+            {
+                std::lock_guard lock(self.frames_mutex);
+                frame = self.next_format;
+                keep_coded_size = self.next_visible_origin_zero &&
+                    self.next_coded_width == *width && self.next_coded_height == *height &&
+                    frame.w > 0 && frame.h > 0 && frame.w <= int(*width) && frame.h <= int(*height);
             }
-            frame.w = int(*width); frame.h = int(*height);
+            // Keep the decoder's padded allocation when its visible rectangle
+            // starts at zero. Patch 0025 preserves that rectangle in vmem, so
+            // VLC needs no intermediate format-conversion picture just to
+            // remove padding. The renderer already uploads only frame.w/h
+            // visible pixels using the coded planes' pitches and offsets.
+            // Cropped origins or missing/mismatched metadata retain the old
+            // normalization path instead of exposing an incorrect rectangle.
+            if (!keep_coded_size) {
+                if (frame.w > 0 && frame.h > 0 && frame.w <= int(*width) && frame.h <= int(*height)) {
+                    *width = unsigned(frame.w);
+                    *height = unsigned(frame.h);
+                }
+                frame.w = int(*width); frame.h = int(*height);
+            }
             frame.layout = interleaved ? VideoFrame::Layout::Nv12 : VideoFrame::Layout::Planar420;
             frame.wide = ten; frame.shift = p010 ? 6 : 0;
             frame.full_range = frame.full_range || full;
@@ -421,8 +464,8 @@ struct Player::Vlc {
             }
             { std::lock_guard lock(self.frames_mutex); self.sessions.push_back(session); self.current_session = session; }
             *opaque = session.get();
-            dlog("player/vlc: %.4s %ux%u, %d aligned slots of %zu KiB, GPU color conversion",
-                chroma, *width, *height, kSlots, size / 1024);
+            dlog("player/vlc: %.4s coded %ux%u, visible %dx%d, %d aligned slots of %zu KiB, GPU color conversion",
+                chroma, *width, *height, frame.w, frame.h, kSlots, size / 1024);
             return kSlots;
         } catch (...) {
             dlog("player/vlc: video output setup failed with an allocation exception");
@@ -508,6 +551,15 @@ struct Player::Vlc {
             ++self.dropped;
         }
         slot.frame.pts = pts;
+        {
+            std::lock_guard timing(self.cadence_mutex);
+            if (!self.parent.paused_ && !self.seeking) {
+                if (self.callback_cadence.serial == slot.frame.serial && slot.frame.presentation_time > 0 &&
+                    slot.frame.presentation_time == self.last_source_stamp) ++self.repeated_source_stamps;
+                self.callback_cadence.sample(now, slot.frame.presentation_time, slot.frame.serial);
+                self.last_source_stamp = slot.frame.presentation_time;
+            }
+        }
         if (std::abs(pts - self.last_display_position) > 0.0005 || !self.last_progress_clock) {
             self.last_display_position = pts;
             self.last_progress_clock = now;
@@ -530,7 +582,7 @@ struct Player::Vlc {
         std::lock_guard lock(self.audio_mutex);
         if (self.audio_paused) return;
         const size_t played = self.audio.render(reinterpret_cast<int16_t*>(output), size_t(length) / 4,
-            libvlc_clock() + self.audio_period_us, self.audio_gain);
+            libvlc_clock() + self.audio_period_us, self.audio_gain * playback_volume::gain(self.parent.volume()));
         self.rendered_audio_frames.fetch_add(played, std::memory_order_relaxed);
     }
     static void audio_play(void* opaque, const void* samples, unsigned count, int64_t pts) {
@@ -722,6 +774,8 @@ struct Player::Vlc {
         if (length > 0) parent.duration_ = double(length) / 1000;
         libvlc_media_stats_t stats{};
         libvlc_media_get_stats(media, &stats);
+        decoded_pictures = stats.i_decoded_video;
+        late_pictures = stats.i_lost_pictures;
         char line[512];
         const std::string summary = "VLC " + std::string(libvlc_get_version()) + " · " + join(codecs, " · ");
         snprintf(line, sizeof(line), "%s · %.3g fps · shown %llu · late %d · output drops %llu",
@@ -884,10 +938,11 @@ struct Player::Vlc {
     void run() {
         const char* arguments[] = {
             "--ignore-config", "--no-video-title-show", "--no-sub-autodetect-file", "--stats",
-            // Keep reference pictures intact when the input or decoder is
-            // temporarily late. Presentation can discard a decoded picture;
-            // skipping compressed P/B pictures corrupts the remainder of a GOP.
-            "--no-drop-late-frames", "--no-skip-frames", "--avcodec-skip-frame=0",
+            // VLC 3.0.24 reads drop-late-frames only in its video output:
+            // discard stale, fully decoded pictures instead of sending a
+            // catch-up burst through vmem/GL. Keep compressed-frame skipping
+            // disabled so the decoder retains every P/B reference picture.
+            "--drop-late-frames", "--no-skip-frames", "--avcodec-skip-frame=0",
             "--no-avcodec-hurry-up", "--no-avcodec-corrupted",
             "--aout=adummy",
 #ifdef PLATFORM_PS5_NATIVE
@@ -1085,6 +1140,7 @@ Player::~Player() { close(); }
 void Player::open(const Options& options) {
     close();
     opts_ = options;
+    set_volume(options.volume_percent);
     if (!std::isfinite(opts_.start)) opts_.start = 0;
     opts_.start = std::max(0.0, opts_.start);
     if (!std::isfinite(opts_.progressive_resume_limit)) opts_.progressive_resume_limit = 0;
@@ -1112,6 +1168,10 @@ std::string Player::error() const {
 void Player::set_paused(bool paused) {
     paused_ = paused;
     if (vlc_) {
+        {
+            std::lock_guard timing(vlc_->cadence_mutex);
+            vlc_->callback_cadence.previous = vlc_->pickup_cadence.previous = 0;
+        }
         vlc_->set_clock_running(!paused && vlc_->native_playing && vlc_->buffering_percent >= 100);
         if (!paused) vlc_->last_progress_clock = libvlc_clock();
     }
@@ -1216,6 +1276,10 @@ bool Player::take_frame(VideoFrame& output) {
     const double known = vlc_->known_seek;
     if (output.pts > known) vlc_->known_seek = output.pts;
     ++vlc_->shown;
+    if (!paused_) {
+        std::lock_guard timing(vlc_->cadence_mutex);
+        vlc_->pickup_cadence.sample(libvlc_clock(), output.presentation_time, output.serial);
+    }
     return true;
 }
 
@@ -1228,6 +1292,11 @@ std::string Player::codec_summary() const {
     if (!vlc_) return {};
     std::lock_guard lock(vlc_->info_mutex);
     return vlc_->description;
+}
+double Player::source_fps() const {
+    if (!vlc_) return 0;
+    std::lock_guard lock(vlc_->info_mutex);
+    return vlc_->fps;
 }
 void Player::log_stats() {
     if (!vlc_ || (state_ != State::Opening && state_ != State::Playing)) return;
@@ -1246,6 +1315,30 @@ void Player::log_stats() {
             double(vlc_->rendered_audio_frames.load()) / VlcAudioTimeline::rate);
     vlc_->last_log = now; vlc_->last_shown = shown; vlc_->last_dropped = dropped;
     dlog("player/vlc: audio_route=%s passthrough=%d", vlc_->audio_mode_status.load(), int(vlc_->passthrough_active.load()));
+    double source_fps = 0;
+    { std::lock_guard lock(vlc_->info_mutex); source_fps = vlc_->fps; }
+    const char* decoder = hardware_decoders.load() > 0 ? "ps5-hardware" :
+        vlc_->opened_video.load() ? "software" : "pending";
+    dlog("player/vlc: decoder=%s hardware_available=%d software_fallback=%d source_fps=%.6f "
+         "decoded=%d vout_lost_pictures=%d vmem_drops=%llu",
+         decoder, int(HwDecoder::available()), int(vlc_->software_fallback.load()), source_fps,
+         vlc_->decoded_pictures.load(), vlc_->late_pictures.load(), (unsigned long long)dropped);
+    Vlc::Cadence callback, pickup;
+    uint64_t repeated = 0;
+    {
+        std::lock_guard timing(vlc_->cadence_mutex);
+        callback = vlc_->callback_cadence; pickup = vlc_->pickup_cadence;
+        repeated = vlc_->repeated_source_stamps;
+        vlc_->callback_cadence.clear_window(); vlc_->pickup_cadence.clear_window();
+        vlc_->repeated_source_stamps = 0;
+    }
+    char callback_text[256], pickup_text[256];
+    callback.intervals.format(callback_text, sizeof(callback_text));
+    pickup.intervals.format(pickup_text, sizeof(pickup_text));
+    dlog("player/vlc cadence: callback {%s} pickup {%s} callback_late_mean_ms=%.3f callback_late_max_ms=%.3f "
+         "pickup_late_mean_ms=%.3f pickup_late_max_ms=%.3f repeated_source_timestamps=%llu",
+         callback_text, pickup_text, callback.lateness.mean_ms(), callback.lateness.max_ms(),
+         pickup.lateness.mean_ms(), pickup.lateness.max_ms(), (unsigned long long)repeated);
 }
 
 extern "C" int vlc_ps5_vdec_available() { return HwDecoder::available() ? 1 : 0; }
@@ -1254,4 +1347,8 @@ extern "C" void vlc_ps5_vdec_active(int active) { hardware_decoders.fetch_add(ac
 
 std::string Player::audio_output_status() const {
     return vlc_ ? vlc_->audio_mode_status.load() : "pcm";
+}
+
+bool Player::audio_passthrough_active() const {
+    return vlc_ && vlc_->passthrough_active.load();
 }

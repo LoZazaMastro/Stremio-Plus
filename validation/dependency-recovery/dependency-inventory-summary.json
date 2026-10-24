@@ -1,0 +1,132 @@
+{
+  "result": "PASS",
+  "file_count": 39,
+  "groups": [
+    {
+      "group": "core",
+      "proposed_zip": "Stremio-Plus-0.5.19-dependencies-core.zip",
+      "member_count": 36,
+      "input_bytes": 355595510,
+      "input_decimal_mb": 355.596,
+      "maximum_zip_bytes": 500000000,
+      "zip_created": false,
+      "note": "Store the already compressed archives as files; materialize symlink targets.",
+      "archive_members": [
+        "Stremio-Plus-0.5.19-dependencies/downloads/ps5-payload-sdk-v0.42.zip",
+        "Stremio-Plus-0.5.19-dependencies/downloads/ps5-opengl-sdk-1.0.0.tar.gz",
+        "Stremio-Plus-0.5.19-dependencies/downloads/zlib-1.3.2.tar.gz",
+        "Stremio-Plus-0.5.19-dependencies/media/vlc-3.0.24.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/zlib-1.3.1.tar.gz",
+        "Stremio-Plus-0.5.19-dependencies/media/ffmpeg-8.1.2.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/dav1d-1.5.4.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/libebml-1.4.6.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/libmatroska-1.7.2.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/libdvbpsi-1.3.3.tar.bz2",
+        "Stremio-Plus-0.5.19-dependencies/media/fribidi-1.0.16.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/harfbuzz-10.4.0.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/gmp-6.3.0.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/nettle-3.10.2.tar.gz",
+        "Stremio-Plus-0.5.19-dependencies/media/gnutls-3.8.13.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/libxml2-2.15.3.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/libass-0.17.5.tar.xz",
+        "Stremio-Plus-0.5.19-dependencies/media/libiconv-1.18.tar.gz",
+        "Stremio-Plus-0.5.19-dependencies/media/utf8cpp-3.2.5.tar.gz",
+        "Stremio-Plus-0.5.19-dependencies/git/ps5-native-app-boilerplate-f98de734b68b.bundle",
+        "Stremio-Plus-0.5.19-dependencies/git/ps5-native-app-boilerplate-f98de734b68b.bundle.shallow",
+        "Stremio-Plus-0.5.19-dependencies/git/MkPFS-6cb8313dfe0c.bundle",
+        "Stremio-Plus-0.5.19-dependencies/git/MkPFS-6cb8313dfe0c.bundle.shallow",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/cffi-2.1.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/customtkinter-6.0.0-py3-none-any.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/darkdetect-0.8.0-py3-none-any.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/isal-1.8.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/mkpfs-1.0.0-py3-none-any.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/packaging-26.3-py3-none-any.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/pycparser-3.12-py3-none-any.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/zlib_ng-1.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/requirements-offline.txt",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/SHA256SUMS",
+        "Stremio-Plus-0.5.19-dependencies/packaging-wheels/wheel-manifest.json"
+      ]
+    },
+    {
+      "group": "pacbrew",
+      "proposed_zip": "Stremio-Plus-0.5.19-dependencies-pacbrew.zip",
+      "member_count": 1,
+      "input_bytes": 346233940,
+      "input_decimal_mb": 346.234,
+      "maximum_zip_bytes": 500000000,
+      "zip_created": false,
+      "note": "Store the already compressed archives as files; materialize symlink targets.",
+      "archive_members": [
+        "Stremio-Plus-0.5.19-dependencies/downloads/ps5-payload-dev-v0.40.2.tar.gz"
+      ]
+    }
+  ],
+  "missing_source_archives": 17,
+  "status": "FROZEN_FOR_LOCAL_PACKAGING",
+  "production_source_tree_sha256": "9016a56286cf954b99942ccb067acea4cf39297c36fa288be7a69da03baf5144",
+  "receipts": {
+    "ps5": {
+      "receipt": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc/build-receipt-ps5.json",
+      "receipt_sha256": "6a4081c4c7a923db249da0a0f277c92f79bdcaaa2cbe3f32bc7d690b3ef0e5ba",
+      "archive_count": 132,
+      "static_archive_bytes": 67395390,
+      "checksum_verification": "PASS"
+    },
+    "host": {
+      "receipt": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/.deps/vlc-host/build-receipt-host.json",
+      "receipt_sha256": "eab79287276875ddcfcee66026dbae0d661c453d63fdbf19ab3ce522fc9f49c4",
+      "archive_count": 129,
+      "static_archive_bytes": 99857114,
+      "checksum_verification": "PASS"
+    }
+  },
+  "immutable_input_records_unchanged": true,
+  "restore_helper_unchanged": true,
+  "helper_test_evidence": {
+    "path": "/workspace/scratch/7fa7f080734e/validation-current/offline-restore-helper-tests.json",
+    "bytes": 4464,
+    "sha256": "bf7628174fe86890e5911d2127bbe9226562ec18f82f5733f9aa9034e214e882"
+  },
+  "support_files": [
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/README.md",
+      "bytes": 5897,
+      "sha256": "cce67daf440fa07685e396f8ba40743159b2ee7c3b2f593956703cb6695c73a1"
+    },
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/inventory.json",
+      "bytes": 173639,
+      "sha256": "e0f802276cad421610b9f4f4bffc5a4aa177960660c3843b2b83920d7b0464f7"
+    },
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/restore-cache.py",
+      "bytes": 10952,
+      "sha256": "7c04e79d3607c50a7bbcdcc63891702a4d822987d2adb90a779e90d3148f941b"
+    },
+    {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/bundle-support/SHA256SUMS",
+      "bytes": 4262,
+      "sha256": "430883cb3f671d080b62fae63c2479d35047dbe0f5641bda6417355ca349e49b"
+    }
+  ],
+  "support_bytes": 194750,
+  "final_host_geometry": {
+    "result": "PASS",
+    "cases": 5,
+    "frames_per_case": 30,
+    "report": {
+      "path": "/workspace/scratch/7fa7f080734e/Stremio-Plus-work/build/tests/player-geometry/result.json",
+      "bytes": 50932,
+      "sha256": "6b27b14ae44660ed0f666b221dd33d7b468551bff3c96aa492ab0d2947034612"
+    },
+    "log": {
+      "path": "/workspace/scratch/7fa7f080734e/validation-current/player-geometry-final.log",
+      "bytes": 3730,
+      "sha256": "19211b6d4c8b2c7704114756a59858c7fbf6005e3ea1a638116e104916af207c"
+    },
+    "known_nonzero_sps_crop": "Separate pre-existing FAIL, unchanged baseline/candidate; see upstream-vlc-review/review.json"
+  }
+}

@@ -13,6 +13,7 @@ std::vector<Range> ranges;
 std::map<GLuint, Range> reservations;
 std::map<GLuint, GLuint> attachments;
 std::vector<GLuint> generated;
+std::vector<std::pair<GLenum,GLenum>> allocation_targets;
 int allocation_index = 0, fail_at = 0, draws = 0, deletes = 0, binds = 0;
 int deletes_while_attached = 0;
 GLenum pending_error = GL_NO_ERROR;
@@ -23,17 +24,22 @@ size_t aligned(size_t value, size_t alignment) {
     return (value + alignment - 1) / alignment * alignment;
 }
 
-bool reserve(GLuint texture, GLenum format, unsigned width, unsigned height) {
+bool reserve(GLuint texture, GLenum target, GLenum format, unsigned width, unsigned height) {
     // Exact single-level native footprints from ps5-opengl dce74910:
-    // RGBA8 is tiled; R16/RG16 have linear storage plus render staging.
+    // The 2D RGBA8 output is tiled. Rectangle sampled planes remain linear,
+    // but Mesa's advisory render-target bind also reserves render staging.
+    // Those planes are never attached to a framebuffer or drawn into.
     size_t bytes = 0, alignment = 0;
-    if (format == GL_RGBA8) {
+    if (target == GL_TEXTURE_2D && format == GL_RGBA8) {
         bytes = aligned(size_t((width+127)/128)*((height+127)/128)*65536, 2097152);
         alignment = 2097152;
-    } else if (format == GL_R16) {
-        const size_t linear = aligned(size_t(width)*2,256)*height;
-        const size_t tiled = size_t((width+255)/256)*((height+127)/128)*65536;
-        bytes = aligned(linear,65536)+tiled; alignment = 65536;
+    } else if (target == GL_TEXTURE_RECTANGLE &&
+               (format==GL_R8 || format==GL_RG8 || format==GL_R16 || format==GL_RG16 || format==GL_RGBA8)) {
+        const size_t bpp=format==GL_R8?1:format==GL_R16||format==GL_RG8?2:4;
+        const size_t tw=bpp<=2?256:128, th=bpp==1?256:128;
+        const size_t linear=aligned(size_t(width)*bpp,256)*height;
+        const size_t tiled=size_t((width+tw-1)/tw)*((height+th-1)/th)*65536;
+        bytes=aligned(aligned(linear,65536)+tiled,65536); alignment=65536;
     } else { check(false,"fragmentation model only admits its audited formats"); return false; }
     for (size_t i = 0; i < ranges.size(); ++i) {
         const auto range = ranges[i];
@@ -50,12 +56,14 @@ bool reserve(GLuint texture, GLenum format, unsigned width, unsigned height) {
     return false;
 }
 
-bool fail_storage(GLenum format, unsigned width, unsigned height) {
+bool fail_storage(GLenum target, GLenum format, unsigned width, unsigned height) {
     ++allocation_index;
+    allocation_targets.emplace_back(target,format);
     bool fail = fail_at && allocation_index == fail_at;
     if (model) {
-        GLint texture = 0; glGetIntegerv(GL_TEXTURE_BINDING_2D,&texture);
-        fail = !reserve(GLuint(texture),format,width,height);
+        GLint texture = 0;
+        glGetIntegerv(target==GL_TEXTURE_RECTANGLE?GL_TEXTURE_BINDING_RECTANGLE:GL_TEXTURE_BINDING_2D,&texture);
+        fail = !reserve(GLuint(texture),target,format,width,height);
     }
     if (fail) pending_error = GL_OUT_OF_MEMORY;
     return fail;
@@ -108,11 +116,11 @@ void __wrap_glDeleteFramebuffers(GLsizei n,const GLuint* names) {
     __real_glDeleteFramebuffers(n,names);
 }
 void __wrap_glTexStorage2D(GLenum target,GLsizei levels,GLenum format,GLsizei width,GLsizei height) {
-    if(!fail_storage(format,width,height)) __real_glTexStorage2D(target,levels,format,width,height);
+    if(!fail_storage(target,format,width,height)) __real_glTexStorage2D(target,levels,format,width,height);
 }
 void __wrap_glTexImage2D(GLenum target,GLint level,GLint internal,GLsizei width,GLsizei height,
                        GLint border,GLenum format,GLenum type,const void* data) {
-    if(!fail_storage(GLenum(internal),width,height))
+    if(!fail_storage(target,GLenum(internal),width,height))
         __real_glTexImage2D(target,level,internal,width,height,border,format,type,data);
 }
 GLenum __wrap_glGetError() {
@@ -144,12 +152,16 @@ int main() {
         auto next=solid(Layout::Planar420,true,0,504,512,512,128,72);
         check(gpu.upload(old),"initial picture before failure is displayed");
         drain_errors();
-        allocation_index=0;fail_at=failed_allocation;generated.clear();
+        allocation_index=0;fail_at=failed_allocation;generated.clear();allocation_targets.clear();
         const int before_draws=draws,before_attached=deletes_while_attached;
         check(!gpu.upload(next),"every exhausted allocation rejects the incomplete picture");
         check(gpu.last_failure()==VideoGl::Failure::Allocation,"allocation failure is classified separately from bad frame data");
         check(draws==before_draws,"no GPU draw is submitted after any allocation failure");
         check(gpu.texture()==0,"failed reconfiguration exposes no incomplete output texture");
+        check(!allocation_targets.empty() && allocation_targets[0]==std::pair<GLenum,GLenum>{GL_TEXTURE_2D,GL_RGBA8},
+              "the large 2D render target is allocated before any input plane");
+        check(std::all_of(allocation_targets.begin()+1,allocation_targets.end(),[](auto entry){return entry.first==GL_TEXTURE_RECTANGLE;}),
+              "injected plane failures exercise rectangle storage, not stale 2D bindings");
         check(deletes_while_attached==before_attached,"reconfiguration detaches old FBO storage before deletion");
         for(auto texture:generated) check(!glIsTexture(texture),"failure releases every partial texture object");
         fail_at=0;drain_errors();
@@ -207,6 +219,23 @@ int main() {
         pending_error=GL_INVALID_ENUM;
         check(gpu.upload(f),"preexisting unrelated UI error does not reject a valid source frame");
         check(glGetError()==GL_NO_ERROR,"resource setup separates and consumes the prior UI error");
+    }
+    {
+        VideoGl gpu;check(gpu.init(),"1080p rectangle budget test initializes real GPU shader");
+        constexpr size_t MiB=1048576;
+        // A 1080p SDR frame exercises the actual R8 path affected by CPU
+        // tiling. Count the driver-reserved staging too, even though no input
+        // rectangle is rendered into and upload maps its linear storage.
+        auto f=solid(Layout::Planar420,false,0,126,128,128,1920,1080);
+        ranges={{0,20*MiB}}; reservations.clear();allocation_targets.clear();
+        allocation_index=0;model=true;
+        check(gpu.upload(f),"1080p rectangle inputs and 2D output fit the audited native budget");
+        size_t used=0;for(auto [texture,range]:reservations) used+=range.bytes;
+        check(used==18087936,"1080p native accounting includes linear R8 planes plus their reserved staging");
+        check(reservations.size()==4,"rectangle budget tracks four distinct texture allocations");
+        if(gpu.texture()) near(read_texture(gpu,f.w,f.h),128,128,128,1,"budgeted rectangle upload preserves the 1080p image");
+        gpu.clear();check(reservations.empty(),"rectangle input and 2D output reservations all release after stop");
+        model=false;drain_errors();
     }
     eglMakeCurrent(display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT);
     eglDestroyContext(display,context);eglTerminate(display);

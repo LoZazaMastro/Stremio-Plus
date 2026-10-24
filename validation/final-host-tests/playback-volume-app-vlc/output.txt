@@ -1,0 +1,6 @@
+PCM initial 50 percent frames=17408 left=6000 right=6000 expected=6000
+PCM 100 percent frames=17408 left=12000 right=12000 expected=12000
+PCM mute frames=17408 left=0 right=0 expected=0
+PCM 25 percent after mute frames=17408 left=3000 right=3000 expected=3000
+PCM upper clamp frames=17408 left=12000 right=12000 expected=12000
+{"result":"PASS","checks":71,"actual_pcm_capture":true,"mocked_bitstream_route":true}

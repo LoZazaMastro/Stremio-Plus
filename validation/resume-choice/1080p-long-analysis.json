@@ -1,0 +1,190 @@
+{
+  "session": "1a169d41e94-d2",
+  "scope": "Uploaded Downloads(4).zip, current 0.5.19 console session only; no current-console execution by this agent.",
+  "stable_player_windows": [
+    {
+      "utc": "2026-10-23T17:35:12.092Z",
+      "callback_frames": 751,
+      "callback_mean_ms": 40.0,
+      "callback_max_ms": 44.54,
+      "pickup_frames": 668,
+      "pickup_mean_ms": 44.94,
+      "pickup_max_ms": 58.88
+    },
+    {
+      "utc": "2026-10-23T17:35:42.107Z",
+      "callback_frames": 750,
+      "callback_mean_ms": 40.0,
+      "callback_max_ms": 40.1,
+      "pickup_frames": 671,
+      "pickup_mean_ms": 44.73,
+      "pickup_max_ms": 58.3
+    },
+    {
+      "utc": "2026-10-23T17:36:12.122Z",
+      "callback_frames": 750,
+      "callback_mean_ms": 40.0,
+      "callback_max_ms": 40.1,
+      "pickup_frames": 671,
+      "pickup_mean_ms": 44.73,
+      "pickup_max_ms": 65.1
+    },
+    {
+      "utc": "2026-10-23T17:36:42.164Z",
+      "callback_frames": 751,
+      "callback_mean_ms": 40.0,
+      "callback_max_ms": 40.09,
+      "pickup_frames": 672,
+      "pickup_mean_ms": 44.71,
+      "pickup_max_ms": 58.44
+    },
+    {
+      "utc": "2026-10-23T17:37:12.175Z",
+      "callback_frames": 751,
+      "callback_mean_ms": 40.0,
+      "callback_max_ms": 41.85,
+      "pickup_frames": 671,
+      "pickup_mean_ms": 44.72,
+      "pickup_max_ms": 58.28
+    },
+    {
+      "utc": "2026-10-23T17:37:42.193Z",
+      "callback_frames": 750,
+      "callback_mean_ms": 40.0,
+      "callback_max_ms": 40.09,
+      "pickup_frames": 671,
+      "pickup_mean_ms": 44.74,
+      "pickup_max_ms": 58.6
+    },
+    {
+      "utc": "2026-10-23T17:38:12.204Z",
+      "callback_frames": 750,
+      "callback_mean_ms": 40.0,
+      "callback_max_ms": 40.07,
+      "pickup_frames": 670,
+      "pickup_mean_ms": 44.79,
+      "pickup_max_ms": 58.59
+    }
+  ],
+  "stable_presentation_windows": [
+    {
+      "utc": "2026-10-23T17:35:32.302Z",
+      "upload_frames": 671,
+      "upload_mean_ms": 42.94,
+      "upload_max_ms": 47.52,
+      "swap_frames": 671,
+      "swap_mean_ms": 44.73,
+      "swap_max_ms": 58.85
+    },
+    {
+      "utc": "2026-10-23T17:36:02.338Z",
+      "upload_frames": 672,
+      "upload_mean_ms": 42.91,
+      "upload_max_ms": 47.18,
+      "swap_frames": 672,
+      "swap_mean_ms": 44.7,
+      "swap_max_ms": 58.78
+    },
+    {
+      "utc": "2026-10-23T17:36:32.366Z",
+      "upload_frames": 671,
+      "upload_mean_ms": 42.95,
+      "upload_max_ms": 49.34,
+      "swap_frames": 671,
+      "swap_mean_ms": 44.75,
+      "swap_max_ms": 65.24
+    },
+    {
+      "utc": "2026-10-23T17:37:02.367Z",
+      "upload_frames": 671,
+      "upload_mean_ms": 42.93,
+      "upload_max_ms": 46.71,
+      "swap_frames": 671,
+      "swap_mean_ms": 44.71,
+      "swap_max_ms": 58.34
+    },
+    {
+      "utc": "2026-10-23T17:37:32.384Z",
+      "upload_frames": 671,
+      "upload_mean_ms": 42.95,
+      "upload_max_ms": 47.39,
+      "swap_frames": 671,
+      "swap_mean_ms": 44.73,
+      "swap_max_ms": 58.37
+    },
+    {
+      "utc": "2026-10-23T17:38:02.400Z",
+      "upload_frames": 670,
+      "upload_mean_ms": 42.95,
+      "upload_max_ms": 48.81,
+      "swap_frames": 670,
+      "swap_mean_ms": 44.8,
+      "swap_max_ms": 58.51
+    }
+  ],
+  "decoder_events": [
+    {
+      "utc": "2026-10-23T17:34:37.875Z",
+      "message": "vlc/libvlc: ps5vdec: rejected stage=memory-query rc=0x811d0200 level=52 pipeline=4"
+    },
+    {
+      "utc": "2026-10-23T17:34:37.875Z",
+      "message": "vlc/libvlc: ps5vdec: retry pipeline=4 -> 1 rc=0x811d0200"
+    },
+    {
+      "utc": "2026-10-23T17:34:37.895Z",
+      "message": "vlc/libvlc: ps5vdec: rejected stage=memory-query rc=0x811d0200 level=52 pipeline=1"
+    },
+    {
+      "utc": "2026-10-23T17:34:37.895Z",
+      "message": "vlc/libvlc: ps5vdec: rejected stage=[opaque:redacted] rc=0x811d0200"
+    },
+    {
+      "utc": "2026-10-23T17:34:38.056Z",
+      "message": "player/vlc: decoder=pending hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=0 vout_lost_pictures=0 vmem_drops=0"
+    },
+    {
+      "utc": "2026-10-23T17:34:40.058Z",
+      "message": "player/vlc: decoder=pending hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=0 vout_lost_pictures=0 vmem_drops=0"
+    },
+    {
+      "utc": "2026-10-23T17:34:42.084Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=2 vout_lost_pictures=0 vmem_drops=0"
+    },
+    {
+      "utc": "2026-10-23T17:35:12.092Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=1547 vout_lost_pictures=0 vmem_drops=83"
+    },
+    {
+      "utc": "2026-10-23T17:35:42.107Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=3043 vout_lost_pictures=0 vmem_drops=162"
+    },
+    {
+      "utc": "2026-10-23T17:36:12.122Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=4559 vout_lost_pictures=0 vmem_drops=241"
+    },
+    {
+      "utc": "2026-10-23T17:36:42.164Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=6043 vout_lost_pictures=0 vmem_drops=320"
+    },
+    {
+      "utc": "2026-10-23T17:37:12.175Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=7551 vout_lost_pictures=0 vmem_drops=400"
+    },
+    {
+      "utc": "2026-10-23T17:37:42.193Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=9047 vout_lost_pictures=0 vmem_drops=479"
+    },
+    {
+      "utc": "2026-10-23T17:38:12.204Z",
+      "message": "player/vlc: decoder=software hardware_available=1 software_fallback=0 source_fps=25.000000 decoded=10555 vout_lost_pictures=0 vmem_drops=559"
+    }
+  ],
+  "totals": {
+    "callback_frames": 5253,
+    "pickup_frames": 4694,
+    "difference": 559,
+    "difference_percent": 10.641538168665525
+  },
+  "inference": "Software decode supplies 25 fps; the app consumes about 22.3 fps while VideoGl::upload costs about 43 ms. The decoder query failure is separate from the demonstrated app-side frame loss."
+}

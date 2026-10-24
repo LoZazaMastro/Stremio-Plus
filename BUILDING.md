@@ -1,24 +1,73 @@
 # Building Stremio Plus
 
+## Release 0.5.20
+
+This release adds an explicit beginning/resume choice before every playback
+request, including online and downloaded next episodes. Sampled video input
+planes use rectangle textures to avoid the pinned PS5 driver's per-pixel CPU
+tiling. It also includes the Home loading, device-session, presentation and
+right-stick volume changes developed after 0.5.18. See [CHANGELOG.md](CHANGELOG.md)
+for the changes since the previous public release.
+
+The build verification record is
+[`docs/LOCAL_0_5_20_VALIDATION.md`](docs/LOCAL_0_5_20_VALIDATION.md).
+Earlier checks remain in
+[`docs/LOCAL_0_5_19_VALIDATION.md`](docs/LOCAL_0_5_19_VALIDATION.md), with
+Italian console-test instructions in [`docs/PROVA_PS5_IT.md`](docs/PROVA_PS5_IT.md).
+These dated records retain the context and results of their original checks.
+
+After completing the desktop and patched host-VLC builds described below,
+run the focused checks for this version:
+
+```sh
+python3 tests/run_video_gl_tests.py
+python3 tests/run_video_gl_allocation_tests.py
+python3 tests/run_ps5vdec_startup_tests.py
+python3 tests/run-diagnostics-tests.py
+python3 tests/run_playback_choice_tests.py build/desktop
+python3 tests/run_download_app_tests.py build/desktop
+python3 tests/run_next_episode_tests.py build/desktop
+python3 tests/run_home_startup_tests.py build/desktop
+python3 tests/run_home_ui_tests.py build/desktop
+python3 tests/run_interaction_tests.py build/desktop
+python3 tests/run_account_tests.py build/desktop
+python3 tests/run_playback_volume_tests.py
+python3 tests/run_vp9_output_tests.py
+python3 tests/run_playback_volume_app_tests.py build/desktop
+python3 tests/run_playback_volume_app_tests.py build/host-vlc
+python3 tests/run_player_geometry_tests.py build/host-vlc
+python3 tests/run_player_memory_tests.py build/host-vlc
+python3 tests/run_player_cadence_tests.py build/host-vlc
+python3 tests/run_vp9_output_tests.py --ffmpeg-prefix .deps/vlc-host/prefix-host
+```
+
+The account and interaction runners use the desktop FFmpeg target. Volume
+and startup runners inherit the selected target's build definitions and can
+also link the host-VLC target. The cadence runner requires the patched static
+host-VLC build. These are local tests with controlled boundaries, not a PS5
+hardware validation or a live Stremio logout experiment.
+
+The optional geometry diagnostic `--include-known-crop` reproduces a
+pre-existing nonzero H.264 SPS crop limitation and intentionally returns
+failure while it remains. Its evidence is recorded separately from the five
+regular cases; do not count that diagnostic as a passed pixel test.
+
+## Build environment
+
 The project has a native PS5 target and a Linux development target. Run the
 commands below from the repository root. Linux or WSL with Ubuntu 24.04 is
 the reference build environment.
 
 ## Source delivery
 
-Use [tag 0.5.18](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.18)
-for the source corresponding to the 0.5.18 native packages. GitHub provides
-ZIP and tar.gz downloads of that tag on the
-[release page](https://github.com/LoZazaMastro/Stremio-Plus/releases/tag/0.5.18),
-or check it out directly:
-
-```sh
-git clone --branch 0.5.18 --depth 1 https://github.com/LoZazaMastro/Stremio-Plus.git
-cd Stremio-Plus
-```
+Use the [0.5.20 source tag](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.20)
+or extract the corresponding source archive, then run the commands below from
+the repository root. The
+[0.5.18 tag](https://github.com/LoZazaMastro/Stremio-Plus/tree/0.5.18)
+remains available for reproducing the previous public release.
 
 The repository contains the application source and assets, the modified
-EVO Player components, vendored UI source, all 24 numbered VLC patches,
+EVO Player components, vendored UI source, all 25 numbered VLC patches,
 dependency recipes and build scripts. Media dependency archive URLs are in
 [`vendor/vlc-ps5/sources.json`](vendor/vlc-ps5/sources.json), with exact
 checksums in [`vendor/vlc-ps5/sources.sha256`](vendor/vlc-ps5/sources.sha256).
@@ -26,18 +75,32 @@ checksums in [`vendor/vlc-ps5/sources.sha256`](vendor/vlc-ps5/sources.sha256).
 `.deps/vlc/dl/`, verifies them and applies the retained patches.
 [`tools/setup-toolchain.sh`](tools/setup-toolchain.sh) pins the native SDK
 and graphics dependencies. See **Dependency versions** below for their
-versions and source locations. No separate application-source archive is
-required beyond the release tag.
+versions and source locations. The separately supplied dependency bundles
+contain the available verified archives and offline Git snapshots; their
+README describes cache restoration and their checksum inventory. They do
+not contain the host operating system's compiler/development packages.
 
-The release also supplies `Stremio-Plus-0.5.18-source.zip` and
-`Stremio-Plus-0.5.18-dependency-source.zip` for a local copy of the application
-and its verified dependency archives. Extract both into the same directory,
-then run the build commands from
-`Stremio-Plus-0.5.18-source/repository/Stremio-Plus/`. The sibling
-`dependency-sources/` directory contains the pinned upstream archives and
-its own checksum list; `provenance/build-receipt.json` preserves the receipt
-from the accepted native build. The separate repository ZIP contains the
-application repository alone.
+For a build using the supplied dependency cache, extract both
+`Stremio-Plus-0.5.19-dependencies-core.zip` and
+`Stremio-Plus-0.5.19-dependencies-pacbrew.zip` beside `Stremio-Plus/`.
+They share one `Stremio-Plus-0.5.19-dependencies/` directory. After installing
+the prerequisites below, run from the source root:
+
+```sh
+python3.12 ../Stremio-Plus-0.5.19-dependencies/restore-cache.py "$PWD"
+BUILD_JOBS=4 ./build.sh ps5
+```
+
+The 0.5.20 update uses exactly the same dependency revisions,
+source archives and native media libraries as the supplied 0.5.19 bundles;
+those bundle names are intentional. The new application and its matching
+symbols must come from the 0.5.20 build.
+
+The helper validates every input before writing the cache and installs the
+pinned packaging tool from the included wheels. Those wheels target Linux
+x86_64 and CPython 3.12. It rejects conflicting cached files instead of
+overwriting them. It does not compile the application or install the host
+operating system's development packages.
 
 The [dependency source index](docs/DEPENDENCY_SOURCES.md) records exact
 source revisions and retrieval links for the native SDK, PacBrew libraries,
@@ -177,7 +240,7 @@ track the newest upstream release.
 | LLVM compiler-rt builtins used by the native build | `18.1.3`, Ubuntu package `1:18.1.3-1` |
 | [ps5-opengl](https://github.com/blackbearreloaded/ps5-opengl) | `v1.0.0` |
 | [ps5-homebrew-ui](https://github.com/blackbearreloaded/ps5-homebrew-ui) | `4bd942579dd981b3df9c740438489ca6a614ddc0` |
-| [VLC PS5](https://github.com/ZiZc3/VLC) | Supplied port `0.4`, exact archive identity in `vendor/vlc-ps5/NOTICE.md` |
+| [VLC PS5](https://github.com/ZiZc3/VLC) | Supplied port `0.4` with selected `v0.6.0` video-output/VP9 backports; exact source identities in `vendor/vlc-ps5/NOTICE.md` |
 | [VideoLAN VLC](https://www.videolan.org/vlc/) | `3.0.24` |
 | [FFmpeg](https://ffmpeg.org/) for the native VLC engine | `8.1.2` |
 | [dav1d](https://code.videolan.org/videolan/dav1d) | `1.5.4` |
@@ -188,6 +251,12 @@ track the newest upstream release.
 The UI sources are vendored. The remaining native dependencies are fetched
 by `tools/setup-toolchain.sh` and the pinned boilerplate's packaging setup.
 Archive hashes and the OpenGL SDK manifest are checked during setup.
+If the original `blackbearreloaded` endpoints are unavailable, setup tries
+the existing MyLuxy OpenGL asset mirror and drakmor boilerplate fork. The
+OpenGL archive hash and boilerplate commit remain unchanged; the full SDK
+manifest and runtime checksum still have to pass. See
+[dependency source provenance](docs/DEPENDENCY_SOURCES.md#verified-dependency-mirrors-23-october-2026)
+for the exact URLs, source archive identities and checks performed locally.
 The VLC engine is built by `tools/setup-vlc.sh`, using the retained recipes
 and patches in `vendor/vlc-ps5/`. That directory's `sources.json` and
 `sources.sha256` pin its media and TLS dependency archives. Downloads are

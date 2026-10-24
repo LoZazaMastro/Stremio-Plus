@@ -1,0 +1,34 @@
+ README.md                       |   2 +-
+ assets/fonts/DMMono-Medium.ttf  | Bin 0 -> 50360 bytes
+ assets/fonts/DMMono-OFL.txt     |  93 +++++
+ assets/fonts/DMMono-Regular.ttf | Bin 0 -> 49744 bytes
+ assets/lang/ar.txt              |  26 ++
+ assets/lang/de.txt              |  26 ++
+ assets/lang/es.txt              |  26 ++
+ assets/lang/fr.txt              |  26 ++
+ assets/lang/id.txt              |  26 ++
+ assets/lang/it.txt              |  26 ++
+ assets/lang/ja.txt              |  26 ++
+ assets/lang/ko.txt              |  26 ++
+ assets/lang/nl.txt              |  26 ++
+ assets/lang/pl.txt              |  26 ++
+ assets/lang/pt-BR.txt           |  26 ++
+ assets/lang/ru.txt              |  26 ++
+ assets/lang/tr.txt              |  26 ++
+ assets/lang/zh-CN.txt           |  26 ++
+ assets/lang/zh-TW.txt           |  26 ++
+ assets/setup/redesign.png       | Bin 0 -> 44963 bytes
+ host/build-app.sh               |   2 +-
+ ps5/build-title.sh              |   2 +
+ ps5/sce_sys/param-games.json    |   2 +-
+ ps5/sce_sys/param.json          |   2 +-
+ src/platform.h                  |   2 +-
+ src/platform_ps5.c              |  49 ++-
+ src/player.cc                   |  76 ++++
+ src/player.h                    |  11 +-
+ src/ui.cc                       | 808 ++++++++++++++++++++++++++++++++--------
+ src/ui_jux.inc                  | 501 +++++++++++++++++++++++++
+ src/ui_jux_icons.inc            | 192 ++++++++++
+ src/ui_jux_player.inc           | 479 ++++++++++++++++++++++++
+ src/ui_jux_settings.inc         | 169 +++++++++
+ 33 files changed, 2622 insertions(+), 158 deletions(-)

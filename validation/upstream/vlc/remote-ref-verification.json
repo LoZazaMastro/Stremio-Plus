@@ -1,0 +1,8 @@
+{
+  "checked_utc": "2026-10-23T11:56:43.987570+00:00",
+  "command": "git ls-remote https://github.com/ZiZc3/VLC.git HEAD refs/heads/main refs/tags/v0.6.0",
+  "HEAD": "c1862643f84b68d3b4f01cb484b887196093bfa2",
+  "refs/heads/main": "c1862643f84b68d3b4f01cb484b887196093bfa2",
+  "refs/tags/v0.6.0": "c0ffdca8351a3a7210eabae26897e36f83b26bd8",
+  "matches_reviewed": true
+}

@@ -1,0 +1,68 @@
+{
+  "pie.elf": {
+    "elfType": "0x3",
+    "entryPoint": "0x120",
+    "loadSegments": [
+      {
+        "flags": 5,
+        "vaddr": 0,
+        "fileBytes": 41610709,
+        "memoryBytes": 41610709
+      },
+      {
+        "flags": 4,
+        "vaddr": 41615360,
+        "fileBytes": 20615972,
+        "memoryBytes": 20615972
+      },
+      {
+        "flags": 6,
+        "vaddr": 62242816,
+        "fileBytes": 4083480,
+        "memoryBytes": 4083480
+      },
+      {
+        "flags": 6,
+        "vaddr": 66338816,
+        "fileBytes": 78632,
+        "memoryBytes": 11227448
+      }
+    ]
+  },
+  "eboot.elf": {
+    "elfType": "0xfe10",
+    "entryPoint": "0x120",
+    "loadSegments": [
+      {
+        "flags": 1,
+        "vaddr": 0,
+        "fileBytes": 41610709,
+        "memoryBytes": 41610709
+      },
+      {
+        "flags": 4,
+        "vaddr": 41615360,
+        "fileBytes": 20615972,
+        "memoryBytes": 20615972
+      },
+      {
+        "flags": 6,
+        "vaddr": 62242816,
+        "fileBytes": 1817488,
+        "memoryBytes": 1817488
+      },
+      {
+        "flags": 6,
+        "vaddr": 66338816,
+        "fileBytes": 78632,
+        "memoryBytes": 11227448
+      },
+      {
+        "flags": 0,
+        "vaddr": 77566272,
+        "fileBytes": 2274528,
+        "memoryBytes": 2274528
+      }
+    ]
+  }
+}
