@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -149,6 +150,24 @@ void serve_log(int fd, const std::string& path, const std::string& query, const 
     send_file_from(fd, path, from, false);
 }
 
+// Small files sent whole, one after the other, each under its name. A missing
+// file is reported as such; the receipts and boot files are a few KB at most.
+void serve_files(int fd, const std::string& directory, std::initializer_list<const char*> names) {
+    std::string body;
+    for (const char* name : names) {
+        body += "==== "; body += name; body += " ====\n";
+        std::FILE* file = std::fopen((directory + "/" + name).c_str(), "rb");
+        if (!file) { body += "(not present)\n\n"; continue; }
+        char chunk[4096];
+        size_t total = 0, n;
+        while ((n = std::fread(chunk, 1, sizeof(chunk), file)) > 0 && total < (1u << 20)) { body.append(chunk, n); total += n; }
+        std::fclose(file);
+        if (body.empty() || body.back() != '\n') body += '\n';
+        body += "\n";
+    }
+    send_text(fd, header(200, "OK", "text/plain", long(body.size()), false) + body);
+}
+
 void serve(int fd) {
     // One request line is enough: GET <path>[?query] HTTP/1.x
     char request[2048];
@@ -183,13 +202,19 @@ void serve(int fd) {
         { std::lock_guard<std::mutex> lock(g.mutex); body = g.status; }
         body += "\n";
         send_text(fd, header(200, "OK", "application/json", long(body.size()), false) + body);
+    } else if (path == "/crash" || path == "/crash.txt") {
+        serve_files(fd, directory, {"crash-last.txt", "crash-current.txt"});
+    } else if (path == "/boot" || path == "/boot.txt") {
+        serve_files(fd, directory, {"boot-last.txt", "boot-current.txt"});
     } else if (path == "/" || path.empty()) {
         const std::string body =
             "Stremio Plus diagnostics\n"
             "  /log            the last 256 KB of the log (?tail=KB, ?tail=all)\n"
             "  /log?follow=1   the last 16 KB, then new lines as they are written\n"
             "  /events         the event log (same options)\n"
-            "  /status         playback and output status as JSON\n";
+            "  /status         playback and output status as JSON\n"
+            "  /crash          the crash receipts (crash-last.txt, then crash-current.txt)\n"
+            "  /boot           the boot step files (boot-last.txt, then boot-current.txt)\n";
         send_text(fd, header(200, "OK", "text/plain", long(body.size()), false) + body);
     } else {
         const std::string body = "Not found\n";

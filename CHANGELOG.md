@@ -39,6 +39,30 @@
   over plain HTTP on port 9029 (`/log`, `/log?follow=1`, `/events`,
   `/status`) for testing from a computer on the same network. Off by default.
 
+- Crash receipts (`crash-current.txt` / `crash-last.txt`) now also hold the
+  raw words of the signal context and the return addresses found on the
+  crashed thread's stack, so a crash can be mapped to a function offline even
+  though the console's signal context layout differs from the SDK's. The
+  handler ends the process itself after writing the receipt instead of
+  handing the signal back to the console, whose own crash handling is the
+  suspected cause of the whole console shutting down after an app crash.
+- HDR output no longer asks the console anything at startup: the one video
+  output status call is made when the first HDR video plays.
+- Fix: the audio output module refused to load when VLC created the audio
+  output at media player creation, before the player had published its
+  callbacks ("no suitable audio output module"). It now loads and reads
+  them when a track starts.
+- The diagnostics server also serves `/crash` (the crash receipts) and
+  `/boot` (the boot step files).
+- Fix: playing a file with embedded cover art crashed the app (and, through
+  the console's crash handling, could shut the console down). VLC saved the
+  art to its cache and asked for the working directory through `pathconf`,
+  which only the system-process kernel library exports: the import was
+  address 0 in the running title. The native build now provides `pathconf`,
+  `fpathconf`, `openat`, `fstatat` and `fork` itself, the import check no
+  longer counts libkernel_sys as loaded, and VLC's cache directory is set to
+  an absolute path under the app's data folder.
+
 Engine: the native player's libVLC audio output is now the `stremioaout`
 module in `src/player_vlc_aout.cpp`, with a `stremiopass` decoder that
 hands compressed frames through; the VLC plugin list gains `tospdif`. Run

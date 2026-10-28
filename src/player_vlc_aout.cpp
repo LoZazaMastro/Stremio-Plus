@@ -170,9 +170,15 @@ bool start_multichannel(audio_output_t* aout, audio_sample_format_t* fmt, unsign
     return true;
 }
 
+bool bind_player(aout_sys_t* sys, vlc_object_t* object);
+
 int Start(audio_output_t* aout, audio_sample_format_t* fmt) {
     auto* sys = aout->sys;
     sys->path = Path::None;
+    if (!bind_player(sys, VLC_OBJECT(aout))) {
+        msg_Err(aout, "the player has not published its audio callbacks");
+        return VLC_EGENERIC;
+    }
     if (!AOUT_FMT_LINEAR(fmt)) {
         if (!start_bitstream(aout, fmt)) return VLC_EGENERIC;  // VLC decodes the track instead
         apply_volume(aout);
@@ -283,10 +289,11 @@ int MuteSet(audio_output_t* aout, bool mute) {
     return 0;
 }
 
-int Open(vlc_object_t* object) {
-    auto* aout = reinterpret_cast<audio_output_t*>(object);
-    auto* sys = new (std::nothrow) aout_sys_t;
-    if (!sys) return VLC_ENOMEM;
+// The player's callbacks and settings, published as variables on the media
+// player object. VLC creates the audio output (and calls Open) when the media
+// player is made, before the player has set them: so Open does not insist,
+// and Start reads them again, when they exist.
+bool bind_player(aout_sys_t* sys, vlc_object_t* object) {
     sys->opaque = var_InheritAddress(object, kVarOpaque);
     sys->play = inherit<play_cb>(object, kVarPlay);
     sys->pause = inherit<stamp_cb>(object, kVarPause);
@@ -297,11 +304,17 @@ int Open(vlc_object_t* object) {
     sys->note = inherit<note_cb>(object, kVarNote);
     sys->played = inherit<played_cb>(object, kVarPlayed);
     sys->sink = static_cast<const ps5audio::Sink*>(var_InheritAddress(object, kVarSink));
-    sys->mode = int(var_InheritInteger(object, kVarMode));
-    if (!sys->opaque || !sys->play) {
-        delete sys;
-        return VLC_EGENERIC;
-    }
+    // The integer is read only once the address variables exist: a lookup that
+    // falls through to the configuration logs an error for an unknown option.
+    sys->mode = sys->opaque ? int(var_InheritInteger(object, kVarMode)) : kStereo;
+    return sys->opaque && sys->play;
+}
+
+int Open(vlc_object_t* object) {
+    auto* aout = reinterpret_cast<audio_output_t*>(object);
+    auto* sys = new (std::nothrow) aout_sys_t;
+    if (!sys) return VLC_ENOMEM;
+    bind_player(sys, object);
     aout->sys = sys;
     aout->start = Start;
     aout->stop = Stop;

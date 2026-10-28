@@ -293,6 +293,11 @@ version, the steps that triggered it, and these files:
 - `runtime.json`
 - `crash-current.txt` and `crash-last.txt`, if present
 
+Settings → Diagnostics server publishes the same files over plain HTTP on
+port 9029 for a computer on the same network: `/log` (add `?follow=1` to
+stream it), `/events`, `/status`, `/crash` and `/boot`. It is off by default
+and has no authentication, so use it on a home network only.
+
 For download problems, include when the slowdown started and whether a video
 was playing at the time. Checkpoint failures record the operation that failed
 and its system error code. Storage errors also record the measured capacity

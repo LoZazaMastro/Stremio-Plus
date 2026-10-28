@@ -16,9 +16,11 @@
 #include <ctime>
 #include <fcntl.h>
 #include <mutex>
+#include <pthread.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <thread>
+#include <type_traits>
 #include <unistd.h>
 #include <vector>
 #if defined(__linux__) || defined(PLATFORM_PS5)
@@ -435,8 +437,17 @@ struct CrashRecord {
     }
 };
 
+// pthread_t is a pointer on the console and an integer on Linux.
+template <class T> std::uintptr_t thread_bits(T value) {
+    if constexpr (std::is_pointer_v<T>) return reinterpret_cast<std::uintptr_t>(value);
+    else return std::uintptr_t(value);
+}
+
 void crash_handler(int signal_number, siginfo_t* info, void* context) {
     if (handling_crash.exchange(1, std::memory_order_relaxed) == 0) {
+        const auto at = reinterpret_cast<std::uintptr_t>(context);
+        const auto stack_begin = reinterpret_cast<std::uintptr_t>(crash_stack);
+        const bool on_crash_stack = at >= stack_begin && at < stack_begin + sizeof(crash_stack);
         CrashRecord record;
         record.header();
         record.literal("signal=");
@@ -452,9 +463,14 @@ void crash_handler(int signal_number, siginfo_t* info, void* context) {
         }
 #elif defined(PLATFORM_PS5) && defined(__x86_64__)
         if (context) {
-            const auto* machine = static_cast<const ucontext_t*>(context);
-            pc = std::uintptr_t(machine->uc_mcontext.mc_rip);
-            sp = std::uintptr_t(machine->uc_mcontext.mc_rsp);
+            // The console's signal context is a 64-byte signal mask followed
+            // by FreeBSD's amd64 mcontext (read off a receipt on hardware,
+            // 2026-10-27: cs 0x43, ss 0x3b and the trap number sit where this
+            // layout puts them). The SDK's ucontext_t has a 16-byte mask, so
+            // its mc_rip and mc_rsp land 48 bytes early.
+            const auto* words = static_cast<const std::uintptr_t*>(context);
+            pc = words[28];  // mc_rip
+            sp = words[31];  // mc_rsp
         }
 #else
         (void)context;
@@ -468,13 +484,68 @@ void crash_handler(int signal_number, siginfo_t* info, void* context) {
         record.literal(" anchor="); record.hex(reinterpret_cast<std::uintptr_t>(&diagnostics_start));
         record.literal(" abort_caller="); record.hex(last_abort_caller.load(std::memory_order_relaxed));
         record.literal(" assert_caller="); record.hex(last_assert_caller.load(std::memory_order_relaxed));
+        record.literal(" utc_seconds="); record.number(std::uint64_t(::time(nullptr)));
+        record.literal(" thread="); record.hex(thread_bits(pthread_self()));
+        record.literal(" main_thread="); record.number(on_crash_stack ? 1 : 0);
         record.cached_heap();
         record.finish(true);
+        // The raw words of the signal information and of the context follow,
+        // so the registers can be read offline even if a firmware changes the
+        // layout again.
+        if (info) {
+            CrashRecord raw;
+            raw.header();
+            raw.literal("event=siginfo words=");
+            const auto* words = reinterpret_cast<const std::uintptr_t*>(info);
+            for (unsigned i = 0; i < 8; ++i) { if (i) raw.character(','); raw.hex(words[i]); }
+            raw.finish(true);
+        }
+        if (context) {
+            const auto* words = static_cast<const std::uintptr_t*>(context);
+            for (unsigned part = 0; part < 2; ++part) {
+                CrashRecord raw;
+                raw.header();
+                raw.literal("event=context part="); raw.number(part + 1);
+                raw.literal(" words=");
+                for (unsigned i = 0; i < 32; ++i) { if (i) raw.character(','); raw.hex(words[part * 32 + i]); }
+                raw.finish(true);
+            }
+            // Return addresses: the words above the signal frame that point into
+            // this executable. On a worker thread the frame sits on the thread's
+            // own stack, right below the interrupted frames. (The main thread's
+            // frame is on the crash stack, whose other words say nothing.) Each
+            // record is written and synced as it fills, so a step off the top of
+            // a short stack loses nothing that came before it.
+            if (!on_crash_stack) {
+                const auto anchor = reinterpret_cast<std::uintptr_t>(&diagnostics_start);
+                const std::uintptr_t low = anchor - (std::uintptr_t(4) << 20), high = anchor + (std::uintptr_t(60) << 20);
+                CrashRecord scan;
+                scan.header();
+                scan.literal("event=stack_text_words from="); scan.hex(at); scan.literal(" words=");
+                unsigned found = 0, in_record = 0;
+                for (unsigned i = 0; i < 2048 && found < 96; ++i) {
+                    const std::uintptr_t word = words[i];
+                    if (word < low || word >= high) continue;
+                    if (in_record == 32) {
+                        scan.finish(true);
+                        scan.size = 0;
+                        scan.header();
+                        scan.literal("event=stack_text_words more=1 words=");
+                        in_record = 0;
+                    }
+                    if (in_record) scan.character(',');
+                    scan.hex(word);
+                    ++in_record; ++found;
+                }
+                if (in_record) scan.finish(true);
+            }
+        }
     }
-    // Preserve the platform's normal fatal-signal handling after saving the
-    // small receipt. No allocation, logging framework, locks, or stdio here.
-    (void)::sigaction(signal_number, &default_action, nullptr);
-    (void)::kill(::getpid(), signal_number);
+    // The receipt is saved. The process ends here instead of handing the
+    // signal back to the console: its own crash handling (the core dump of a
+    // homebrew process) is the suspected cause of the whole console shutting
+    // down after a crash.
+    ::_exit(128 + signal_number);
 }
 
 enum class CrashRecordKind { Nonfatal, Fatal, Unreadable };

@@ -37,6 +37,8 @@ constexpr uint64_t kFormatHdr = UINT64_C(0x8100070422000000);
 struct State {
     int surface_w = 0, surface_h = 0;
     int32_t handle = -1;
+    int32_t handle_hint = -1;  // the resolution probe's number (display_output.cpp)
+    bool probed = false;       // the one status call on the hint was made
     bool enabled = true;
     bool hdr = false;
     int failures = 0;
@@ -209,40 +211,33 @@ bool ensure_target(int w, int h) {
 
 }  // namespace
 
-void init(int surface_width, int surface_height) {
-    g.surface_w = surface_width;
-    g.surface_h = surface_height;
 #ifdef PLATFORM_PS5_NATIVE
-    // The driver opened the video output and keeps its handle private, but it prints it to the
-    // toolkit's log ("[ps5-agc] present-open handle=XXXXXXXX") when that log exists: read it from there.
-    int32_t from_log = -1;
-    if (FILE* f = std::fopen("/download0/hui/dev/app.log", "r")) {
-        char line[512];
-        while (std::fgets(line, sizeof(line), f)) {
-            const char* at = std::strstr(line, "present-open handle=");
-            if (at) from_log = static_cast<int32_t>(std::strtoul(at + 20, nullptr, 16));
-        }
-        std::fclose(f);
-    }
+// The driver opened the video output and keeps its handle private. The app's
+// own probe (display_output.cpp) opened and closed one just before, and the
+// console hands that number out again: one status call checks it, made when
+// the first HDR video plays, not at startup. No other handle number is tried;
+// a sweep over 0-4095 shut the console down.
+void probe_handle() {
+    g.probed = true;
     uint64_t raw[16] = {};
-    if (from_log >= 0 && sceVideoOutGetOutputStatus(from_log, raw) == 0) {
-        g.handle = from_log;
-        dlog("hdr: video out handle %d, from the driver's log", from_log);
-        link_is_hdr("app start");
+    if (g.handle_hint >= 0 && sceVideoOutGetOutputStatus(g.handle_hint, raw) == 0) {
+        g.handle = g.handle_hint;
+        dlog("hdr: video out handle %d (the resolution probe's number, reused by the driver)", g.handle_hint);
         return;
     }
-    // Not in the log: ask each number until one answers.
-    for (int32_t h = 0; h < 4096; ++h) {
-        uint64_t a[16] = {}, b[16] = {};
-        if (sceVideoOutGetOutputStatus(h, a) == 0 || sceVideoOutGetResolutionStatus(h, b) == 0) {
-            g.handle = h;
-            dlog("hdr: video out handle %d, found by asking", h);
-            link_is_hdr("app start");
-            return;
-        }
-    }
-    g.no_handle_text = "Not available: no video output found (none of 0-4095 answered)";
+    char text[128];
+    std::snprintf(text, sizeof(text), "Not available: the video output handle is unknown (probe hint %d)", g.handle_hint);
+    g.no_handle_text = text;
     dlog("hdr: %s", g.no_handle_text.c_str());
+}
+#endif
+
+void init(int surface_width, int surface_height, int32_t handle_hint) {
+    g.surface_w = surface_width;
+    g.surface_h = surface_height;
+    g.handle_hint = handle_hint;
+#ifdef PLATFORM_PS5_NATIVE
+    dlog("hdr: ready; the video output is checked when the first HDR video plays (probe hint %d)", handle_hint);
 #endif
 }
 
@@ -252,8 +247,11 @@ bool wanted() { return g.wanted; }
 
 bool update(bool want) {
     g.wanted = want;
+#ifdef PLATFORM_PS5_NATIVE
+    if (want && !g.probed) probe_handle();
+#endif
     if (g.handle < 0) {
-        set_status(g.no_handle_text);
+        set_status(g.probed ? g.no_handle_text : "Off");
         return false;
     }
     if (!g.enabled) {

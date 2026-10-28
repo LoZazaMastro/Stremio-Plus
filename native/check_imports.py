@@ -8,8 +8,11 @@ The loaded set is what the kernel log listed for a native media app on 11.60
 (the module list printed with a crash)."""
 import glob, os, subprocess, sys
 
+# libkernel_sys is not in this set although the kernel log listed it: a
+# function it alone exports (pathconf) was address 0 in the running title and
+# crashed VLC (2026-10-27). native/shims.c provides those functions instead.
 LOADED = {
-    "libkernel", "libkernel_web", "libkernel_sys", "libSceLibcInternal", "libc_stub_weak",
+    "libkernel", "libkernel_web", "libSceLibcInternal", "libc_stub_weak",
     "libSceSysmodule", "libSceAmpr", "libSceNet", "libSceIpmi", "libSceMbus", "libSceRegMgr",
     "libSceRtc", "libSceRazorCpu", "libSceAvSetting", "libSceVideoOut", "libSceAgcDriver",
     "libSceAgc", "libSceAudioOut", "libSceAudioIn", "libSceAjm", "libScePad", "libSceNetCtl",

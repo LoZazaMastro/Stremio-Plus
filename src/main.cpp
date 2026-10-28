@@ -167,12 +167,14 @@ bool claim_single_instance() {
 // The GL context outlives every renderer, font, image and video texture.
 struct Surface {
     int width = kWidth, height = kHeight;
+    int32_t video_out_hint = -1;  // the resolution probe's VideoOut handle number (hdr_out.cpp)
 #ifdef PLATFORM_PS5
     hui::ps5::Display display;
     bool open(const Options&, int mode) {
         boot_step("querying PS5 output resolution");
         const auto selected = display_output_select(mode, hui::ps5::Display::supports_display_modes());
         if (!selected.safe_to_open) return false;
+        video_out_hint = selected.open_result;
         boot_step("opening EGL display");
         if (!display.open(selected.width, selected.height)) {
             if ((selected.width == 1920 && selected.height == 1080) || !display.open(1920, 1080)) return false;
@@ -483,7 +485,7 @@ int run_interface(App& app, const Options& o) {
     VideoGl video;
     boot_step("initializing UI and video renderers");
     if (!renderer.init() || !video.init()) { dlog("Renderer initialization failed"); return 1; }
-    hdr_out::init(surface.width, surface.height);
+    hdr_out::init(surface.width, surface.height, surface.video_out_hint);
     hui::gfx::Font regular, semibold, mono, subtitles, subtitles_serif, subtitles_mono;
     hui::ui::Fonts fonts;
     boot_step("loading UI font textures");
@@ -764,6 +766,12 @@ int main(int argc, char** argv) {
     const std::string log_directory = o.data + "/logs";
 #endif
     o.logs = log_directory;
+#ifdef PLATFORM_PS5
+    // VLC's cache directory (embedded cover art goes there): an absolute path
+    // under the app's data folder. Without it VLC builds a relative path and
+    // needs the working directory, which the console does not answer well.
+    (void)setenv("XDG_CACHE_HOME", (o.data + "/vlc-cache").c_str(), 1);
+#endif
     boot_step("starting asynchronous diagnostics");
 #ifdef PLATFORM_PS5
     // Do not let the generic recursive mkdir create a sandbox-local /data

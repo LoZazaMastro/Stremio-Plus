@@ -21,9 +21,14 @@
 
 namespace hdr_out {
 
-// After the GL context exists: finds the video output (the driver keeps its
-// handle private) and logs what the display reports.
-void init(int surface_width, int surface_height);
+// After the GL context exists. Nothing is asked of the console here: the
+// video output (the driver keeps its handle private) is checked when the
+// first HDR video plays. `handle_hint` is the handle number the app's own
+// resolution probe got and closed before the driver opened its own: the
+// console hands the number out again, so one status call on it is the only
+// probe ever made. (Sweeping handle numbers, as the original port did as a
+// fallback, shut the console down.)
+void init(int surface_width, int surface_height, int32_t handle_hint = -1);
 
 // Settings → HDR output. Off: the scan-out stays (or returns to) SDR.
 void set_enabled(bool enabled);
