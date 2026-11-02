@@ -186,10 +186,14 @@ struct AppProtocolTest {
     }
     static std::string enqueue(App& app, const Stream& stream) {
         const auto previous = app.downloads_.snapshot();
+        const auto notification_before = app.toast_revision;
         app.download_selected_stream(stream);
+        expect(app.toast_revision == notification_before,
+               "submitting a download waits for its durable result before notifying");
         until([&] {
             g_tasks.drain();
             return app.downloads_.snapshot().size() == previous.size() + 1 &&
+                   app.toast_revision == notification_before + 1 &&
                    (app.toast == "Video added to Downloads" || app.toast == "Video aggiunto a Download");
         }, "one selected request is durably committed and delivered to the UI");
         const auto entries = app.downloads_.snapshot();
@@ -239,11 +243,15 @@ struct AppProtocolTest {
                "a folder move blocks new stream submissions before its worker starts");
         app.directory_picker_committing = false;
         const auto tasks_before = g_tasks.pending();
+        const auto queued_notification_before = app.toast_revision;
         app.on_button(Btn::Square);
+        expect(app.toast_revision == queued_notification_before,
+               "selected episode submission does not emit an optimistic duplicate toast");
         app.d_stream_sel = 1;
         until([&] {
             g_tasks.drain();
-            return app.downloads_.snapshot().size() == 1 && app.toast == "Video aggiunto a Download";
+            return app.downloads_.snapshot().size() == 1 && app.toast == "Video aggiunto a Download" &&
+                   app.toast_revision == queued_notification_before + 1;
         }, "highlighted source is committed asynchronously without blocking input");
         app.d_stream_sel = 0;
         auto entries = app.downloads_.snapshot();
@@ -258,8 +266,11 @@ struct AppProtocolTest {
         expect(app.view == "detail" && !app.watching() && !app.launch_visible && player_opens == 0,
                "Square stays on the stream list without starting foreground playback");
         expect(g_tasks.pending() == tasks_before, "enqueue does not create provider/autoplay tasks");
+        const auto duplicate_notification_before = app.toast_revision;
         app.on_button(Btn::Square);
-        until([&] { g_tasks.drain(); return app.toast == "Video aggiunto a Download"; }, "duplicate selected request is acknowledged after deduplication");
+        until([&] { g_tasks.drain(); return app.toast == "Video aggiunto a Download" &&
+                         app.toast_revision == duplicate_notification_before + 1; },
+              "duplicate selected request receives one fresh acknowledgement after deduplication");
         expect(app.downloads_.snapshot().size() == 1, "a repeated Square does not duplicate the same stream");
         app.d_pick_res = true; app.on_button(Btn::Square); app.d_pick_res = false;
         app.d_zone = "episodes"; app.on_button(Btn::Square); app.d_zone = "streams";
@@ -813,9 +824,12 @@ struct AppProtocolTest {
         app.watch_stop(false);
         app.d_meta_.is_live = true;
         const auto jobs_before = app.downloads_.snapshot().size();
+        const auto live_notification_before = app.toast_revision;
         app.download_selected_stream(source("Actual live", "live.m3u8"));
         expect(app.downloads_.snapshot().size() == jobs_before && app.toast.find("dirette") != std::string::npos,
                "actual live TV remains excluded while scheduled series are downloadable");
+        expect(app.toast_revision == live_notification_before + 1,
+               "a rejected live download still receives one useful error notification");
         app.d_meta_.is_live = false;
 
         progressive_stage = 0;

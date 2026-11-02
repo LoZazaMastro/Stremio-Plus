@@ -45,6 +45,8 @@ extern "C" void ps5_load_modules(void);
 #ifdef STREMIO_USE_LIBVLC
 extern "C" void vlc_ps5_vdec_prepare(void);
 extern "C" int vlc_ps5_vdec_queue_status(const char** stage, int* native_code);
+extern "C" int vlc_ps5_vdec_warmup_status(int results[3]);
+extern "C" unsigned vlc_ps5_vdec_query_cache_status(unsigned* successful);
 extern "C" bool stremio_ps5_audio_pcm_available(void);
 #endif
 #else
@@ -171,7 +173,6 @@ bool claim_single_instance() {
 // The GL context outlives every renderer, font, image and video texture.
 struct Surface {
     int width = kWidth, height = kHeight;
-    int32_t video_out_hint = -1;  // the resolution probe's VideoOut handle number (hdr_out.cpp)
     DisplayRefresh refresh;
 #ifdef PLATFORM_PS5
     hui::ps5::Display display;
@@ -180,7 +181,6 @@ struct Surface {
         boot_step("querying PS5 output resolution");
         const auto selected = display_output_select(mode, hui::ps5::Display::supports_display_modes());
         if (!selected.safe_to_open) return false;
-        video_out_hint = selected.open_result;
         boot_step("opening EGL display");
         if (!display.open(selected.width, selected.height)) {
             if ((selected.width == 1920 && selected.height == 1080) || !display.open(1920, 1080)) return false;
@@ -495,7 +495,11 @@ int run_interface(App& app, const Options& o) {
     VideoGl video;
     boot_step("initializing UI and video renderers");
     if (!renderer.init() || !video.init()) { dlog("Renderer initialization failed"); return 1; }
-    hdr_out::init(surface.width, surface.height, surface.video_out_hint);
+    hdr_out::init(surface.width, surface.height);
+    // Destruct before the GL context, including early snapshot/test returns.
+    struct HdrLifetime { ~HdrLifetime() { hdr_out::release(); } } hdr_lifetime;
+    // Also cancel HTTP workers on an exception or an early preview return.
+    struct DiagnosticsServerLifetime { ~DiagnosticsServerLifetime() { diag_server::stop(); } } diag_server_lifetime;
     hui::gfx::Font regular, semibold, mono, subtitles, subtitles_serif, subtitles_mono;
     hui::ui::Fonts fonts;
     boot_step("loading UI font textures");
@@ -543,24 +547,25 @@ int run_interface(App& app, const Options& o) {
         {"addon_count", app.addon_rows.size()}, {"server_configured", !app.settings().server_url.empty()}};
     diagnostics_set_runtime(runtime);
     Player::VideoFrame frame;
-    hui::gfx::DrawList base_list, overlay_list;
+    hui::gfx::DrawList base_list, overlay_list, glass_background;
+    bool composition_failed = false;
     float elapsed = 0;
     const auto compose = [&](GLuint target, bool fixture) {
         base_list.clear(); overlay_list.clear();
         // HDR scan-out: the video is composed by the final pass (hdr_out.cpp)
         // underneath a transparent interface, not drawn as an SDR image.
-        const bool hdr_pass = target == 0 && hdr_out::scanout_hdr() && app.watching() && video.hdr_texture();
+        const bool hdr_pass = target == 0 && hdr_out::scanout_hdr();
         hui::gfx::Rect video_rect{};
         if (!hdr_pass) base_list.rounded_rect({0, 0, kWidth, kHeight}, 0, hui::gfx::Color::rgb(0));
         if (app.watching()) {
             const auto texture = video.texture();
-            if (texture) {
+            if (video.has_frame()) {
                 float width = kWidth, height = width / float(video.aspect());
                 if (height > kHeight) { height = kHeight; width = height * float(video.aspect()); }
                 video_rect = {(kWidth-width)/2, (kHeight-height)/2, width, height};
                 // Conversion renders source row 0 into FBO row 0. Keep this
                 // UV direction so source row 0 is the top of the TV picture.
-                if (!hdr_pass) base_list.image(texture, video_rect, hui::gfx::kFullUv, hui::gfx::Color::rgb(0xffffff));
+                if (!hdr_pass && texture) base_list.image(texture, video_rect, hui::gfx::kFullUv, hui::gfx::Color::rgb(0xffffff));
             } else if (fixture && !app.launch_image.empty()) {
                 if (const auto art = textures.get(app.launch_image))
                     base_list.image(art, {0, 0, kWidth, kHeight}, hui::gfx::kFullUv, hui::gfx::Color::rgb(0xffffff));
@@ -570,11 +575,34 @@ int run_interface(App& app, const Options& o) {
         hui::ui::Canvas overlay{overlay_list, fonts, renderer.glass_texture(), elapsed};
         ui.draw_base(app, base); ui.draw_overlays(app, overlay);
         renderer.begin(); renderer.draw(base_list);
-        if (ui.wants_glass()) renderer.glass();
+        if (ui.wants_glass()) {
+            glass_background.clear();
+            if (hdr_pass && app.watching() && video.has_frame()) {
+                const auto glass_video = hdr_out::glass_texture(video.texture(), video.hdr_planes_active(),
+                    video.hdr_planes_active() ? &video.hdr_planes() : nullptr);
+                if (glass_video) {
+                    glass_background.image(glass_video, video_rect, hui::gfx::kFullUv, hui::gfx::Color::rgb(0xffffff));
+                    renderer.glass_background(&glass_background);
+                }
+            }
+            renderer.glass();
+        }
         renderer.draw(overlay_list);
         if (hdr_pass) {
-            if (hdr_out::present(renderer, surface.width, surface.height, video.texture(), video_rect)) return;
-            hdr_out::update(false);  // the pass failed: SDR again from the next frame
+            if (hdr_out::present(renderer, surface.width, surface.height,
+                                 app.watching() ? video.texture() : 0, video_rect, 0, video.hdr_planes_active(),
+                                 app.watching() && video.hdr_planes_active() ? &video.hdr_planes() : nullptr)) return;
+            // prepare() checked the resources before enabling HDR. A later
+            // compositor failure ends this session with a black frame, whose
+            // all-zero RGB bytes are safe in either scan-out encoding.
+            diagnostics_note("display", "HDR compositor failed; ending the session");
+            hdr_out::failed("HDR compositor failed");
+            hdr_out::update(false);
+            composition_failed = true;
+            glBindFramebuffer(GL_FRAMEBUFFER, target);
+            glDisable(GL_SCISSOR_TEST);
+            glClearColor(0, 0, 0, 0); glClear(GL_COLOR_BUFFER_BIT);
+            return;
         }
         glBindFramebuffer(GL_FRAMEBUFFER, target);
         glClearColor(0, 0, 0, 1); glClear(GL_COLOR_BUFFER_BIT);
@@ -632,7 +660,7 @@ int run_interface(App& app, const Options& o) {
     std::int64_t previous = hui::sys::monotonic_us(), report_start = previous;
     std::uint64_t frames = 0, report_frames = 0;
     hui::FrameStats loop_times, upload_times, swap_times, video_swap_times;
-    hui::FrameStats allocation_times, plane_times, conversion_times;
+    hui::FrameStats allocation_times, plane_times, conversion_times, composition_times;
     std::int64_t previous_video_swap = 0;
     bool quit = false, first = true;
 #ifdef PLATFORM_PS5
@@ -685,15 +713,12 @@ int run_interface(App& app, const Options& o) {
         pad.tick(dt);
 #endif
         bool video_uploaded = false;
-        // HDR scan-out while an HDR10 / HLG video plays on an HDR link; the
-        // converter then keeps the picture PQ coded instead of tone mapping it.
+        // Prepare resources and convert the retained frame before committing
+        // the display encoding. A setting change also reconverts while paused.
+        const bool new_video_frame = app.take_video_frame(frame);
         hdr_out::set_enabled(app.settings().hdr_output);
-        video.set_hdr_output(hdr_out::update(app.watching() && video.hdr_source()));
-        if (hdr_out::status_version() != hdr_status_seen) {
-            hdr_status_seen = hdr_out::status_version();
-            runtime["hdr_mode"] = hdr_out::status();
-            diagnostics_set_runtime(runtime);
-        }
+        const bool hdr_source = app.watching() && frame.data() && frame.size() && VideoGl::hdr_frame(frame);
+        bool hdr_requested = hdr_out::prepare(hdr_source);
         diag_server::configure(app.settings().diagnostics_server, o.logs);
         if (diag_server::running() && now - status_published >= 1000000) {
             status_published = now;
@@ -702,9 +727,25 @@ int run_interface(App& app, const Options& o) {
             status["hdr"] = hdr_out::status(); status["hdr_scanout"] = hdr_out::scanout_hdr();
             diag_server::set_status(status.dump());
         }
-        if (app.take_video_frame(frame)) {
+        if (new_video_frame || (hdr_source && video.hdr_planes_active() != hdr_requested)) {
             const auto upload_started = hui::sys::monotonic_us();
-            const bool accepted = video.upload(frame);
+            video.set_hdr_output(hdr_requested);
+            bool accepted = video.upload(frame);
+            if (!accepted && hdr_requested) {
+                // A failed HDR texture must not turn a supported hardware
+                // stream into a software-decoder retry. Retry this frame SDR.
+                hdr_out::failed("HDR video texture unavailable; using SDR");
+                hdr_requested = false;
+                video.set_hdr_output(false);
+                accepted = video.upload(frame);
+            }
+            const bool scanout_hdr = hdr_out::update(accepted && hdr_requested && video.hdr_planes_active());
+            if (accepted && !scanout_hdr && video.hdr_planes_active()) {
+                // The console refused the request: never present PQ bytes as
+                // an SDR movie, even for one frame or while playback is paused.
+                video.set_hdr_output(false);
+                accepted = video.upload(frame);
+            }
             upload_times.add(double(hui::sys::monotonic_us() - upload_started) / 1000.0);
             const auto& upload_timing = video.last_upload_timing();
             if (upload_timing.reconfigured) allocation_times.add(upload_timing.allocation_ms);
@@ -739,6 +780,16 @@ int run_interface(App& app, const Options& o) {
                 runtime["video_frame_accepted"] = accepted;
                 diagnostics_set_runtime(runtime);
             }
+        } else hdr_out::update(hdr_requested && video.hdr_planes_active());
+        if (hdr_out::status_version() != hdr_status_seen) {
+            hdr_status_seen = hdr_out::status_version();
+            runtime["hdr_mode"] = hdr_out::status();
+            runtime["hdr_scanout"] = hdr_out::scanout_hdr();
+            diagnostics_set_runtime(runtime);
+        }
+        if (!hdr_out::safe()) {
+            diagnostics_note("display", "SDR restoration failed twice; ending the session");
+            break;
         }
         if (!app.watching()) {
             video.clear();
@@ -758,7 +809,10 @@ int run_interface(App& app, const Options& o) {
         }
         app.update_home_startup(startup_textures_ready);
         ui.update(app, dt);
+        const auto composition_started = hui::sys::monotonic_us();
         compose(0, false);
+        composition_times.add(double(hui::sys::monotonic_us() - composition_started) / 1000.0);
+        if (composition_failed) break;
         const auto swap_started = hui::sys::monotonic_us();
         const bool swapped = surface.swap();
         const auto swap_finished = hui::sys::monotonic_us();
@@ -808,6 +862,7 @@ int run_interface(App& app, const Options& o) {
                 {"loop", timing_json(loop_times)}, {"upload", timing_json(upload_times)},
                 {"allocation", timing_json(allocation_times)}, {"plane_transfer", timing_json(plane_times)},
                 {"conversion_submit", timing_json(conversion_times)},
+                {"composition_submit", timing_json(composition_times)},
                 {"swap_wait", timing_json(swap_times)}, {"accepted_video_swap", timing_json(video_swap_times)}};
             diagnostics_set_runtime(runtime);
             dlog("UI frame pacing: %.1f FPS over 30s, %zu draw calls, video=%d", fps, renderer.last_draw_calls(), int(app.watching()));
@@ -826,7 +881,10 @@ int run_interface(App& app, const Options& o) {
             dlog("video upload timing: path=%s allocation {%s} plane_transfer {%s} conversion_submit {%s} source_fps=%.6f",
                  VideoGl::upload_path(), allocation_text, plane_text, conversion_text, app.source_video_fps());
             loop_times.reset(); upload_times.reset(); swap_times.reset(); video_swap_times.reset();
-            allocation_times.reset(); plane_times.reset(); conversion_times.reset();
+            char composition_text[256];
+            composition_times.format(composition_text, sizeof(composition_text));
+            dlog("composition timing: hdr=%d {%s}", int(hdr_out::scanout_hdr()), composition_text);
+            allocation_times.reset(); plane_times.reset(); conversion_times.reset(); composition_times.reset();
 #ifdef PLATFORM_PS5_NATIVE
             if (app.watching()) stremio_heap_snapshot(STREMIO_HEAP_PLAYBACK_PERIODIC);
             log_video_memory(app.watching() ? "playing" : "idle");
@@ -843,9 +901,8 @@ int run_interface(App& app, const Options& o) {
 
 int main(int argc, char** argv) {
 #ifdef PLATFORM_PS5
-    // VideoDec2 rejects module/compute-queue creation after the filesystem
-    // helper changes the process credentials. Prepare both under the title's
-    // original credentials, as required by the VLC PS5 decoder.
+    // Prepare VideoDec2's module, compute queue and lazy codec dependencies
+    // under the title's original credentials before filesystem setup.
     HwDecoder::load_module();
 #ifdef STREMIO_USE_LIBVLC
     if (HwDecoder::available()) vlc_ps5_vdec_prepare();
@@ -907,6 +964,14 @@ int main(int argc, char** argv) {
     const int queue_status = vlc_ps5_vdec_queue_status(&queue_stage, &queue_code);
     dlog("hwdec: pre-storage compute queue status=%d stage=%s rc=0x%08x",
          queue_status, queue_stage ? queue_stage : "unknown", unsigned(queue_code));
+    int codec_queries[3] = {};
+    const int codec_queries_prepared = vlc_ps5_vdec_warmup_status(codec_queries);
+    dlog("hwdec: pre-storage codec queries attempted=%d avc4k=0x%08x hevc4k=0x%08x main10_4k=0x%08x",
+         codec_queries_prepared, unsigned(codec_queries[0]), unsigned(codec_queries[1]),
+         unsigned(codec_queries[2]));
+    unsigned cached_queries_ok = 0;
+    const unsigned cached_queries = vlc_ps5_vdec_query_cache_status(&cached_queries_ok);
+    dlog("hwdec: pre-storage query cache successful=%u attempted=%u", cached_queries_ok, cached_queries);
 #endif
     boot_step("loading system modules");
     ps5_load_modules();

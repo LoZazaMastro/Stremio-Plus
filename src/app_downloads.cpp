@@ -220,8 +220,7 @@ void App::download_selected_stream(const Stream& stream) {
                 show_toast(it ? "Video aggiunto a Download" : "Video added to Downloads", 2.5);
             });
         });
-    if (submitted) show_toast(it ? "Aggiunta a Download…" : "Adding to Downloads…", 2);
-    else show_toast(it ? "Impossibile aggiungere altri download in questo momento." : "Could not add another download right now.", 4);
+    if (!submitted) show_toast(it ? "Impossibile aggiungere altri download in questo momento." : "Could not add another download right now.", 4);
 }
 
 void App::refresh_download_artwork() {

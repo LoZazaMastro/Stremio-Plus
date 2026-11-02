@@ -4,6 +4,7 @@
 #include "../src/torrent/engine.cpp"
 
 #include <iostream>
+#include <future>
 #include <stdexcept>
 
 namespace {
@@ -43,6 +44,47 @@ int main() {
 	try {
 		auto& engine = bt::Engine::get();
 		expect(!bt::impl().running, "scheduler fixtures must not start the torrent network");
+		{
+			auto blocked = fixture();
+			blocked->hex = "f123456789abcdef0123456789abcdef01234567";
+			int old_reader = -1; int64_t bytes_total = 0; std::string failure;
+			expect(bool(engine.open_reader(blocked->hex, 0, &old_reader, &bytes_total, &failure)),
+			       "seek regression opens the original playback reader");
+			std::atomic<bool> abort_old{false}; uint8_t result[8]{};
+			auto reading = std::async(std::launch::async, [&] {
+				return engine.read(blocked, old_reader, 0, 0, result, 8, &abort_old);
+			});
+			expect(reading.wait_for(std::chrono::milliseconds(70)) == std::future_status::timeout,
+			       "old seek location genuinely blocks without its torrent piece");
+			bool registered_wait = false;
+			{
+				std::lock_guard<std::mutex> lock(bt::impl().mu);
+				registered_wait = blocked->waiting_readers.count(old_reader) == 1;
+			}
+			const auto cancelled = std::chrono::steady_clock::now();
+			abort_old = true;
+			expect(registered_wait, "blocked operation entered the real production missing-piece wait");
+			expect(reading.wait_for(std::chrono::milliseconds(500)) == std::future_status::ready && reading.get() == -1,
+			       "seek cancellation interrupts the real blocked reader within 500 ms");
+			expect(std::chrono::steady_clock::now() - cancelled < std::chrono::milliseconds(500),
+			       "cancellation does not wait for peers or the old requested piece");
+			engine.close_reader(blocked, old_reader);
+			expect(blocked->readers.empty() && blocked->waiting_readers.empty(),
+			       "retiring a seek removes the obsolete demand and reader");
+			blocked->nslots = 1; blocked->slots_used = 1;
+			blocked->piece_in_slot = {3}; blocked->slot_touch = {0};
+			blocked->slot_of[3] = 0; blocked->have[3] = 1;
+			blocked->ram = {std::make_shared<bt::VerifiedPiece>()};
+			blocked->ram[0]->data.assign(size_t(blocked->plen), 'N');
+			int latest_reader = -1;
+			expect(bool(engine.open_reader(blocked->hex, 0, &latest_reader, &bytes_total, &failure)) && latest_reader != old_reader,
+			       "the latest seek keeps the same torrent and selected file with a fresh reader");
+			std::atomic<bool> abort_new{false};
+			expect(engine.read(blocked, latest_reader, 0, 3 * blocked->plen, result, 8, &abort_new) == 8 && result[0] == 'N',
+			       "latest seek reads the existing cache immediately without the old demand");
+			engine.close_reader(blocked, latest_reader);
+			bt::impl().torrents.clear();
+		}
 		// A new download can be the only reader: no player has selected a
 		// file yet. This is the cold-start case that previously left wanted
 		// and peer requests empty forever although metadata/peers existed.

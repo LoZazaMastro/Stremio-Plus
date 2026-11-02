@@ -1,0 +1,35 @@
+{
+  "applicationVersion": "0.6.00",
+  "titleId": "PPSA74126",
+  "contentVersion": "00.600.000",
+  "payloadFilesVerified": 227,
+  "sourceFilesVerified": 676,
+  "ebootSha256": "68504d2cb29ca65927c40e2f2dabf975db778dd6bc23542ec278e80a852c7499",
+  "sourceTreeSha256": "45a9f8892e0f4272f30f2414cb0a54c32e6f333021e88ba3db8759596afbb584",
+  "linkElfSha256": "7f3a0db38f4c29bc32d4f5dc1b53e26c9e6b5b2dc4bcd0a04bd67e3d65049097",
+  "artifacts": {
+    "PPSA74126.zip": {
+      "bytes": 38315867,
+      "sha256": "dd3156a660abf15f4ceea299c4e439765cce5a2a0b97e79284c2793ce5f453b0"
+    },
+    "PPSA74126.ffpfsc": {
+      "bytes": 42991616,
+      "sha256": "39e76a5e0b18ef95691718497094dfdedb3b53dcc44b6e4f7113045c7682e727"
+    },
+    "Stremio-Plus-0.6.00-source.zip": {
+      "bytes": 24148487,
+      "sha256": "035ec8a667659450f97926e5e789bb6311f50306df934703372fd8c48653a1fa"
+    },
+    "Stremio-Plus-0.6.00-symbols.zip": {
+      "bytes": 44603311,
+      "sha256": "481ade71ff81da6941e2ab16f398bac000f0b02a4c50232144623c5ae8d89d92"
+    },
+    "build-receipt-r4.json": {
+      "bytes": 236186,
+      "sha256": "fae4d757a67a239dd6668c5d7e150c7bb7f8279b85565300c1189be8b35fbae9"
+    }
+  },
+  "basis": "Exact R4 install ZIP used in successful PS5 playback tests",
+  "sourceCorrespondence": "Attached source ZIP byte-matches the package build receipt. Git text normalization and release documentation are the only differences in the tagged source.",
+  "scope": "HEVC hardware/HDR10/AC3/EAC3 tested on PS5; TrueHD/Atmos confirmed separately during 0.6.00 testing. No guarantee of every codec, receiver or torrent."
+}

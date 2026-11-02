@@ -1,6 +1,37 @@
 # Building Stremio Plus
 
-## Release 0.5.20
+## Release 0.6.00
+
+Build this source tree using the native commands below. The application version is
+0.6.00, native contentVersion is 00.600.000, and the title remains PPSA74126.
+The release identity check preserves historical receipts while keeping this update
+above 0.5.20's 00.070.000. The OpenGL fallback uses an independently pinned repack
+and verifies the original SDK manifest and every listed file.
+
+Focused checks for this release:
+
+```sh
+python3 tests/run_release_identity_tests.py
+python3 tests/run_metadata_storage_tests.py
+python3 tests/run_ps5vdec_startup_tests.py
+python3 tests/run_ps5vdec_dovi_tests.py
+python3 tests/run_video_gl_tests.py
+python3 tests/run_video_gl_allocation_tests.py
+python3 tests/run_hdr_output_tests.py
+python3 tests/run_truehd_tests.py
+python3 tests/run_truehd_transport_tests.py
+python3 tests/run_native_diagnostics_tests.py
+python3 tests/run_native_import_shim_tests.py
+python3 tests/run_vlc_input_diagnostic_tests.py
+python3 tests/run_diag_server_tests.py
+```
+
+The TrueHD byte comparison uses an independent host FFmpeg muxer. Transport tests
+mock VLC/Sony boundaries; HDR tests use real host EGL with mocked native mode calls.
+They do not establish sustained PS5 performance, HDMI signaling or Atmos recognition.
+Retain the matching native pie.elf, source archive and build receipt for console tests.
+
+## Historical release 0.5.20
 
 This release adds an explicit beginning/resume choice before every playback
 request, including online and downloaded next episodes. Sampled video input
@@ -380,3 +411,5 @@ bash tools/bake-subtitle-font.sh
 
 Source fonts and their licenses are included. Component and asset attribution
 is recorded in [THIRD_PARTY.md](THIRD_PARTY.md).
+
+The 0.6.00 release retains the exact console-tested R4 install ZIP and matching source archive. The attached source archive matches the raw build-receipt hashes; repository text uses normal Git line endings. See validation/release-0.6.00.json for artifact identity.

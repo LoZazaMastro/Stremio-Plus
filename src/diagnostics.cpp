@@ -533,42 +533,15 @@ void crash_handler(int signal_number, siginfo_t* info, void* context) {
         }
         if (context) {
             const auto* words = static_cast<const std::uintptr_t*>(context);
-            for (unsigned part = 0; part < 2; ++part) {
+            // Only read the known register prefix. Do not walk beyond the
+            // signal context: a worker's stack may end immediately after it.
+            for (unsigned part = 0; part < 1; ++part) {
                 CrashRecord raw;
                 raw.header();
                 raw.literal("event=context part="); raw.number(part + 1);
                 raw.literal(" words=");
                 for (unsigned i = 0; i < 32; ++i) { if (i) raw.character(','); raw.hex(words[part * 32 + i]); }
                 raw.finish(true);
-            }
-            // Return addresses: the words above the signal frame that point into
-            // this executable. On a worker thread the frame sits on the thread's
-            // own stack, right below the interrupted frames. (The main thread's
-            // frame is on the crash stack, whose other words say nothing.) Each
-            // record is written and synced as it fills, so a step off the top of
-            // a short stack loses nothing that came before it.
-            if (!on_crash_stack) {
-                const auto anchor = reinterpret_cast<std::uintptr_t>(&diagnostics_start);
-                const std::uintptr_t low = anchor - (std::uintptr_t(4) << 20), high = anchor + (std::uintptr_t(60) << 20);
-                CrashRecord scan;
-                scan.header();
-                scan.literal("event=stack_text_words from="); scan.hex(at); scan.literal(" words=");
-                unsigned found = 0, in_record = 0;
-                for (unsigned i = 0; i < 2048 && found < 96; ++i) {
-                    const std::uintptr_t word = words[i];
-                    if (word < low || word >= high) continue;
-                    if (in_record == 32) {
-                        scan.finish(true);
-                        scan.size = 0;
-                        scan.header();
-                        scan.literal("event=stack_text_words more=1 words=");
-                        in_record = 0;
-                    }
-                    if (in_record) scan.character(',');
-                    scan.hex(word);
-                    ++in_record; ++found;
-                }
-                if (in_record) scan.finish(true);
             }
         }
     }

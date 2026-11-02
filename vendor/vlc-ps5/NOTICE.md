@@ -24,6 +24,23 @@ VideoLAN's unmodified VLC 3.0.24 source archive is pinned to SHA-256:
 
 ## Components and changes
 
+### Native decoder query cache, 2026-11-02
+
+Stremio Plus 0.6.00 adapts the pre-full-access decoder memory-query cache
+from current ZiZc3/VLC `ps5/modules/ps5vdec.c`, Git blob
+`1c30a4acc52c57ad41d03aec7a25039ebd239179`:
+
+<https://github.com/ZiZc3/VLC/blob/main/ps5/modules/ps5vdec.c>
+
+Upstream records the same H.264/HEVC `0x811D0200` query refusal after full
+filesystem access that was reproduced on the test console. The adaptation
+collects bounded query answers under the original title credentials and
+reuses only successful answers with matching decoder parameters, retaining
+the corresponding allocation envelope. It does not reuse memory sizes for
+a different profile, pipeline depth, DPB policy or compute queue. Existing
+allocation ownership and failure handling remain in place. The upstream
+temporary flexible-memory diagnostic is not imported.
+
 Original PS5 decoder and HTTP modules, compatibility shims, build recipes,
 and VLC/dependency patches are retained in this directory. Their original
 copyright headers and file-specific license notices remain in place.

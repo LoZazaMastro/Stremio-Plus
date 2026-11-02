@@ -79,6 +79,7 @@ void Renderer::release()
 void Renderer::begin()
 {
     layers_.clear();
+    glass_background_ = nullptr;
 }
 
 void Renderer::backdrop(const BackdropSpec &spec, float opacity)
@@ -130,6 +131,12 @@ void Renderer::capture_glass(std::size_t layers, float virtual_width, float virt
     glass_a_.bind();
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    if (glass_background_)
+    {
+        Layer background;
+        background.list = glass_background_;
+        play(background, kGlassWidth, kGlassHeight, virtual_width, virtual_height);
+    }
     for (std::size_t i = 0; i < layers; ++i)
         play(layers_[i], kGlassWidth, kGlassHeight, virtual_width, virtual_height);
 

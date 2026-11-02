@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,6 +125,19 @@ typedef struct {
     uint8_t reserved0;
     uint16_t reserved1;
 } VdecComputeConfig;
+
+/* Guard the actual native compilation, not just a host mock's compatible
+ * typedefs. HEVC's nonsequential codec tag and these offsets match the
+ * public SharpProspero/shadPS4 ABI and the PS5 ProsperoLight reference. */
+_Static_assert(sizeof(VdecConfig) == 0x48, "VideoDec2 config ABI");
+_Static_assert(offsetof(VdecConfig, optimize_progressive_video) == 0x3c, "VideoDec2 flags ABI");
+_Static_assert(offsetof(VdecConfig, extra_config_info) == 0x40, "VideoDec2 extra config ABI");
+_Static_assert(sizeof(VdecMemory) == 0x48, "VideoDec2 memory ABI");
+_Static_assert(sizeof(VdecInput) == 0x30, "VideoDec2 input ABI");
+_Static_assert(sizeof(VdecOutput) == 0x38, "VideoDec2 output ABI");
+_Static_assert(sizeof(VdecFrameBuffer) == 0x20, "VideoDec2 frame ABI");
+_Static_assert(sizeof(VdecComputeMemory) == 0x18, "VideoDec2 compute memory ABI");
+_Static_assert(sizeof(VdecComputeConfig) == 0x10, "VideoDec2 compute config ABI");
 
 /* The start every picture-information struct shares (AVC 0x78, HEVC 0xB8). */
 typedef struct {
@@ -277,6 +291,19 @@ static Mem queue_mem = { .start = -1 };
 static bool queue_prepared;
 static const char *queue_stage = "not-prepared";
 static int queue_status;
+static bool codec_warmup_prepared;
+static int codec_warmup_codes[3] = { EAGAIN, EAGAIN, EAGAIN };
+/* Only successful query answers from the original title credentials are used.
+ * The native library may refuse the same query after filesystem elevation even
+ * with its codec dependencies resident (also observed by upstream VLC PS5). */
+#define QUERY_CACHE_CAPACITY 24
+static struct {
+    VdecConfig config;
+    VdecMemory memory;
+    bool ok;
+} query_cache[QUERY_CACHE_CAPACITY];
+static unsigned query_cache_count;
+
 
 static void *get_compute_queue(void)
 {
@@ -298,6 +325,94 @@ int vlc_ps5_vdec_queue_status(const char **stage, int *native_code)
     int result = compute_queue ? 1 : queue_prepared ? -1 : 0;
     vlc_mutex_unlock(&queue_lock);
     return result;
+}
+
+/* Query-only warm-up results survive until diagnostics is available. */
+int vlc_ps5_vdec_warmup_status(int results[3]);
+int vlc_ps5_vdec_warmup_status(int results[3])
+{
+    vlc_mutex_lock(&queue_lock);
+    if (results)
+        memcpy(results, codec_warmup_codes, sizeof(codec_warmup_codes));
+    int prepared = codec_warmup_prepared;
+    vlc_mutex_unlock(&queue_lock);
+    return prepared;
+}
+
+unsigned vlc_ps5_vdec_query_cache_status(unsigned *successful);
+unsigned vlc_ps5_vdec_query_cache_status(unsigned *successful)
+{
+    vlc_mutex_lock(&queue_lock);
+    unsigned count = query_cache_count, ok = 0;
+    for (unsigned i = 0; i < count; ++i)
+        ok += query_cache[i].ok;
+    if (successful)
+        *successful = ok;
+    vlc_mutex_unlock(&queue_lock);
+    return count;
+}
+
+/* Called once under queue_lock, before filesystem setup. Queries allocate no
+ * decoder memory. Keep both known envelopes so 1080p need not allocate 4K. */
+static void prepare_query_cache(void)
+{
+    static const struct { uint32_t codec, profile, level; } modes[] = {
+        { VDEC_CODEC_AVC, 100, 52 }, { VDEC_CODEC_AVC, 100, 51 },
+        { VDEC_CODEC_HEVC, 1, 156 }, { VDEC_CODEC_HEVC, 1, 153 },
+        { VDEC_CODEC_HEVC, 2, 156 }, { VDEC_CODEC_HEVC, 2, 153 },
+    };
+    if (!compute_queue)
+        return;
+    for (unsigned mode = 0; mode < sizeof(modes) / sizeof(modes[0]); ++mode)
+        for (unsigned size = 0; size < 2; ++size)
+            for (unsigned depth = 0; depth < 2; ++depth) {
+                if (query_cache_count == QUERY_CACHE_CAPACITY)
+                    return;
+                unsigned i = query_cache_count++;
+                query_cache[i].config = (VdecConfig){
+                    .this_size = sizeof(VdecConfig), .resource_type = 1,
+                    .codec_type = modes[mode].codec, .profile = modes[mode].profile,
+                    .max_level = modes[mode].level,
+                    .max_frame_width = size ? 3840 : 1920,
+                    .max_frame_height = size ? 2176 : 1088,
+                    .max_dpb_frame_count = -1, .decode_pipeline_depth = depth ? 1 : 4,
+                    .compute_queue = compute_queue, .cpu_affinity_mask = 0x3f,
+                    .cpu_thread_priority = 700, .optimize_progressive_video = true,
+                };
+                query_cache[i].memory = (VdecMemory){ .this_size = sizeof(VdecMemory) };
+                query_cache[i].ok = !sceVideodec2QueryDecoderMemoryInfo(
+                    &query_cache[i].config, &query_cache[i].memory);
+            }
+}
+
+static bool cached_decoder_memory(VdecConfig *c, VdecMemory *memory)
+{
+    unsigned best = QUERY_CACHE_CAPACITY;
+    vlc_mutex_lock(&queue_lock);
+    for (unsigned i = 0; i < query_cache_count; ++i) {
+        const VdecConfig *q = &query_cache[i].config;
+        if (query_cache[i].ok && q->this_size == c->this_size &&
+            q->resource_type == c->resource_type && q->codec_type == c->codec_type &&
+            q->profile == c->profile && q->max_level == c->max_level &&
+            q->max_dpb_frame_count == c->max_dpb_frame_count &&
+            q->decode_pipeline_depth == c->decode_pipeline_depth &&
+            q->compute_queue == c->compute_queue && q->cpu_affinity_mask == c->cpu_affinity_mask &&
+            q->cpu_thread_priority == c->cpu_thread_priority &&
+            q->optimize_progressive_video == c->optimize_progressive_video &&
+            q->check_memory_type == c->check_memory_type && q->reserved0 == c->reserved0 &&
+            q->reserved1 == c->reserved1 && q->extra_config_info == c->extra_config_info &&
+            q->max_frame_width >= c->max_frame_width && q->max_frame_height >= c->max_frame_height &&
+            (best == QUERY_CACHE_CAPACITY || (int64_t)q->max_frame_width * q->max_frame_height <
+                (int64_t)query_cache[best].config.max_frame_width * query_cache[best].config.max_frame_height))
+            best = i;
+    }
+    if (best != QUERY_CACHE_CAPACITY) {
+        c->max_frame_width = query_cache[best].config.max_frame_width;
+        c->max_frame_height = query_cache[best].config.max_frame_height;
+        *memory = query_cache[best].memory;
+    }
+    vlc_mutex_unlock(&queue_lock);
+    return best != QUERY_CACHE_CAPACITY;
 }
 
 /* At start, before full access (platform_ps5.c): the compute queue made
@@ -338,6 +453,31 @@ void vlc_ps5_vdec_prepare(void)
         VLOG("compute queue: %s stage=%s rc=%#x (%" PRIu64 " KiB)\n",
              compute_queue ? "ready" : "FAILED", queue_stage, (unsigned)queue_status,
              (uint64_t)(info.cpu_gpu_memory_size >> 10));
+        /* ProsperoLight's native warm-up queries these three modes before
+         * filesystem setup. VideoDec2 loads private codec dependencies lazily
+         * from these queries; compute-queue allocation alone does not load HEVC.
+         * Match its NULL-queue query-only configuration. No decoder, frame pool
+         * or picture storage is allocated here; keep our existing queue alive. */
+        for (unsigned i = 0; i < 3; ++i) {
+            VdecConfig probe = {
+                .this_size = sizeof(probe),
+                .resource_type = 1,
+                .codec_type = i == 0 ? VDEC_CODEC_AVC : VDEC_CODEC_HEVC,
+                .profile = i == 0 ? 100 : i == 1 ? 1 : 2,
+                .max_level = i == 0 ? 52 : 153,
+                .max_frame_width = 3840,
+                .max_frame_height = 2176,
+                .max_dpb_frame_count = 4,
+                .decode_pipeline_depth = 1,
+                .cpu_affinity_mask = 0x3f,
+                .cpu_thread_priority = 700,
+                .optimize_progressive_video = true,
+            };
+            VdecMemory memory = { .this_size = sizeof(memory) };
+            codec_warmup_codes[i] = sceVideodec2QueryDecoderMemoryInfo(&probe, &memory);
+        }
+        prepare_query_cache();
+        codec_warmup_prepared = true;
     }
     vlc_mutex_unlock(&queue_lock);
 }
@@ -426,12 +566,14 @@ static mtime_t pending_take(decoder_sys_t *sys)
  * profile 5 has no HDR10-compatible base layer and goes to the
  * metadata-aware software decoder; profiles 7 and 8 play their HDR10 base
  * layer here, with the RPU and the enhancement layer left out. */
-static bool hevc_skip(const uint8_t *nal, size_t n)
+static bool hevc_skip(const uint8_t *nal, size_t n, bool *layer_seen)
 {
     if (n < 2)
         return true;
     unsigned type = (nal[0] >> 1) & 0x3f;
     unsigned layer = ((nal[0] & 1) << 5) | (nal[1] >> 3);
+    if (layer != 0)
+        *layer_seen = true;
     return type == 63 || layer != 0;
 }
 
@@ -457,13 +599,17 @@ static const uint8_t *hevc_find_rpu(const uint8_t *data, size_t size, size_t *le
     return NULL;
 }
 
-struct dv_bits { const uint8_t *p; size_t n; size_t pos; };
+struct dv_bits { const uint8_t *p; size_t n; size_t pos; bool valid; };
 
 static unsigned dv_read(struct dv_bits *b, unsigned count)
 {
+    if (count > 32 || b->pos > b->n * 8 || count > b->n * 8 - b->pos) {
+        b->valid = false;
+        return 0;
+    }
     unsigned v = 0;
     while (count--) {
-        unsigned bit = b->pos < b->n * 8 ? (b->p[b->pos >> 3] >> (7 - (b->pos & 7))) & 1 : 0;
+        unsigned bit = (b->p[b->pos >> 3] >> (7 - (b->pos & 7))) & 1;
         b->pos++;
         v = (v << 1) | bit;
     }
@@ -473,43 +619,76 @@ static unsigned dv_read(struct dv_bits *b, unsigned count)
 static unsigned dv_read_ue(struct dv_bits *b)
 {
     unsigned zeros = 0;
-    while (zeros < 32 && dv_read(b, 1) == 0)
+    while (b->valid && zeros < 32 && dv_read(b, 1) == 0)
         zeros++;
-    return (zeros >= 32 ? 0 : (1u << zeros) - 1) + dv_read(b, zeros);
+    if (!b->valid || zeros >= 32) {
+        b->valid = false;
+        return 0;
+    }
+    return ((1u << zeros) - 1) + dv_read(b, zeros);
 }
 
-/* Whether an RPU is a profile 5 one, read the way FFmpeg's dovi_rpu.c tells
- * the profiles apart without a configuration record: RPU profile 0 with a
- * full-range base layer (the IPT base layer, no HDR10 picture in it). The
- * NAL header (2 bytes) and rpu_nal_prefix come first; emulation prevention
- * bytes are taken out before the fields are read. */
-static bool dv_rpu_is_profile5(const uint8_t *nal, size_t n)
+/* The bounded RPU header and profile inference from FFmpeg's dovi_rpudec.c
+ * and dovi_rpu.c. Zero means unknown, never an implicit compatible profile.
+ * In particular a truncated, unsupported or malformed RPU must not cause a
+ * profile-5 IPT picture to be sent out as an ordinary HDR10 base layer. */
+static unsigned dv_rpu_profile(const uint8_t *nal, size_t n)
 {
+    if (n < 4 || (nal[0] & 0x81) || ((nal[0] >> 1) & 0x3f) != 62 ||
+        (nal[1] >> 3) != 0 || !(nal[1] & 7) || nal[2] != 25)
+        return 0;
     uint8_t buf[64];
     size_t m = 0, zeros = 0;
     for (size_t i = 3; i < n && m < sizeof(buf); i++) {
         if (zeros >= 2 && nal[i] == 3) {
+            if (i + 1 >= n || nal[i + 1] > 3)
+                return 0;
             zeros = 0;
             continue;
         }
         zeros = nal[i] == 0 ? zeros + 1 : 0;
         buf[m++] = nal[i];
     }
-    struct dv_bits b = { buf, m, 0 };
+    struct dv_bits b = { buf, m, 0, true };
     unsigned rpu_type = dv_read(&b, 6);
-    dv_read(&b, 11);                      /* rpu_format */
+    unsigned rpu_format = dv_read(&b, 11);
     if (rpu_type != 2)
-        return false;
+        return 0;
     unsigned vdr_rpu_profile = dv_read(&b, 4);
     dv_read(&b, 4);                       /* vdr_rpu_level */
     if (!dv_read(&b, 1))                  /* vdr_seq_info_present_flag */
-        return false;
+        return 0;
     dv_read(&b, 1);                       /* chroma_resampling_explicit_filter_flag */
-    if (dv_read(&b, 2) == 0)              /* coefficient_data_type: fixed point has a denominator */
-        dv_read_ue(&b);
+    unsigned coefficient_type = dv_read(&b, 2);
+    if (coefficient_type > 1)
+        return 0;
+    if (coefficient_type == 0) {
+        unsigned denominator = dv_read_ue(&b);
+        if (denominator < 13 || denominator > 32)
+            return 0;
+    }
     dv_read(&b, 2);                       /* vdr_rpu_normalized_idc */
     unsigned bl_video_full_range_flag = dv_read(&b, 1);
-    return vdr_rpu_profile == 0 && bl_video_full_range_flag;
+    if (rpu_format & 0x700)
+        return 0;
+    unsigned bl_depth = dv_read_ue(&b);
+    unsigned el_depth_mapping = dv_read_ue(&b);
+    unsigned vdr_depth = dv_read_ue(&b);
+    if (bl_depth > 8 || el_depth_mapping > 0xffff || (el_depth_mapping & 0xff) > 8 || vdr_depth > 8)
+        return 0;
+    dv_read(&b, 1);                       /* spatial_resampling_filter_flag */
+    unsigned compression = dv_read(&b, 3);
+    unsigned el_resampling = dv_read(&b, 1);
+    unsigned disable_residual = dv_read(&b, 1);
+    if (!b.valid || compression > 1)
+        return 0;
+    if (vdr_rpu_profile == 0 && bl_video_full_range_flag && disable_residual)
+        return 5;
+    if (vdr_rpu_profile != 1 || bl_depth != 2)
+        return 0;
+    if (el_resampling && !disable_residual)
+        return vdr_depth == 4 ? 7 : 0;    /* 10-bit VDR here is profile 4 */
+    return 8;
 }
 
 /* An Annex B HEVC access unit without the units the hardware decoder can't
@@ -553,7 +732,7 @@ static size_t hevc_base_layer(uint8_t *data, size_t size, bool *layer_seen)
 /* Length-prefixed NAL units -> Annex B, into dst (room for 4 + size per
  * unit is enough: lengths of 1 to 4 bytes become 4-byte start codes). */
 static size_t to_annexb(uint8_t *dst, size_t room, const uint8_t *src, size_t size, uint8_t len_size,
-                        bool hevc)
+                        bool hevc, bool *layer_seen)
 {
     size_t out = 0;
     while (size >= len_size) {
@@ -564,7 +743,7 @@ static size_t to_annexb(uint8_t *dst, size_t room, const uint8_t *src, size_t si
         size -= len_size;
         if (n > size || out + 4 + n > room)
             break;
-        if (hevc && hevc_skip(src, n)) {
+        if (hevc && hevc_skip(src, n, layer_seen)) {
             src += n;
             size -= n;
             continue;
@@ -653,6 +832,71 @@ static void give_up(decoder_t *dec, const char *why)
             why, sys->decoded, sys->errors);
     if (vlc_ps5_vdec_failed)
         vlc_ps5_vdec_failed();
+}
+
+/* HEVC SPS VUI colour recovery. The demuxer may leave colour fields unset
+ * until the packetizer sees its first SPS, even for a valid HDR10 base layer.
+ * These opaque APIs are supplied by the already linked VLC3.0.24 HEVC
+ * packetizer; keep their declarations identical to its hevc_nal.h. */
+typedef struct hevc_sequence_parameter_set_t hevc_sequence_parameter_set_t;
+hevc_sequence_parameter_set_t *hevc_decode_sps(const uint8_t *, size_t, bool);
+bool hevc_get_colorimetry(const hevc_sequence_parameter_set_t *, video_color_primaries_t *,
+                          video_transfer_func_t *, video_color_space_t *, bool *);
+void hevc_rbsp_release_sps(hevc_sequence_parameter_set_t *);
+
+static bool hevc_recover_colorimetry(video_format_t *video, const uint8_t *data, size_t size)
+{
+    if (video->primaries != COLOR_PRIMARIES_UNDEF && video->space != COLOR_SPACE_UNDEF &&
+        video->transfer != TRANSFER_FUNC_UNDEF)
+        return false;
+    bool changed = false;
+    size_t at = 0;
+    while (at + 3 <= size) {
+        size_t sc = at;
+        while (sc + 3 <= size && !(data[sc] == 0 && data[sc + 1] == 0 && data[sc + 2] == 1))
+            ++sc;
+        if (sc + 3 > size)
+            break;
+        size_t nal = sc + 3, next = nal;
+        while (next + 3 <= size && !(data[next] == 0 && data[next + 1] == 0 && data[next + 2] == 1))
+            ++next;
+        size_t end = next + 3 <= size ? next : size;
+        if (next + 3 <= size && end > nal && data[end - 1] == 0)
+            --end;
+        const uint8_t *n = data + nal;
+        if (end - nal >= 3 && end - nal <= 32768 && !(n[0] & 0x80) &&
+            ((n[0] >> 1) & 0x3f) == 33 && !(n[0] & 1) && !(n[1] & 0xf8) && (n[1] & 7)) {
+            hevc_sequence_parameter_set_t *sps = hevc_decode_sps(n, end - nal, true);
+            if (sps) {
+                bool recovered = false;
+                video_color_primaries_t primaries = COLOR_PRIMARIES_UNDEF;
+                video_transfer_func_t transfer = TRANSFER_FUNC_UNDEF;
+                video_color_space_t space = COLOR_SPACE_UNDEF;
+                bool full_range = false;
+                if (hevc_get_colorimetry(sps, &primaries, &transfer, &space, &full_range)) {
+                    if (video->primaries == COLOR_PRIMARIES_UNDEF && primaries != COLOR_PRIMARIES_UNDEF) {
+                        video->primaries = primaries;
+                        recovered = true;
+                    }
+                    if (video->space == COLOR_SPACE_UNDEF && space != COLOR_SPACE_UNDEF) {
+                        video->space = space;
+                        recovered = true;
+                    }
+                    if (video->transfer == TRANSFER_FUNC_UNDEF && transfer != TRANSFER_FUNC_UNDEF) {
+                        video->transfer = transfer;
+                        recovered = true;
+                    }
+                    if (recovered) {
+                        video->b_color_range_full = full_range;
+                        changed = true;
+                    }
+                }
+                hevc_rbsp_release_sps(sps);
+            }
+        }
+        at = next;
+    }
+    return changed;
 }
 
 /* A picture the decoder gave back: its buffer can be handed out again. */
@@ -942,7 +1186,7 @@ static int Decode(decoder_t *dec, block_t *block)
     }
     if (sys->nal_length && !(block->i_buffer >= 4 && !memcmp(block->p_buffer, "\x00\x00\x00\x01", 4))) {
         size += to_annexb(au + size, slot->len - size, block->p_buffer, block->i_buffer, sys->nal_length,
-                          sys->codec == VDEC_CODEC_HEVC);
+                          sys->codec == VDEC_CODEC_HEVC, &sys->dv_layer_seen);
     } else if (size + block->i_buffer <= slot->len) {
         memcpy(au + size, block->p_buffer, block->i_buffer);
         size += block->i_buffer;
@@ -956,20 +1200,41 @@ static int Decode(decoder_t *dec, block_t *block)
     block_Release(block);
 
     if (sys->codec == VDEC_CODEC_HEVC) {
+        if (hevc_recover_colorimetry(&dec->fmt_out.video, au, size))
+            msg_Warn(dec, "ps5vdec: SPS colour recovered primaries=%u transfer=%u matrix=%u full=%u",
+                     (unsigned)dec->fmt_out.video.primaries, (unsigned)dec->fmt_out.video.transfer,
+                     (unsigned)dec->fmt_out.video.space, (unsigned)dec->fmt_out.video.b_color_range_full);
         if (!sys->dv_profile) {
             size_t rpu_len = 0;
             const uint8_t *rpu = hevc_find_rpu(au, size, &rpu_len);
-            if (rpu)
-                sys->dv_profile = dv_rpu_is_profile5(rpu, rpu_len) ? 5 : 8;
+            if (rpu) {
+                sys->dv_profile = dv_rpu_profile(rpu, rpu_len);
+                if (!sys->dv_profile) {
+                    give_up(dec, "unknown or malformed Dolby Vision RPU requires the metadata-aware decoder");
+                    return VLCDEC_SUCCESS;
+                }
+            }
         }
         if (sys->dv_profile == 5) {
             give_up(dec, "Dolby Vision profile 5 requires the frame-metadata decoder");
             return VLCDEC_SUCCESS;
         }
         if (sys->dv_profile) {
+            /* Profiles 8.2 (SDR) and 8.4 (HLG), or missing/mismatched colour
+             * metadata, are not proof of an HDR10-compatible base layer.
+             * Keep the metadata-aware route for this test build. */
+            if (dec->fmt_out.video.space != COLOR_SPACE_BT2020 ||
+                dec->fmt_out.video.primaries != COLOR_PRIMARIES_BT2020 ||
+                dec->fmt_out.video.transfer != TRANSFER_FUNC_SMPTE_ST2084) {
+                msg_Warn(dec, "ps5vdec: DV base-layer colour rejected primaries=%u transfer=%u matrix=%u",
+                         (unsigned)dec->fmt_out.video.primaries, (unsigned)dec->fmt_out.video.transfer,
+                         (unsigned)dec->fmt_out.video.space);
+                give_up(dec, "Dolby Vision base layer is not signalled as BT.2020 PQ");
+                return VLCDEC_SUCCESS;
+            }
             /* 7 or 8: the HDR10 base layer plays; the RPU and the enhancement layer are left out */
             size = hevc_base_layer(au, size, &sys->dv_layer_seen);
-            if (sys->dv_layer_seen)
+            if (sys->dv_layer_seen && sys->dv_profile == 8)
                 sys->dv_profile = 7;
             if (sys->dv_profile != sys->dv_reported) {
                 sys->dv_reported = sys->dv_profile;
@@ -1040,8 +1305,11 @@ static int Decode(decoder_t *dec, block_t *block)
         sys->frame_held[frame] = true;
     if (rc != 0) {
         sys->errors++;
-        if (sys->errors <= 5)
+        if (sys->errors <= 5) {
             VLOG("decode %#x (access unit %u, %zu bytes)\n", (unsigned)rc, sys->decoded, size);
+            msg_Warn(dec, "ps5vdec: decode rejected rc=%#x access-unit=%u bytes=%zu accepted=%u",
+                     (unsigned)rc, sys->decoded, size, (unsigned)fb.is_accepted);
+        }
         /* never got going: FFmpeg instead */
         if (sys->shown == 0 && sys->errors >= 3) {
             give_up(dec, "the decoder refuses this video");
@@ -1071,8 +1339,11 @@ static int Decode(decoder_t *dec, block_t *block)
     pending_add(sys, pts);
     if (out.is_valid)
         output(dec, &out);
-    if (sys->decoded == 1 || sys->decoded == 100)
+    if (sys->decoded == 1 || sys->decoded == 100) {
         VLOG("%u access units in, %u pictures out, %u errors\n", sys->decoded, sys->shown, sys->errors);
+        msg_Warn(dec, "ps5vdec: progress access-units=%u pictures=%u errors=%u accepted=%u",
+                 sys->decoded, sys->shown, sys->errors, (unsigned)fb.is_accepted);
+    }
     return VLCDEC_SUCCESS;
 }
 
@@ -1123,7 +1394,7 @@ static int memory_rejected(decoder_t *dec, const char *component, int slot, cons
 
 /* The decoder's memory and the decoder itself, for this config; on failure
  * what was taken is given back (so a lighter config can be tried). */
-static int bring_up(decoder_t *dec, decoder_sys_t *sys, const VdecConfig *config,
+static int bring_up(decoder_t *dec, decoder_sys_t *sys, VdecConfig *config,
                     VdecMemory *mem, bool *query_rejected)
 {
     *query_rejected = false;
@@ -1133,6 +1404,12 @@ static int bring_up(decoder_t *dec, decoder_sys_t *sys, const VdecConfig *config
              config->max_frame_width, config->max_frame_height,
              config->max_dpb_frame_count, config->decode_pipeline_depth);
     int rc = sceVideodec2QueryDecoderMemoryInfo(config, mem);
+    if ((unsigned)rc == UINT32_C(0x811d0200) && cached_decoder_memory(config, mem)) {
+        msg_Warn(dec, "ps5vdec: memory-query rc=%#x using pre-storage cache %dx%d level=%u pipeline=%u dpb=%d",
+                 (unsigned)rc, config->max_frame_width, config->max_frame_height,
+                 config->max_level, config->decode_pipeline_depth, config->max_dpb_frame_count);
+        rc = 0;
+    }
     if (rc != 0) {
         *query_rejected = true;
         msg_Warn(dec, "ps5vdec: rejected stage=memory-query rc=%#x level=%u pipeline=%u",
@@ -1273,15 +1550,19 @@ static int OpenDecoder(vlc_object_t *obj)
     sys->frames.start = sys->cpu.start = sys->gpu.start = sys->cpu_gpu.start = -1;
     sys->codec = codec;
 
+    const unsigned coding_mask = codec == VDEC_CODEC_HEVC ? 63 : 15;
     VdecConfig config = {
         .this_size = sizeof(config),
         .resource_type = 1,
         .codec_type = codec,
         .profile = profile,
         .max_level = level,
-        /* the video's own size (rounded to 16), 4K when it isn't known yet */
-        .max_frame_width = w ? (int32_t)((w + 15) & ~15u) : 3840,
-        .max_frame_height = h ? (int32_t)((h + 15) & ~15u) : 2176,
+        /* HEVC's coded picture may extend to a 64-pixel CTB boundary. A
+         * display-height-only, round-16 envelope can reject scope remuxes
+         * before allocation or their first access unit. Use the same bounded
+         * envelope as EVO's native decoder; AVC retains its 16-pixel blocks. */
+        .max_frame_width = w ? (int32_t)((w + coding_mask) & ~coding_mask) : 3840,
+        .max_frame_height = h ? (int32_t)((h + coding_mask) & ~coding_mask) : 2176,
         /* the decoder sizes its picture store for the stream itself */
         .max_dpb_frame_count = -1,
         /* several pictures in the decoder at once: one at a time left it idle
@@ -1319,6 +1600,27 @@ static int OpenDecoder(vlc_object_t *obj)
         msg_Warn(dec, "ps5vdec: retry level=156 -> 153 rc=%#x", (unsigned)rc);
         config.max_level = 153;
         rc = bring_up(dec, sys, &config, &mem, &query_rejected);
+    }
+    /* Some native libraries reject automatic DPB sizing at the query stage.
+     * ProsperoLight's hardware-validated path passes a positive SPS-derived
+     * capacity. At HEVC level 5.1 a picture larger than 3/4 MaxLumaPs has the
+     * standard DPB ceiling of six pictures. Restrict this compatibility retry
+     * to known dimensions in that range, never guess a lower capacity for a
+     * smaller or unknown stream. A query rejection has allocated nothing.
+     * This is a bounded compatibility attempt, not a capability assertion. */
+    const bool hevc_six_picture_bound = codec == VDEC_CODEC_HEVC && w && h &&
+        (uint64_t)w * h > UINT64_C(8912896) * 3 / 4;
+    if (rc != 0 && query_rejected && (uint32_t)rc == UINT32_C(0x811d0200) &&
+        hevc_six_picture_bound && config.max_level == 153 && config.max_dpb_frame_count == -1) {
+        config.max_dpb_frame_count = 6;
+        config.decode_pipeline_depth = 4;
+        msg_Warn(dec, "ps5vdec: retry HEVC explicit DPB=6 level=153 pipeline=4 after configuration-query refusal");
+        rc = bring_up(dec, sys, &config, &mem, &query_rejected);
+        if (rc != 0) {
+            config.decode_pipeline_depth = 1;
+            msg_Warn(dec, "ps5vdec: retry HEVC explicit DPB=6 pipeline=4 -> 1 rc=%#x", (unsigned)rc);
+            rc = bring_up(dec, sys, &config, &mem, &query_rejected);
+        }
     }
     if (rc != 0) {
         msg_Warn(dec, "ps5vdec: rejected stage=configurations-exhausted rc=%#x", (unsigned)rc);

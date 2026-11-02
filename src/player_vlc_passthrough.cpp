@@ -63,6 +63,8 @@ struct aout_sys_t {
     bool shutdown_failed = false;
     float gain = 1.f;
     int64_t next_pts = VLC_TICK_INVALID;
+    int64_t paused_at = VLC_TICK_INVALID;
+    int64_t startup_pts_fraction = 0;
 };
 
 namespace {
@@ -71,6 +73,9 @@ std::mutex hdmi_lifecycle_mutex;
 aout_sys_t* hdmi_owner = nullptr;
 std::atomic<bool> pcm_available{true};
 std::chrono::steady_clock::time_point last_hdmi_reset{};
+bool output_bursts(audio_output_t* output, bool drain);
+
+bool finish_grain_tail(audio_output_t* output);
 
 pt::Codec codec_for(vlc_fourcc_t codec) {
     switch (codec) {
@@ -169,6 +174,12 @@ bool close_port_locked(audio_output_t* output) {
     auto& state = *output->sys;
     if (state.shutdown_failed) return false;
     if (state.handle < 1) return true;
+    if (!state.failed && state.codec == pt::Codec::truehd) {
+        // Complete the last MAT frame before the lead-out. A port drain only
+        // waits for submitted grains; it cannot transmit the retained tail.
+        try { if (!output_bursts(output, true)) state.failed = true; }
+        catch (...) { state.failed = true; }
+    }
     if (!state.failed && null_bursts(output, 500) < 0) state.failed = true;
     if (!drain_port_locked(output)) return false;
     const int closed = state.carrier.sys ? sceAudioOutSysClose(state.handle) : sceAudioOutExClose(state.handle);
@@ -212,6 +223,8 @@ int start(audio_output_t* output, audio_sample_format_t* format) {
         }
         state.codec = codec; state.carrier = pt::carrier_for(codec); state.packer.set_codec(codec);
         state.failed = false; state.first_native_error = 0; state.next_pts = VLC_TICK_INVALID;
+        state.paused_at = VLC_TICK_INVALID;
+        state.startup_pts_fraction = 0;
         try { state.pending.reserve(maximum_pending); state.burst.reserve(65536); state.stream.reserve(81920); }
         catch (...) { notify(state, false, "pcm_allocation_failed"); return VLC_ENOMEM; }
         // Closing the ordinary SDL port happens through this callback before
@@ -259,18 +272,46 @@ int start(audio_output_t* output, audio_sample_format_t* format) {
     if (state.volume) state.volume(state.opaque, state.gain, state.muted);
     return VLC_SUCCESS;
 }
+bool finish_grain_tail(audio_output_t* output) {
+    auto& state = *output->sys;
+    if (state.stream.empty()) return true;
+    const size_t grain = size_t(state.carrier.grain_frames) * state.carrier.frame_bytes;
+    if (state.stream.size() >= grain) return false;
+    state.stream.resize(grain, 0);
+    const bool sent = submit_grain(output, state.stream.data()) >= 0;
+    state.stream.clear();
+    return sent;
+}
 bool output_bursts(audio_output_t* output, bool drain) {
     auto& state = *output->sys;
     size_t cursor = 0;
     const char* error = nullptr;
     for (;;) {
         state.burst.clear();
-        if (!state.packer.next_burst(state.pending, &cursor, &state.burst, &error, drain)) break;
+        const bool ready = state.packer.next_burst(state.pending, &cursor, &state.burst, &error, drain);
+        const unsigned skipped = state.packer.take_startup_skipped_samples();
+        if (skipped && state.next_pts > VLC_TICK_INVALID) {
+            const int64_t ticks = int64_t(skipped) * CLOCK_FREQ + state.startup_pts_fraction;
+            state.next_pts += ticks / 48000;
+            state.startup_pts_fraction = ticks % 48000;
+        }
+        if (!ready) {
+            if (error) msg_Warn(output, "PS5 bitstream framing rejected: %s codec=%u pending=%zu consumed=%zu",
+                                error, unsigned(state.codec), state.pending.size(), cursor);
+            break;
+        }
         const size_t grain = size_t(state.carrier.grain_frames) * state.carrier.frame_bytes;
-        if (state.burst.empty() || state.burst.size() % size_t(state.carrier.frame_bytes) != 0) return false;
+        if (state.burst.empty() || state.burst.size() % size_t(state.carrier.frame_bytes) != 0) {
+            msg_Warn(output, "PS5 bitstream carrier alignment rejected: bytes=%zu frame_bytes=%d",
+                     state.burst.size(), state.carrier.frame_bytes);
+            return false;
+        }
         if (state.next_pts > VLC_TICK_INVALID) {
             const int64_t delay = state.next_pts - mdate();
-            if (delay > 2000000) return false;
+            if (delay > 2000000) {
+                msg_Warn(output, "PS5 bitstream schedule rejected: ahead_us=%lld", (long long)delay);
+                return false;
+            }
             if (delay > 0) std::this_thread::sleep_for(std::chrono::microseconds(delay));
         }
         // Whole grains go out now; a burst that is not a whole number of
@@ -288,11 +329,7 @@ bool output_bursts(audio_output_t* output, bool drain) {
     if (drain && !error && !state.stream.empty()) {
         // The end of the stream: the tail goes out in a grain padded with
         // zeros, which the receiver takes as the pause between bursts.
-        const size_t grain = size_t(state.carrier.grain_frames) * state.carrier.frame_bytes;
-        state.stream.resize(grain, 0);
-        const bool sent = submit_grain(output, state.stream.data()) >= 0;
-        state.stream.clear();
-        if (!sent) return false;
+        if (!finish_grain_tail(output)) return false;
     }
     return !error;
 }
@@ -307,8 +344,9 @@ void play(audio_output_t* output, block_t* block) {
                 if (state.next_pts == VLC_TICK_INVALID && block->i_pts > VLC_TICK_INVALID) state.next_pts = block->i_pts;
                 state.pending.insert(state.pending.end(), block->p_buffer, block->p_buffer + block->i_buffer);
                 okay = output_bursts(output, false);
-            }
-        } catch (...) { okay = false; }
+            } else msg_Warn(output, "PS5 bitstream pending limit exceeded: pending=%zu incoming=%zu",
+                            state.pending.size(), block->i_buffer);
+        } catch (...) { msg_Warn(output, "PS5 bitstream allocation failed"); okay = false; }
         if (!okay) {
             state.failed = true;
             msg_Warn(output, "PS5 bitstream output failed; requesting PCM restart");
@@ -323,6 +361,19 @@ void pause(audio_output_t* output, bool paused, vlc_tick_t date) {
     auto& state = *output->sys;
     if (state.codec != pt::Codec::unknown) {
         if (paused && !drain_port(output)) return;
+        if (state.codec == pt::Codec::truehd) {
+            // Preserve both the partial MAT and the complete MAT's grain tail
+            // across pause. Resuming continues their exact byte sequence.
+            const int64_t at = date > VLC_TICK_INVALID ? date : mdate();
+            if (paused) state.paused_at = at;
+            else if (state.paused_at > VLC_TICK_INVALID) {
+                if (state.next_pts > VLC_TICK_INVALID && at >= state.paused_at)
+                    state.next_pts += at - state.paused_at;
+                else state.next_pts = VLC_TICK_INVALID;
+                state.paused_at = VLC_TICK_INVALID;
+            }
+            return;
+        }
         state.pending.clear(); state.stream.clear(); state.next_pts = VLC_TICK_INVALID;
         return;
     }
@@ -337,8 +388,16 @@ void flush(audio_output_t* output, bool wait) {
             try { okay = output_bursts(output, true); } catch (...) {}
             if (!okay) { state.failed = true; notify(state, false, "output_failed"); }
         }
+        if (!wait && !state.failed && !state.stream.empty()) {
+            bool okay = false;
+            try { okay = finish_grain_tail(output); } catch (...) {}
+            if (!okay) { state.failed = true; notify(state, false, "output_failed"); }
+        }
         if (!drain_port(output)) return;
         state.pending.clear(); state.burst.clear(); state.stream.clear(); state.next_pts = VLC_TICK_INVALID;
+        state.packer.set_codec(state.codec);
+        state.paused_at = VLC_TICK_INVALID;
+        state.startup_pts_fraction = 0;
     } else if (wait) { if (state.drain) state.drain(state.opaque); }
     else if (state.flush) state.flush(state.opaque, mdate());
 }

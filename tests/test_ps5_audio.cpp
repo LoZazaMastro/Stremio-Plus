@@ -5,6 +5,8 @@
 #include <vlc/vlc.h>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,7 +31,7 @@ struct Sink {
     unsigned reset_calls = 0, retry_calls = 0, pcm_calls = 0, pcm_frames = 0;
     unsigned pause_calls = 0, resume_calls = 0, flush_calls = 0, drain_calls = 0;
     int mode = -1;
-    bool deferred = false;
+    bool deferred = false, system_port = false;
     const uint8_t* in_flight = nullptr;
     std::vector<uint8_t> in_flight_copy;
     unsigned overwritten_buffers = 0, undrained_closes = 0, native_drains = 0;
@@ -145,17 +147,48 @@ void negotiation_failures(libvlc_instance_t* instance) {
                                  "failed configuration closes owned port and restores PCM mode");
         fixture.verify_pcm();
     }
-    for (auto codec : {VLC_CODEC_TRUEHD, VLC_CODEC_OPUS}) {
+    for (auto codec : {VLC_CODEC_OPUS}) {
         Fixture fixture(instance);
         check(fixture.encoded(codec) != VLC_SUCCESS, "unsupported codec stays decoded");
         check(fixture.state.monitor_calls == 0 && fixture.state.open_calls == 0,
               "unsupported codec cannot negotiate encoded transport");
         fixture.verify_pcm();
     }
+    {
+        Fixture fixture(instance);
+        check(fixture.encoded(VLC_CODEC_TRUEHD) != VLC_SUCCESS && fixture.state.monitor_calls == 1 &&
+              fixture.state.open_calls == 0, "TrueHD without an advertised MAT receiver remains PCM");
+        fixture.verify_pcm();
+    }
     Fixture fixture(instance);
     check(fixture.encoded(VLC_CODEC_A52, 44100) != VLC_SUCCESS, "non-48kHz stream cannot use fixed-rate carrier");
     check(fixture.state.open_calls == 0, "wrong sample rate never opens encoded port");
     fixture.verify_pcm();
+}
+void truehd_lifecycle(libvlc_instance_t* instance, const std::string& path) {
+    std::ifstream file(path, std::ios::binary);
+    check(bool(file), "read independently encoded TrueHD fixture");
+    const std::vector<uint8_t> bytes{std::istreambuf_iterator<char>(file), {}};
+    Fixture fixture(instance);
+    fixture.state.formats = {12};
+    fixture.state.deferred = true;
+    check(fixture.encoded(VLC_CODEC_TRUEHD) == VLC_SUCCESS && fixture.state.system_port,
+          "real VLC objects negotiate the TrueHD system port");
+    size_t split = 0;
+    for (unsigned i = 0; i < 30; ++i) split += pt::parse_frame(pt::Codec::truehd, bytes, split).size;
+    fixture.state.capture = true;
+    fixture.send({bytes.begin(), bytes.begin() + split});
+    const auto tail = fixture.output->sys->stream;
+    check(tail.size() == 12288, "MAT retains partial native grain");
+    fixture.output->pause(fixture.output, true, 0);
+    check(fixture.output->sys->stream == tail && !fixture.state.in_flight,
+          "TrueHD pause preserves unsent MAT while draining native pointers");
+    fixture.output->pause(fixture.output, false, 0);
+    fixture.send({bytes.begin() + split, bytes.end()});
+    fixture.output->flush(fixture.output, true);
+    check(fixture.output->sys->stream.empty() && !fixture.state.overwritten_buffers && !fixture.state.in_flight,
+          "TrueHD drain completes tail with stable native buffers");
+    fixture.state.capture = false;
 }
 void carriers(libvlc_instance_t* instance) {
     struct Case { pt::Codec codec; vlc_fourcc_t fourcc; int mode; size_t bytes; unsigned type; };
@@ -336,6 +369,11 @@ extern "C" int sceAudioOutExOpen(int user, int mode) {
             std::chrono::steady_clock::now() - sink->reset_stamp).count();
     return sink->open_result;
 }
+extern "C" int sceAudioOutSysOpen(int user, int mode) {
+    check(mode == 5, "TrueHD opens system MAT mode");
+    sink->system_port = true;
+    return sceAudioOutExOpen(user, mode);
+}
 extern "C" int sceAudioOutExConfigureOutput(int first, unsigned second, int mode, int last, uint64_t reserved) {
     check(first == 0 && second == 0 && reserved == 0, "native mode ABI retains reserved fields");
     if (mode == 0xff) {
@@ -357,6 +395,14 @@ extern "C" int sceAudioOutExClose(int handle) {
     sink->in_flight = nullptr;
     return 0;
 }
+extern "C" int sceAudioOutSysConfigureOutput(int first, unsigned second, int mode, int last, uint64_t reserved) {
+    check(first == 1 && mode == 5 && sink->system_port, "system MAT uses HDMI output type one");
+    return sceAudioOutExConfigureOutput(0, second, mode, last, reserved);
+}
+extern "C" int sceAudioOutSysClose(int handle) {
+    check(sink->system_port, "TrueHD closes the system port");
+    return sceAudioOutExClose(handle);
+}
 extern "C" int sceAudioOutOutput(int handle, const void* data) {
     ++sink->output_calls;
     check(handle == sink->open_result && sink->configured, "no encoded output before successful negotiation");
@@ -374,18 +420,18 @@ extern "C" int sceAudioOutOutput(int handle, const void* data) {
     const bool payload = bytes[0] == 0x72 && bytes[1] == 0xf8 && (bytes[4] || bytes[5]);
     if (sink->fail_payload && payload) return -1;
     if (sink->capture) {
-        const size_t count = sink->mode == 3 ? 4096 : 1024;
+        const size_t count = sink->mode == 5 ? 16384 : sink->mode == 3 ? 4096 : 1024;
         sink->data.insert(sink->data.end(), bytes, bytes + count);
     }
     if (sink->deferred) {
-        const size_t count = sink->mode == 3 ? 4096 : 1024;
+        const size_t count = sink->mode == 5 ? 16384 : sink->mode == 3 ? 4096 : 1024;
         sink->in_flight = bytes;
         sink->in_flight_copy.assign(bytes, bytes + count);
     }
     return 0;
 }
 
-int main() {
+int main(int argc, char** argv) {
     const char* arguments[] = {"--quiet", "--no-video", "--no-audio"};
     auto* instance = libvlc_new(3, arguments);
     check(instance != nullptr, "initialize real host libVLC core");
@@ -396,6 +442,7 @@ int main() {
     carriers(instance);
     output_failure(instance);
     failed_shutdown_retains_owner(instance);
+    if (argc == 2) truehd_lifecycle(instance, argv[1]);
     libvlc_release(instance);
-    std::printf("{\"result\":\"PASS\",\"checks\":%u,\"scenarios\":21}\n", checks);
+    std::printf("{\"result\":\"PASS\",\"checks\":%u,\"scenarios\":%u}\n", checks, argc == 2 ? 22u : 21u);
 }

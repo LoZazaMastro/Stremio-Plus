@@ -43,9 +43,10 @@ def require(condition, message):
 
 
 with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder:
-    for name, expected in [('abort', -signal.SIGABRT), ('assert', -signal.SIGABRT),
-                           ('assert_privacy', -signal.SIGABRT), ('signal_abort', -signal.SIGABRT),
-                           ('segv', -signal.SIGSEGV), ('allocation', 0), ('immediate_exit', 37)]:
+    for name, expected in [('abort', 128 + signal.SIGABRT), ('assert', 128 + signal.SIGABRT),
+                           ('assert_privacy', 128 + signal.SIGABRT), ('signal_abort', 128 + signal.SIGABRT),
+                           ('segv', 128 + signal.SIGSEGV), ('worker_segv', 128 + signal.SIGSEGV),
+                           ('allocation', 0), ('immediate_exit', 37)]:
         path = Path(folder) / name
         result = subprocess.run([str(binary), str(path), name], capture_output=True, text=True, timeout=15)
         output.append(name + '\n' + result.stdout + result.stderr)
@@ -61,7 +62,13 @@ with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder
             for field in ('pc', 'sp', 'anchor'):
                 value = re.search(r'\b' + field + r'=(0x[0-9a-f]+)', receipt)
                 require(value is not None and int(value.group(1), 16) != 0, name + ': missing raw ' + field)
-            require((' fault=' in receipt) == (name == 'segv'), name + ': signal union interpreted as fault address')
+            require((' fault=' in receipt) == (name in ('segv', 'worker_segv')), name + ': signal union interpreted as fault address')
+            require('event=stack_text_words' not in receipt, name + ': unsafe stack scan returned')
+            context = re.search(r'event=context part=1 words=([^\n]+)', receipt)
+            require(context is not None and len(context.group(1).split(',')) == 32,
+                    name + ': bounded register prefix missing')
+            if name == 'worker_segv':
+                require('main_thread=0' in receipt, 'worker: signal was not captured on the guarded worker stack')
         if name in ('abort', 'assert', 'assert_privacy'):
             require('event=abort caller=0x' in receipt, name + ': native abort wrapper bypassed')
             require(int(re.search(r'event=abort caller=(0x[0-9a-f]+)', receipt).group(1), 16) != 0,
@@ -73,7 +80,7 @@ with tempfile.TemporaryDirectory(prefix='stremio-native-diagnostics-') as folder
                     'assert: no external assertion caller')
         if name == 'assert_privacy':
             require('expression=[redacted source text]' in receipt, 'assert privacy: bounded source redaction absent')
-        if name == 'segv':
+        if name in ('segv', 'worker_segv'):
             observed = int(re.search(r' fault=(0x[0-9a-f]+)', receipt).group(1), 16)
             expected_fault = int(re.search(r'expected_fault=(0x[0-9a-f]+)', result.stdout).group(1), 16)
             require(observed == expected_fault, 'segv: fault address differs from actual inaccessible page')

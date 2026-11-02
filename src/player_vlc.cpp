@@ -6,6 +6,7 @@
 
 #include "player.h"
 #include "player_vlc_audio.h"
+#include "player_seek.h"
 #include "player_vlc_bridge.h"
 #include "native_memory.h"
 #include "player_vlc_dovi.h"
@@ -65,6 +66,7 @@ size_t align_plane(size_t value) { return (value + kPlaneAlignment - 1) & ~(kPla
 struct InputOwner {
     Player::Options options;
     std::atomic<bool> abort{false}, playing{false}, fatal{false};
+    std::atomic<const char*> cancel_reason{"none"};
     std::mutex error_mutex;
     std::string error;
     void report(const std::string& message, bool terminal) {
@@ -79,6 +81,13 @@ struct Input {
     InputOwner* owner = nullptr;
     AVIOContext* io = nullptr;
     bool growing = false, strict = false, opened = false;
+    std::atomic<bool> cancelled_logged{false}, error_logged{false}, eof_logged{false};
+    void note_read_stop(const char* category, int code, bool cancelled) {
+        auto& noted = cancelled ? cancelled_logged : code == AVERROR_EOF ? eof_logged : error_logged;
+        if (noted.exchange(true)) return;
+        dlog("player/vlc: input_read category=%s code=%d abort=%d strict=%d reason=%s",
+             category, code, int(cancelled), int(strict), cancelled ? owner->cancel_reason.load() : "none");
+    }
     ~Input() {
         if (GrowingFileStream::of(io)) GrowingFileStream::close_avio(&io);
         else if (TorrentStream::is_ours(io)) TorrentStream::close_avio(&io);
@@ -138,20 +147,22 @@ extern "C" int stremio_vlc_http_open(void* opaque, const char* url, void** outpu
 extern "C" ssize_t stremio_vlc_input_read(void* opaque, unsigned char* data, size_t size) {
     auto* input = static_cast<Input*>(opaque);
     if (!input || !data || !size) return 0;
-    if (input->owner->abort) return -1;
+    if (input->owner->abort) { input->note_read_stop("cancelled", AVERROR_EXIT, true); return -1; }
     try {
         if (input->growing && !input->opened && input->owner->playing) {
             GrowingFileStream::of(input->io)->finish_opening();
             input->opened = true;
         }
         const int result = input->io->read_packet(input->io->opaque, data, int(std::min<size_t>(size, 256u << 10)));
-        if (result == AVERROR_EOF) return 0;
+        if (result == AVERROR_EOF) { input->note_read_stop("eof", result, false); return 0; }
         if (result < 0) {
-            if (!input->owner->abort) input->owner->report(input->failure(), input->strict);
+            const bool cancelled = input->owner->abort;
+            input->note_read_stop(cancelled ? "cancelled" : "error", result, cancelled);
+            if (!cancelled) input->owner->report(input->failure(), input->strict);
             return -1;
         }
         return result;
-    } catch (...) { input->owner->fatal = true; return -1; }
+    } catch (...) { input->note_read_stop("exception", AVERROR(EIO), false); input->owner->fatal = true; return -1; }
 }
 
 extern "C" int stremio_vlc_input_seek(void* opaque, uint64_t offset) {
@@ -203,7 +214,9 @@ struct Player::Vlc {
     std::atomic<bool> recovering_decoder{false};
     unsigned decoder_recoveries = 0;
     std::atomic<int> buffering_percent{0}, serial{0}, subtitle_serial{0}, wanted_audio{-2}, wanted_subtitle{-1};
-    std::atomic<double> requested_seek{-1}, presented{0}, known_seek{0}, native_position{0};
+    playback_seek::Requests seek_requests;
+    std::atomic<std::uint64_t> active_seek_generation{0};
+    std::atomic<double> presented{0}, known_seek{0}, native_position{0};
     std::atomic<uint64_t> decoded{0}, shown{0}, dropped{0};
     std::atomic<int> decoded_pictures{0}, late_pictures{0};
     std::atomic<uint64_t> rendered_audio_frames{0}, setup_calls{0}, lock_calls{0}, display_calls{0};
@@ -902,7 +915,7 @@ struct Player::Vlc {
         const double resume = frame_presented ? presented.load() : media_start;
         dlog("player/vlc: %s; reopening the same input at %.3fs with software decoding", reason, resume);
         parent.state_ = State::Opening;
-        input.abort = true;
+        input.cancel_reason = "video_fallback"; input.abort = true;
         libvlc_media_player_stop(player);
         libvlc_media_release(media); media = nullptr;
         clear_output();
@@ -926,7 +939,7 @@ struct Player::Vlc {
             code, decoder_recoveries, resume);
         recovering_decoder = true;
         parent.state_ = State::Opening;
-        input.abort = true;
+        input.cancel_reason = "decoder_recovery"; input.abort = true;
         libvlc_media_player_stop(player);
         libvlc_media_release(media); media = nullptr;
         clear_output();
@@ -936,6 +949,29 @@ struct Player::Vlc {
         // rejected PS5 hardware path again.
         software_fallback = true;
         return start_media(resume);
+    }
+
+    bool reopen_for_seek(playback_seek::Target target, const char* reason) {
+        // VLC cannot process its asynchronous seek controls while our custom
+        // input is blocked fetching the previous location. Retire that reader
+        // first; its abort flag wakes TorrentStream's real read within 100 ms.
+        input.cancel_reason = reason; input.abort = true;
+        parent.state_ = State::Opening;
+        libvlc_media_player_stop(player);
+        libvlc_media_release(media); media = nullptr;
+        clear_output();
+        // Controller repeats may arrive while native audio drains. Reopen
+        // only at the newest settled target, never at each intermediate step.
+        while (!stop_requested && seek_requests.pending()) {
+            if (const auto newest = seek_requests.take_ready(libvlc_clock())) target = *newest;
+            else std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        if (stop_requested) return false;
+        active_seek_generation = target.generation;
+        dlog("player/vlc: seek_reopen target_s=%.9g generation=%llu", target.seconds,
+             (unsigned long long)target.generation);
+        input.abort = false;
+        return start_media(target.seconds);
     }
 
     void run() {
@@ -1009,7 +1045,7 @@ struct Player::Vlc {
                     if (passthrough_retry.exchange(false)) {
                         const double resume = frame_presented ? presented.load() : media_start;
                         parent.state_ = State::Opening;
-                        input.abort = true;
+                        input.cancel_reason = "audio_retry"; input.abort = true;
                         libvlc_media_player_stop(player);
                         libvlc_media_release(media); media = nullptr;
                         if (native_audio_shutdown_failed) { fail(kNativeAudioShutdownError); break; }
@@ -1038,33 +1074,24 @@ struct Player::Vlc {
                             "audio played for eight seconds without a video picture")) break;
                         continue;
                     }
-                    const double target = requested_seek.exchange(-1);
+                    const auto seek = seek_requests.take_ready(libvlc_clock());
+                    const double target = seek ? seek->seconds : -1;
                     if (end_reached) {
                         parent.state_ = State::Ended;
                         if (target >= 0) {
                             dlog("player/vlc: seek_apply branch=ended_reopen current_s=%.9g target_s=%.9g",
                                 presented.load(), target);
-                            input.abort = true;
-                            libvlc_media_player_stop(player);
-                            libvlc_media_release(media); media = nullptr;
-                            clear_output();
-                            input.abort = false;
-                            parent.state_ = State::Opening;
-                            if (!start_media(target)) break;
+                            if (!reopen_for_seek(*seek, "ended_seek_reopen")) break;
                         }
-                    } else if (target >= 0 && parent.progressive_download()) {
-                        dlog("player/vlc: seek_apply branch=growing_reopen current_s=%.9g target_s=%.9g",
+                    } else if (target >= 0 && (input.options.growing_download || TorrentStream::is_url(input.options.url))) {
+                        const bool torrent = TorrentStream::is_url(input.options.url);
+                        dlog("player/vlc: seek_apply branch=%s current_s=%.9g target_s=%.9g",
+                            torrent ? "torrent_reopen" : "growing_reopen",
                             presented.load(), target);
                         // A demuxer blocked in a growing-file read cannot
                         // service an asynchronous seek. Cancel that reader
                         // and reopen the same held file at the proven point.
-                        input.abort = true;
-                        libvlc_media_player_stop(player);
-                        libvlc_media_release(media); media = nullptr;
-                        clear_output();
-                        input.abort = false;
-                        parent.state_ = State::Opening;
-                        if (!start_media(target)) break;
+                        if (!reopen_for_seek(*seek, torrent ? "torrent_seek_reopen" : "growing_seek_reopen")) break;
                     } else if (target >= 0 && libvlc_media_player_is_seekable(player)) {
                         dlog("player/vlc: seek_apply branch=direct current_s=%.9g target_s=%.9g",
                             presented.load(), target);
@@ -1074,10 +1101,12 @@ struct Player::Vlc {
                         seek_previous_position = -1;
                         native_position_known = false;
                         clear_output();
+                        active_seek_generation = seek->generation;
                         libvlc_media_player_set_time(player, libvlc_time_t(target * 1000));
                     } else if (target >= 0) {
                         dlog("player/vlc: seek_apply branch=not_seekable current_s=%.9g target_s=%.9g",
                             presented.load(), target);
+                        seek_requests.displayed(seek->generation);
                     }
                     if (seeking && native_position_known) {
                         const double position = native_position;
@@ -1123,6 +1152,11 @@ struct Player::Vlc {
     }
 
     void cleanup() {
+        const char* reason = stop_requested ? "requested" : input.fatal ? "input_error" :
+                             native_error ? "vlc_error" : end_reached ? "ended" : "worker_exit";
+        dlog("player/vlc: cleanup reason=%s seeking=%d end_reached=%d input_fatal=%d native_error=%d",
+             reason, int(seeking.load()), int(end_reached.load()), int(input.fatal.load()), int(native_error.load()));
+        if (!input.abort) input.cancel_reason = reason;
         input.abort = true;
         if (player) { libvlc_media_player_stop(player); libvlc_media_player_release(player); player = nullptr; }
         if (media) { libvlc_media_release(media); media = nullptr; }
@@ -1131,7 +1165,10 @@ struct Player::Vlc {
     }
 
     void stop() {
-        stop_requested = true;
+        if (!stop_requested.exchange(true))
+            dlog("player/vlc: stop_request seeking=%d end_reached=%d input_fatal=%d native_error=%d",
+                 int(seeking.load()), int(end_reached.load()), int(input.fatal.load()), int(native_error.load()));
+        input.cancel_reason = "stop_requested";
         input.abort = true;
         if (worker.joinable()) worker.join();
     }
@@ -1200,7 +1237,7 @@ bool Player::buffering(int* percent) const {
 
 bool Player::video_expected() const { return !vlc_ || vlc_->expects_video.load(); }
 
-double Player::position() { return vlc_ ? vlc_->presented.load() : 0; }
+double Player::position() { return vlc_ ? vlc_->seek_requests.position(vlc_->presented.load()) : 0; }
 
 bool Player::progressive_download() const {
     if (!opts_.growing_download) return false;
@@ -1232,7 +1269,7 @@ void Player::seek(double time) {
     dlog("player/vlc: seek_request current_s=%.9g requested_s=%.9g target_s=%.9g accepted=%d",
         vlc_->presented.load(), requested, time, int(accepted));
     if (!accepted) return;
-    vlc_->requested_seek = time;
+    vlc_->seek_requests.request(time, libvlc_clock());
 }
 
 std::vector<Player::Track> Player::audio_tracks() const {
@@ -1275,6 +1312,7 @@ bool Player::take_frame(VideoFrame& output) {
     if (slot.frame.serial != vlc_->serial) return false;
     output = slot.frame;
     vlc_->presented = output.pts;
+    vlc_->seek_requests.displayed(vlc_->active_seek_generation.load());
     vlc_->frame_presented = true;
     vlc_->recovering_decoder = false;
     const double known = vlc_->known_seek;

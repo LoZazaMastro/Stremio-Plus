@@ -58,6 +58,9 @@ class Renderer
     void backdrop(const BackdropSpec &spec, float opacity = 1.0f);
     void draw(const DrawList &list);
     void glass();
+    // Optional background replayed only into the small glass capture. It is
+    // not composited into the main target (used by the HDR video presenter).
+    void glass_background(const DrawList* list) { glass_background_ = list; }
 
     // Draws the queued layers into framebuffer (0 is the display). The
     // virtual size is the coordinate space of the lists.
@@ -98,6 +101,7 @@ class Renderer
     GLuint blur_program_ = 0;
     GLuint blur_vao_ = 0;
     std::vector<Layer> layers_;
+    const DrawList* glass_background_ = nullptr;
     std::size_t draw_calls_ = 0;
     std::size_t instances_ = 0;
 };

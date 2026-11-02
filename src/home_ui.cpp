@@ -1762,13 +1762,13 @@ struct HomeUi::Impl {
             settings_schema = std::move(schema);
             settings.clear();
             const auto section = [](const std::string& id) {
-                if (id == "display_resolution" || id == "display_refresh") return 1;
+                if (id == "display_resolution" || id == "display_refresh" || id == "hdr_output") return 1;
                 if (id == "audio_languages" || id == "audio_passthrough") return 2;
                 if (id.rfind("subtitle_", 0) == 0 || id == "auto_subtitles") return 3;
                 if (id == "autoplay_next" || id == "next_episode_delay_seconds" || id == "seek_seconds" || id == "shoulder_seek_seconds" || id == "show_stats") return 4;
                 if (id == "download_directory" || id == "torrent_speed_profile" || id == "addons" || id == "reload" || id == "server_url") return 5;
                 if (id == "reduced_motion" || id == "high_contrast" || id == "controller_ambient_light" || id == "ui_sounds" || id == "sound_volume") return 6;
-                if (id == "exit") return 7;
+                if (id == "diagnostics_server" || id == "exit") return 7;
                 return 0;
             };
             const std::array<const char*, 8> headers{{tr("Generali", "General"), tr("Video e schermo", "Video & Display"),

@@ -16,27 +16,29 @@
 
 #include "gfx/draw_list.hpp"
 #include "gfx/renderer.hpp"
+#include "video_gl.h"
 
 #include <cstdint>
 
 namespace hdr_out {
 
-// After the GL context exists. Nothing is asked of the console here: the
-// video output (the driver keeps its handle private) is checked when the
-// first HDR video plays. `handle_hint` is the handle number the app's own
-// resolution probe got and closed before the driver opened its own: the
-// console hands the number out again, so one status call on it is the only
-// probe ever made. (Sweeping handle numbers, as the original port did as a
-// fallback, shut the console down.)
-void init(int surface_width, int surface_height, int32_t handle_hint = -1);
+// After the GL context exists. Uses the renderer-owned VideoOut handle
+// captured by native/videoout_capture.c; no guessed handles or second port.
+void init(int surface_width, int surface_height);
+void release();  // while the GL context is still current
 
 // Settings → HDR output. Off: the scan-out stays (or returns to) SDR.
 void set_enabled(bool enabled);
 
-// Called every frame before drawing: asks the console to switch the scan-out
-// to HDR when `want` (an HDR video is playing), and back when it is not.
-// Returns whether the scan-out is in HDR now.
+// First validate the display and allocate the final-pass resources, then
+// upload the retained video planes in the returned mode. Only call
+// update(true) after that upload succeeds. This also works while paused.
+bool prepare(bool want);
+void failed(const char* reason);  // disable further HDR attempts this session
+// Commit the prepared encoding before presenting. A refused HDR request
+// leaves SDR active; a refused SDR restoration keeps the HDR compositor.
 bool update(bool want);
+bool safe();  // false after two unsuccessful SDR restoration attempts
 bool scanout_hdr();
 bool wanted();  // an HDR video is playing, whatever the scan-out does
 
@@ -46,10 +48,12 @@ const char* status();
 unsigned status_version();
 
 // The HDR frame: the renderer's queued layers into a transparent target, then
-// the video (a 10-bit texture holding PQ-coded BT.2020, shown in `video_rect`
-// of the 1920 x 1080 layout) and the interface into the scan-out. False if it
-// could not be done: the caller then draws the SDR frame instead.
+// the sampled YUV planes (or a fallback SDR texture) and interface into the
+// scan-out. The converter and packer share this pass, without RGB10_A2 storage.
 bool present(hui::gfx::Renderer& renderer, int width, int height, uint32_t video,
-             const hui::gfx::Rect& video_rect, uint32_t target_framebuffer = 0);
+             const hui::gfx::Rect& video_rect, uint32_t target_framebuffer = 0, bool video_pq = true,
+             const VideoGl::HdrPlanes* planes = nullptr);
+// Small SDR copy only when glass controls are visible. No full-size SDR copy.
+uint32_t glass_texture(uint32_t video, bool video_pq, const VideoGl::HdrPlanes* planes = nullptr);
 
 }  // namespace hdr_out

@@ -18,8 +18,8 @@ enum Row {
     Account, Language, DateComponents, DateFormat, TorrentSpeed, DownloadDirectory, SubLangs, AutoSubs, SubSize,
     SubBackground, SubColor, SubEffect, SubFont, SubDelay,
     AudioLangs, Autoplay, NextEpisodeDelay, SeekStep, ShoulderSeekStep, Resolution, ReducedMotion, Contrast,
-    ControllerLight, Sounds, Volume, Statistics, Addons, Reload, Exit,
-    AudioPassthrough, DisplayRefresh, HdrOutput, DiagServer, Count
+    ControllerLight, Sounds, Volume, Statistics, Addons, Reload, DiagServer, Exit,
+    AudioPassthrough, DisplayRefresh, HdrOutput, Count
 };
 
 struct LanguageChoice { const char* code; const char* italian; const char* english; };
@@ -203,8 +203,8 @@ void App::settings_refresh() {
         t("Durata indipendente dal salto con la croce direzionale.", "Independent from the directional seek interval."));
     slider(ShoulderSeekStep, float(settings_.shoulder_seek_seconds), 5, 300, 5, " s");
     row(Resolution, "display_resolution", t("Risoluzione di uscita", "Output resolution"),
-        t("Automatico segue la risoluzione della PS5. Si applica al prossimo avvio; 1080p se non disponibile. Uscita SDR.",
-          "Automatic follows the PS5 resolution. Applies next launch; 1080p if unavailable. SDR output."));
+        t("Automatico segue la risoluzione della PS5. Si applica al prossimo avvio. La risoluzione effettiva dipende dalla console e dalla TV; 1080p se non disponibile.",
+          "Automatic follows the PS5 resolution. Applies next launch. The effective resolution depends on the console and TV; 1080p if unavailable."));
     choice(Resolution, {t("Automatico (PS5)", "Automatic (PS5)"), "1920 × 1080", "2560 × 1440", "3840 × 2160"},
            std::clamp(settings_.display_resolution + 1, 0, 3));
     row(ReducedMotion, "reduced_motion", t("Riduci animazioni", "Reduce motion"), t("Movimenti ridotti per focus e transizioni.", "Reduce movement in focus and transitions.")); toggle(ReducedMotion, settings_.reduced_motion);

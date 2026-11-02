@@ -25,6 +25,7 @@ def main():
     # console imports and decode/flush callbacks that this suite does not run.
     startup = "\n".join((
         section(source, "enum {", "static void pending_add"),
+        section(source, "static size_t hevc_base_layer", "/* Length-prefixed NAL units"),
         section(source, "static void read_headers", "static void give_up"),
         section(source, "static void free_buffers", "vlc_module_begin()"),
     ))

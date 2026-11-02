@@ -175,10 +175,15 @@ void VideoGl::set_hdr_output(bool on) {
     // The output texture's format follows at the next upload.
     if (source_hdr_) format_ = -1;
 }
+bool VideoGl::hdr_frame(const Player::VideoFrame& frame) {
+    return frame.layout != Player::VideoFrame::Layout::Bgra &&
+        (frame.colors == YuvColors::Hdr10 || frame.hlg) && !frame.dovi;
+}
 void VideoGl::clear() {
     discard_textures();
     dovi_active_ = false;
     source_hdr_ = output_pq_ = false;
+    hdr_planes_ = {};
     stamp_ = period_ = 0;
     previous_media_pts_ = -1;
     serial_ = -1;
@@ -218,7 +223,7 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
     if (f.w <= 0 || f.h <= 0 || f.w > 8192 || f.h > 8192 || !f.data() || !f.size())
         return reject(Failure::InvalidFrame, "frame_descriptor", f);
     const int layout = f.layout == Layout::Bgra ? 0 : f.layout == Layout::Nv12 ? 1 : 2;
-    const bool source_hdr = layout != 0 && (f.colors == YuvColors::Hdr10 || f.hlg) && !f.dovi;
+    const bool source_hdr = hdr_frame(f);
     const bool ten_bit = hdr_output_ && source_hdr;
     const int format = layout + (f.wide ? 4 : 0) + (ten_bit ? 8 : 0);
     const int cw = (f.w + 1) / 2, ch = (f.h + 1) / 2;
@@ -266,20 +271,21 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
             allocation_error = consume_gl_errors();
             return texture != 0 && allocation_error == GL_NO_ERROR;
         };
-        // The 4K RGBA target needs a contiguous 32 MiB region aligned to 2 MiB.
-        // Allocate it before smaller planes fragment the remaining regions.
-        // 2:10:10:10 for the HDR scan-out: the same 32 bits per pixel.
-        if (!allocate(output_, GL_TEXTURE_2D, ten_bit ? GL_RGB10_A2 : GL_RGBA8, GL_RGBA,
-                      ten_bit ? GL_UNSIGNED_INT_2_10_10_10_REV : GL_UNSIGNED_BYTE, f.w, f.h))
-            return failed_setup(Failure::Allocation, "output_storage", -1, allocation_error);
+        // SDR needs a source-sized RGBA target. HDR is composed directly
+        // from the sampled YUV planes in hdr_out, avoiding another 32 MiB
+        // 4K surface and the native driver's RGB10_A2 render-target path.
+        if (!ten_bit) {
+            if (!allocate(output_, GL_TEXTURE_2D, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, f.w, f.h))
+                return failed_setup(Failure::Allocation, "output_storage", -1, allocation_error);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output_, 0);
+            const GLenum framebuffer_status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            const GLenum framebuffer_error = consume_gl_errors();
+            if (framebuffer_status != GL_FRAMEBUFFER_COMPLETE || framebuffer_error != GL_NO_ERROR)
+                return failed_setup(framebuffer_error == GL_OUT_OF_MEMORY ? Failure::Allocation : Failure::Framebuffer,
+                                    "output_framebuffer", -1, framebuffer_error, framebuffer_status);
+        }
         output_pq_ = ten_bit;
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, output_, 0);
-        const GLenum framebuffer_status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        const GLenum framebuffer_error = consume_gl_errors();
-        if (framebuffer_status != GL_FRAMEBUFFER_COMPLETE || framebuffer_error != GL_NO_ERROR)
-            return failed_setup(framebuffer_error == GL_OUT_OF_MEMORY ? Failure::Allocation : Failure::Framebuffer,
-                                "output_framebuffer", -1, framebuffer_error, framebuffer_status);
         for (int i = 0; i < count; ++i) {
             const GLenum internal = layout == 0 ? GL_RGBA8 : (i == 1 && layout == 1) ? (f.wide ? GL_RG16 : GL_RG8) : (f.wide ? GL_R16 : GL_R8);
             const GLenum external = layout == 0 ? GL_BGRA : (i == 1 && layout == 1) ? GL_RG : GL_RED;
@@ -294,7 +300,7 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
         }
         width_ = f.w; height_ = f.h; format_ = format;
         dlog("video: GPU conversion %dx%d, layout=%d, source=%d-bit, output %s, upload=rectangle", f.w, f.h, layout,
-             f.wide ? 10 : 8, ten_bit ? "10-bit PQ (HDR scan-out)" : "SDR");
+             f.wide ? 10 : 8, ten_bit ? "direct YUV planes (HDR scan-out, no RGB intermediate)" : "SDR");
         upload_timing_.allocation_ms = elapsed_ms(allocation_started);
     }
     const auto planes_started = UploadClock::now();
@@ -311,27 +317,30 @@ bool VideoGl::upload(const Player::VideoFrame& f) {
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     upload_timing_.plane_ms = elapsed_ms(planes_started);
     const auto draw_started = UploadClock::now();
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); glViewport(0, 0, f.w, f.h);
-    glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND); glDisable(GL_FRAMEBUFFER_SRGB);
-    glUseProgram(program_); glBindVertexArray(vao_);
-    auto uniform = [&](const char* name, int value) { glUniform1i(glGetUniformLocation(program_, name), value); };
-    uniform("layout_mode", layout); uniform("wide", f.wide); uniform("sample_shift", f.shift);
-    uniform("full_range", f.full_range); uniform("hlg", f.hlg);
     dovi_active_ = bool(f.dovi);
-    uniform("dovi_active", dovi_active_);
-    if (f.dovi) {
-        glBindBuffer(GL_UNIFORM_BUFFER, dovi_buffer_);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(VideoDoviParams), f.dovi.get());
-        glBindBufferBase(GL_UNIFORM_BUFFER, 3, dovi_buffer_);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    if (!ten_bit) {
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_); glViewport(0, 0, f.w, f.h);
+        glDisable(GL_SCISSOR_TEST); glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND); glDisable(GL_FRAMEBUFFER_SRGB);
+        glUseProgram(program_); glBindVertexArray(vao_);
+        auto uniform = [&](const char* name, int value) { glUniform1i(glGetUniformLocation(program_, name), value); };
+        uniform("layout_mode", layout); uniform("wide", f.wide); uniform("sample_shift", f.shift);
+        uniform("full_range", f.full_range); uniform("hlg", f.hlg);
+        uniform("dovi_active", dovi_active_);
+        if (f.dovi) {
+            glBindBuffer(GL_UNIFORM_BUFFER, dovi_buffer_);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(VideoDoviParams), f.dovi.get());
+            glBindBufferBase(GL_UNIFORM_BUFFER, 3, dovi_buffer_);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
+        uniform("color_mode", f.colors == YuvColors::Bt601 ? 0 : f.colors == YuvColors::Hdr10 ? 2 : 1);
+        uniform("hdr_output", ten_bit ? 1 : 0);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
     }
-    uniform("color_mode", f.colors == YuvColors::Bt601 ? 0 : f.colors == YuvColors::Hdr10 ? 2 : 1);
-    uniform("hdr_output", ten_bit ? 1 : 0);
     source_hdr_ = source_hdr;
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    hdr_planes_ = {{planes_[0], planes_[1], planes_[2]}, layout, f.shift, f.wide, f.full_range, f.hlg};
     upload_timing_.draw_ms = elapsed_ms(draw_started);
-    // Cadence is diagnostic only. Rendering always exposes this source-sized
-    // conversion texture, and the UI applies ordinary bilinear scaling.
+    // Cadence is diagnostic only. SDR exposes the source-sized conversion
+    // texture; HDR's final pass samples the original source-sized planes.
     const double time = f.presentation_time > 0 ? f.presentation_time :
         std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
     if (size_changed || serial_ != f.serial || stamp_ <= 0 || time != stamp_) {

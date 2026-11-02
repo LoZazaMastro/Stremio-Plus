@@ -25,11 +25,12 @@ constexpr std::uint16_t kTypeEac3 = 0x15;
 constexpr std::uint16_t kTypeAac  = 0x07; // MPEG-2/4 AAC, 1024 samples per frame
 constexpr std::uint16_t kTypeTruehd = 0x16; // Dolby TrueHD, as MAT
 
-// One MAT frame holds up to 24 TrueHD access units (40 samples each, so 20 ms)
-// and goes out in a 61440-byte burst on the 768 kHz port.
+// MAT timing and marker accounting follow FFmpeg's spdifenc.c (Anssi Hannula,
+// LGPL-2.1-or-later), adapted to bounded streaming input and the PS5 port.
+// Each access unit's input_timing determines its padding, including markers
+// and the 16-byte IEC61937 inter-frame gap; units may cross a MAT boundary.
 constexpr std::size_t kMatFrameSize = 61424;
 constexpr std::size_t kMatBurstBytes = 61440;
-constexpr int kMatAccessUnits = 24;
 constexpr std::uint8_t kMatStartCode[20] = {
     0x07, 0x9E, 0x00, 0x03, 0x84, 0x01, 0x01, 0x01, 0x80, 0x00,
     0x56, 0xA5, 0x3B, 0xF4, 0x81, 0x83, 0x49, 0x80, 0x77, 0xE0,
@@ -241,11 +242,113 @@ void write_burst(std::uint16_t data_type, std::uint16_t length_code,
     }
 }
 
+bool Packer::next_truehd(Span<std::uint8_t> d, std::size_t* cursor,
+                         std::vector<std::uint8_t>* out, const char** error, bool flush)
+{
+    struct Marker { std::size_t at, size; const std::uint8_t* bytes; };
+    const Marker markers[] = {{0, sizeof(kMatStartCode), kMatStartCode},
+                              {30708, sizeof(kMatMiddleCode), kMatMiddleCode},
+                              {61408, sizeof(kMatEndCode), kMatEndCode}};
+    while (*cursor < d.size()) {
+        if (d.size() - *cursor < 2) break;
+        const auto* au = d.data() + *cursor;
+        const std::size_t bytes = (std::size_t(au[0] & 15) << 8 | au[1]) * 2;
+        if (bytes < 10) { *error = "Invalid TrueHD access-unit size"; return false; }
+        if (bytes > d.size() - *cursor) break;
+        if (au[4] == 0xf8 && au[5] == 0x72 && au[6] == 0x6f) {
+            const int rate = au[7] == 0xba ? au[8] >> 4 : au[7] == 0xbb ? au[9] >> 4 : -1;
+            if (rate != 0) { *error = "TrueHD MAT requires a 48 kHz major sync"; return false; }
+            truehd_samples_ = 40;
+        }
+        if (!truehd_samples_) {
+            // A resumed VLC stream can start on a minor-sync unit even though
+            // its format is already known. Only skip complete, length-checked
+            // access units; do not guess rate or emit them without major sync.
+            // At 48 kHz this waits at most 1024 * 40 samples (0.854 seconds)
+            // of supplied audio, with a separate 256 KiB scan bound.
+            startup_bytes_ += unsigned(bytes);
+            ++startup_units_;
+            startup_skipped_samples_ += 40;
+            *cursor += bytes;
+            if (startup_bytes_ > 256 * 1024 || startup_units_ >= 1024) {
+                *error = "TrueHD major sync not found within startup bound"; return false;
+            }
+            continue;
+        }
+        const std::uint16_t timing = std::uint16_t(unsigned(au[2]) << 8 | au[3]);
+        int padding = 0;
+        if (truehd_previous_size_) {
+            padding = int(std::uint16_t(timing - truehd_previous_time_)) * 2560 / truehd_samples_
+                    - truehd_previous_size_;
+            // A discontinuity needs a fresh decoder timeline, not arbitrary
+            // megabytes of padding or an incorrectly timed HDMI burst.
+            if (padding < 0 || padding >= int(kMatFrameSize / 2)) {
+                *error = "TrueHD MAT input-timing discontinuity"; return false;
+            }
+        }
+        if (mat_.empty()) mat_.resize(kMatFrameSize);
+        std::size_t remaining = bytes, position = 0;
+        int total_size = int(bytes);
+        unsigned marker = 0;
+        while (marker < 3 && mat_filled_ > markers[marker].at) ++marker;
+        bool produced = false;
+        while (padding || remaining || markers[marker].at == mat_filled_) {
+            if (markers[marker].at == mat_filled_) {
+                const auto& code = markers[marker];
+                std::memcpy(mat_.data() + mat_filled_, code.bytes, code.size);
+                mat_filled_ += code.size;
+                int counted = int(code.size);
+                if (++marker == 3) {
+                    write_burst(kTypeTruehd, std::uint16_t(kMatFrameSize), mat_, kMatBurstBytes, out);
+                    produced = true;
+                    mat_filled_ = 0; mat_has_audio_ = false; marker = 0;
+                    counted += int(kMatBurstBytes - kMatFrameSize);
+                }
+                const int from_padding = std::min(padding, counted);
+                padding -= from_padding;
+                total_size += counted - from_padding;
+            }
+            if (padding) {
+                const auto amount = std::min(std::size_t(padding), markers[marker].at - mat_filled_);
+                std::memset(mat_.data() + mat_filled_, 0, amount);
+                mat_filled_ += amount; padding -= int(amount);
+                if (padding) continue;
+            }
+            if (remaining) {
+                const auto amount = std::min(remaining, markers[marker].at - mat_filled_);
+                std::memcpy(mat_.data() + mat_filled_, au + position, amount);
+                mat_filled_ += amount; position += amount; remaining -= amount;
+                if (amount) mat_has_audio_ = true;
+            }
+        }
+        truehd_previous_size_ = total_size;
+        truehd_previous_time_ = timing;
+        *cursor += bytes;
+        if (produced) return true;
+    }
+    if (flush && *cursor != d.size()) { *error = "Incomplete TrueHD access unit at drain"; return false; }
+    if (flush && !truehd_samples_ && startup_units_) {
+        *error = "TrueHD stream ended before a major sync"; return false;
+    }
+    if (flush && mat_has_audio_) {
+        std::fill(mat_.begin() + mat_filled_, mat_.end(), 0);
+        for (const auto& marker : markers)
+            if (marker.at >= mat_filled_)
+                std::memcpy(mat_.data() + marker.at, marker.bytes, marker.size);
+        write_burst(kTypeTruehd, std::uint16_t(kMatFrameSize), mat_, kMatBurstBytes, out);
+        set_codec(codec_);
+        return true;
+    }
+    return false;
+}
+
 bool Packer::next_burst(Span<std::uint8_t> d, std::size_t *cursor,
                         std::vector<std::uint8_t> *out, const char **error,
                         bool flush)
 {
     *error = nullptr;
+    if (codec_ == Codec::truehd)
+        return next_truehd(d, cursor, out, error, flush);
     if (*cursor >= d.size())
         return false;
 
@@ -339,68 +442,6 @@ bool Packer::next_burst(Span<std::uint8_t> d, std::size_t *cursor,
         write_burst(kTypeAac, static_cast<std::uint16_t>(((first.size + 1) & ~std::size_t{1}) * 8), // Pd: bits, padded to a whole 16-bit word
                     d.subspan(first.offset, first.size), kBurst, out);
         *cursor += first.size;
-        return true;
-    }
-
-    if (codec_ == Codec::truehd)
-    {
-        // Pack 24 access units into one MAT frame. A short frame would last
-        // as long as a full one and run the audio fast, so wait for all 24
-        // unless the stream is ending.
-        std::size_t cur = *cursor;
-        int available = 0;
-        while (available < kMatAccessUnits)
-        {
-            const Frame f = parse_frame(codec_, d, cur);
-            if (f.size == 0)
-                break;
-            cur += f.size;
-            ++available;
-        }
-        if (available == 0 || (available < kMatAccessUnits && !flush))
-            return false;
-
-        std::vector<std::uint8_t> mat(kMatFrameSize, 0);
-        std::memcpy(mat.data(), kMatStartCode, sizeof(kMatStartCode));
-        std::memcpy(mat.data() + 30708, kMatMiddleCode, sizeof(kMatMiddleCode));
-        std::memcpy(mat.data() + (kMatFrameSize - sizeof(kMatEndCode)), kMatEndCode,
-                    sizeof(kMatEndCode));
-
-        cur = *cursor;
-        std::size_t pos = sizeof(kMatStartCode);
-        int packed = 0;
-        while (packed < available)
-        {
-            const Frame f = parse_frame(codec_, d, cur);
-            if (f.size == 0)
-                break;
-            if (packed >= 12 && pos < 30720)
-                pos = 30720; // the second half of the frame starts after the middle code
-            std::size_t limit = (pos < 30708) ? 30708 : (kMatFrameSize - sizeof(kMatEndCode));
-            if (pos + f.size > limit)
-            {
-                if (pos < 30708)
-                {
-                    pos = 30720;
-                    limit = kMatFrameSize - sizeof(kMatEndCode);
-                }
-                if (pos + f.size > limit)
-                    break;
-            }
-            std::memcpy(mat.data() + pos, d.data() + cur, f.size);
-            pos += f.size;
-            cur += f.size;
-            ++packed;
-        }
-        if (packed == 0)
-        {
-            *error = "TrueHD access unit does not fit a MAT frame";
-            return false;
-        }
-
-        write_burst(kTypeTruehd, static_cast<std::uint16_t>(kMatFrameSize),
-                    Span<std::uint8_t>(mat), kMatBurstBytes, out);
-        *cursor = cur;
         return true;
     }
 

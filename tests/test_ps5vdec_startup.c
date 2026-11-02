@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,11 +105,14 @@ typedef struct {
 static Allocation allocations[MAX_ALLOCS];
 static unsigned allocation_count;
 static int queue_fault, layout_fault;
+static unsigned warmup_queries, warmup_failure_mask, cache_queries;
+static bool cache_query_failure;
 static bool flexible_failure, flexible_null, create_failure, create_null, query_failure;
 static bool depth_failure, level_failure;
 static bool avc_level52_query_failure, avc_level51_query_failure;
+static bool hevc_auto_query_failure, hevc_explicit_query_failure;
 static unsigned expected_width, expected_height;
-static VdecConfig attempted_configs[4];
+static VdecConfig attempted_configs[8], created_config;
 static int allocation_failure_at, mapping_failure_at;
 static unsigned direct_ordinal, map_ordinal;
 static unsigned queue_queries, queue_creates, decoder_queries, decoder_creates, decoder_deletes;
@@ -249,6 +253,33 @@ int sceVideodec2AllocateComputeQueue(const VdecComputeConfig *config,
 }
 int sceVideodec2QueryDecoderMemoryInfo(const VdecConfig *config, VdecMemory *memory)
 {
+    if (!config->compute_queue) {
+        const unsigned index = warmup_queries++;
+        CHECK(index < 3 && !in_decoder_attempt && !decoder_live);
+        CHECK(config->this_size == sizeof(*config) && memory->this_size == sizeof(*memory));
+        CHECK(config->resource_type == 1 && config->codec_type == (index ? VDEC_CODEC_HEVC : VDEC_CODEC_AVC));
+        CHECK(config->profile == (index == 0 ? 100u : index == 1 ? 1u : 2u));
+        CHECK(config->max_level == (index ? 153u : 52u));
+        CHECK(config->max_frame_width == 3840 && config->max_frame_height == 2176);
+        CHECK(config->max_dpb_frame_count == 4 && config->decode_pipeline_depth == 1);
+        CHECK(config->cpu_affinity_mask == 0x3f && config->cpu_thread_priority == 700);
+        CHECK(config->optimize_progressive_video && !config->check_memory_type && !config->extra_config_info);
+        CHECK(config->reserved0 == 0 && config->reserved1 == 0);
+        return warmup_failure_mask & (1u << index) ? -(int)(3001 + index) : 0;
+    }
+    if (!codec_warmup_prepared) {
+        ++cache_queries;
+        CHECK(cache_queries <= QUERY_CACHE_CAPACITY && !in_decoder_attempt && !decoder_live);
+        CHECK(config->compute_queue == compute_queue && compute_queue && live_allocations() == 1);
+        CHECK(config->this_size == sizeof(*config) && memory->this_size == sizeof(*memory));
+        CHECK(config->max_dpb_frame_count == -1 && (config->decode_pipeline_depth == 4 || config->decode_pipeline_depth == 1));
+        CHECK((config->max_frame_width == 1920 && config->max_frame_height == 1088) ||
+              (config->max_frame_width == 3840 && config->max_frame_height == 2176));
+        memory->cpu_memory_size = 32769; memory->gpu_memory_size = 49153;
+        memory->cpu_gpu_memory_size = 65537; memory->max_frame_buffer_size = 98305;
+        memory->frame_buffer_alignment = PAGE_16K;
+        return cache_query_failure ? -4000 : 0;
+    }
     CHECK(live_allocations() == queue_owned && !decoder_live);
     CHECK(config->compute_queue == compute_queue && compute_queue);
     CHECK(config->this_size == sizeof(*config) && memory->this_size == sizeof(*memory));
@@ -260,6 +291,10 @@ int sceVideodec2QueryDecoderMemoryInfo(const VdecConfig *config, VdecMemory *mem
     attempted_configs[decoder_queries] = *config;
     ++decoder_queries;
     if (query_failure) return -1004;
+    if (config->codec_type == VDEC_CODEC_HEVC &&
+        ((hevc_auto_query_failure && config->max_dpb_frame_count == -1) ||
+         (hevc_explicit_query_failure && config->max_dpb_frame_count == 6)))
+        return (int)UINT32_C(0x811d0200);
     if (config->codec_type == VDEC_CODEC_AVC &&
         ((avc_level52_query_failure && config->max_level == 52) ||
          (avc_level51_query_failure && config->max_level == 51)))
@@ -282,6 +317,7 @@ int sceVideodec2QueryDecoderMemoryInfo(const VdecConfig *config, VdecMemory *mem
 int sceVideodec2CreateDecoder(const VdecConfig *config, const VdecMemory *memory, void **decoder)
 {
     ++decoder_creates;
+    created_config = *config;
     CHECK(!decoder_live && !*decoder);
     if (memory->cpu_memory_size) {
         Allocation *a = by_address(memory->cpu_memory);
@@ -330,12 +366,16 @@ static void begin_case(const char *name, bool prepare)
     enabled = available = true;
     state_allocation_failure = header_allocation_failure = false;
     queue_fault = layout_fault = allocation_failure_at = mapping_failure_at = 0;
+    warmup_queries = warmup_failure_mask = cache_queries = 0;
+    cache_query_failure = true;
     flexible_failure = flexible_null = create_failure = create_null = query_failure = false;
     depth_failure = level_failure = false;
     avc_level52_query_failure = avc_level51_query_failure = false;
+    hevc_auto_query_failure = hevc_explicit_query_failure = false;
     expected_width = 3840;
     expected_height = 2176;
     memset(attempted_configs, 0, sizeof(attempted_configs));
+    memset(&created_config, 0, sizeof(created_config));
     in_decoder_attempt = false;
     queue_queries = queue_creates = decoder_queries = decoder_creates = decoder_deletes = 0;
     flexible_maps = direct_allocations = direct_releases = flexible_releases = unmaps = 0;
@@ -347,6 +387,10 @@ static void begin_case(const char *name, bool prepare)
     queue_prepared = false;
     queue_stage = "not-prepared";
     queue_status = 0;
+    codec_warmup_prepared = false;
+    query_cache_count = 0;
+    memset(query_cache, 0, sizeof(query_cache));
+    for (unsigned i = 0; i < 3; ++i) codec_warmup_codes[i] = EAGAIN;
     message_bytes = 0;
     messages[0] = 0;
     if (prepare) {
@@ -354,7 +398,7 @@ static void begin_case(const char *name, bool prepare)
         queue_owned = live_allocations();
         CHECK(queue_owned == 1 && vlc_ps5_vdec_queue_status(NULL, NULL) == 1);
         vlc_ps5_vdec_prepare();
-        CHECK(queue_queries == 1 && queue_creates == 1);
+        CHECK(queue_queries == 1 && queue_creates == 1 && warmup_queries == 3 && cache_queries == QUERY_CACHE_CAPACITY);
     }
 }
 
@@ -392,6 +436,169 @@ static void rejects(decoder_t *dec, const char *stage)
 int main(void)
 {
     decoder_t dec;
+    for (unsigned fault = 0; fault < 4; ++fault) {
+        char name[96];
+        snprintf(name, sizeof(name), "pre-storage codec queries are bounded, cached and allocate no decoder (failure %u)", fault);
+        begin_case(name, false);
+        int codes[3] = {0};
+        CHECK(vlc_ps5_vdec_warmup_status(codes) == 0 && !vlc_ps5_vdec_warmup_status(NULL));
+        CHECK(codes[0] == EAGAIN && codes[1] == EAGAIN && codes[2] == EAGAIN);
+        warmup_failure_mask = fault ? 1u << (fault - 1) : 0;
+        vlc_ps5_vdec_prepare();
+        queue_owned = live_allocations();
+        CHECK(queue_owned == 1 && !decoder_queries && !decoder_creates && warmup_queries == 3);
+        CHECK(vlc_ps5_vdec_warmup_status(codes) == 1 && vlc_ps5_vdec_warmup_status(NULL) == 1);
+        for (unsigned i = 0; i < 3; ++i)
+            CHECK(codes[i] == (fault == i + 1 ? -(int)(3001 + i) : 0));
+        warmup_failure_mask = 0;
+        vlc_ps5_vdec_prepare();
+        CHECK(warmup_queries == 3 && !decoder_queries && !decoder_creates);
+        int retained[3];
+        CHECK(vlc_ps5_vdec_warmup_status(retained) && !memcmp(codes, retained, sizeof(codes)));
+        dec = new_decoder();
+        opens_and_closes(&dec);
+        finish_case();
+    }
+
+    begin_case("pre-storage cache recovers the exact native configuration after credential refusal", false);
+    cache_query_failure = false;
+    vlc_ps5_vdec_prepare(); queue_owned = live_allocations();
+    unsigned cached_ok = 0;
+    CHECK(vlc_ps5_vdec_query_cache_status(&cached_ok) == QUERY_CACHE_CAPACITY && cached_ok == QUERY_CACHE_CAPACITY);
+    CHECK(vlc_ps5_vdec_query_cache_status(NULL) == QUERY_CACHE_CAPACITY);
+    hevc_auto_query_failure = true;
+    dec = new_decoder(); opens_and_closes(&dec);
+    CHECK(decoder_queries == 1 && decoder_creates == 1 && cache_queries == QUERY_CACHE_CAPACITY);
+    CHECK(strstr(messages, "using pre-storage cache") != NULL);
+    vlc_ps5_vdec_prepare(); CHECK(cache_queries == QUERY_CACHE_CAPACITY);
+    finish_case();
+
+    begin_case("cache promotes a smaller coded picture to its queried memory envelope", false);
+    cache_query_failure = false;
+    vlc_ps5_vdec_prepare(); queue_owned = live_allocations();
+    hevc_auto_query_failure = true;
+    dec = new_decoder(); dec.fmt_in.video.i_height = 2080; expected_height = 2112;
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 1 && decoder_creates == 1);
+    CHECK(strstr(messages, "cache 3840x2176") != NULL);
+    CHECK(created_config.max_frame_width == 3840 && created_config.max_frame_height == 2176);
+    VdecConfig selected = attempted_configs[0];
+    selected.max_frame_width = 3840; selected.max_frame_height = 2176;
+    CHECK(!memcmp(&selected, &created_config, sizeof(selected)));
+    finish_case();
+
+    begin_case("cache chooses the smallest successful picture envelope", false);
+    cache_query_failure = false;
+    vlc_ps5_vdec_prepare(); queue_owned = live_allocations();
+    hevc_auto_query_failure = true;
+    dec = new_decoder(); dec.fmt_in.video.i_width = 1280; dec.fmt_in.video.i_height = 720;
+    expected_width = 1280; expected_height = 768;
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 1 && strstr(messages, "cache 1920x1088") != NULL);
+    CHECK(created_config.max_frame_width == 1920 && created_config.max_frame_height == 1088);
+    finish_case();
+
+    for (unsigned mismatch = 0; mismatch < 17; ++mismatch) {
+        char name[100]; snprintf(name,sizeof(name),"pre-storage cache rejects mismatched native field %u",mismatch);
+        begin_case(name,false); cache_query_failure=false;
+        vlc_ps5_vdec_prepare(); queue_owned=live_allocations();
+        VdecConfig c=query_cache[0].config; VdecMemory m={0};
+        if(mismatch==0)c.max_dpb_frame_count=6;
+        else if(mismatch==1)c.resource_type=2;
+        else if(mismatch==2)c.compute_queue=NULL;
+        else if(mismatch==3)c.cpu_affinity_mask=0xff;
+        else if(mismatch==4)c.cpu_thread_priority=701;
+        else if(mismatch==5)c.optimize_progressive_video=false;
+        else if(mismatch==6)c.check_memory_type=true;
+        else if(mismatch==7)c.extra_config_info=(void*)(uintptr_t)1;
+        else if(mismatch==8)c.reserved0=1;
+        else if(mismatch==9)c.max_frame_width=4096;
+        else if(mismatch==10)c.codec_type=123;
+        else if(mismatch==11)c.profile=66;
+        else if(mismatch==12)c.max_level=50;
+        else if(mismatch==13)c.decode_pipeline_depth=2;
+        else if(mismatch==14)c.this_size=0;
+        else if(mismatch==15)c.max_frame_height=2304;
+        else c.reserved1=1;
+        CHECK(!cached_decoder_memory(&c,&m) && m.this_size==0);
+        finish_case();
+    }
+
+    for(unsigned bad_layout=0;bad_layout<2;++bad_layout) {
+        begin_case(bad_layout ? "cached frame-size overflow is rejected before allocation" :
+                   "cached zero frame-size is rejected before allocation",false);
+        cache_query_failure=false; vlc_ps5_vdec_prepare(); queue_owned=live_allocations();
+        for(unsigned i=0;i<query_cache_count;++i)
+            query_cache[i].memory.max_frame_buffer_size=bad_layout ? UINT64_MAX : 0;
+        hevc_auto_query_failure=hevc_explicit_query_failure=true;
+        dec=new_decoder(); rejects(&dec,"stage=memory-layout");
+        CHECK(!decoder_creates && live_allocations()==queue_owned);
+        finish_case();
+    }
+
+    begin_case("unrelated query errors never use a cached native answer",false);
+    cache_query_failure=false; vlc_ps5_vdec_prepare(); queue_owned=live_allocations();
+    query_failure=true; dec=new_decoder(); rejects(&dec,"stage=memory-query");
+    CHECK(!decoder_creates && strstr(messages,"using pre-storage cache")==NULL);
+    finish_case();
+
+    begin_case("4K HEVC configuration refusal retries explicit standard DPB with a deep pipeline", true);
+    hevc_auto_query_failure = true;
+    dec = new_decoder();
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 4 && decoder_creates == 1);
+    CHECK(attempted_configs[3].max_dpb_frame_count == 6 && attempted_configs[3].decode_pipeline_depth == 4);
+    CHECK(attempted_configs[3].codec_type == 974921 && attempted_configs[3].profile == 2);
+    CHECK(strstr(messages, "retry HEVC explicit DPB=6") != NULL);
+    finish_case();
+
+    begin_case("explicit HEVC DPB retries a shallow pipeline after releasing a failed creation", true);
+    hevc_auto_query_failure = depth_failure = true;
+    dec = new_decoder();
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 5 && decoder_creates == 2);
+    CHECK(attempted_configs[4].max_dpb_frame_count == 6 && attempted_configs[4].decode_pipeline_depth == 1);
+    finish_case();
+
+    begin_case("explicit HEVC DPB refusal remains bounded with no allocation", true);
+    hevc_auto_query_failure = hevc_explicit_query_failure = true;
+    dec = new_decoder();
+    rejects(&dec, "stage=memory-query");
+    CHECK(decoder_queries == 5 && !decoder_creates && !flexible_maps && direct_allocations == 1);
+    finish_case();
+
+    begin_case("smaller HEVC stream does not guess a six-picture DPB", true);
+    hevc_auto_query_failure = true;
+    dec = new_decoder(); dec.fmt_in.video.i_width = 1920; dec.fmt_in.video.i_height = 1080;
+    expected_width = 1920; expected_height = 1088;
+    rejects(&dec, "stage=memory-query");
+    CHECK(decoder_queries == 3 && !decoder_creates);
+    finish_case();
+
+    begin_case("unknown HEVC dimensions do not guess a six-picture DPB", true);
+    hevc_auto_query_failure = true;
+    dec = new_decoder(); dec.fmt_in.video.i_width = dec.fmt_in.video.i_height = 0;
+    rejects(&dec, "stage=memory-query");
+    CHECK(decoder_queries == 3 && !decoder_creates);
+    finish_case();
+
+    begin_case("HEVC scope remux reserves a complete 64-pixel coding-tree envelope", true);
+    dec = new_decoder();
+    dec.fmt_in.video.i_height = dec.fmt_in.video.i_visible_height = 2080;
+    expected_height = 2112;
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 1 && attempted_configs[0].max_frame_height == 2112);
+    CHECK(dec.fmt_out.video.i_height == 2080 && dec.fmt_out.video.i_visible_height == 2080);
+    finish_case();
+
+    begin_case("HEVC 4K full-height reserves padded coding-tree rows", true);
+    dec = new_decoder();
+    dec.fmt_in.video.i_height = dec.fmt_in.video.i_visible_height = 2160;
+    opens_and_closes(&dec);
+    CHECK(decoder_queries == 1 && attempted_configs[0].max_frame_height == 2176);
+    CHECK(dec.fmt_out.video.i_height == 2160);
+    finish_case();
+
     begin_case("flexible workspace succeeds", true);
     dec = new_decoder();
     opens_and_closes(&dec);

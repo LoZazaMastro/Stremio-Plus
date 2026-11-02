@@ -1,9 +1,6 @@
 # Stremio Plus
 
-> **Stremio Plus 0.5.20.** Improved Home loading, PS5 sign-in and 1080p playback,
-> with right-stick volume control and a start/resume choice before playback.
-> See the [release](https://github.com/LoZazaMastro/Stremio-Plus/releases/tag/0.5.20),
-> [changelog](CHANGELOG.md) and [build instructions](BUILDING.md).
+> **Stremio Plus 0.6.00.** Improved 4K HEVC hardware playback, HDR10 output, compatible Dolby Vision base-layer decoding, TrueHD/Atmos passthrough and playback-bar seeking. See the [changelog](CHANGELOG.md) and [build instructions](BUILDING.md).
 
 A native Stremio app for PlayStation 5, built around the way you watch on a TV.
 Browse your catalogs, pick a stream, save something for later, and keep your
@@ -57,7 +54,7 @@ other supported formats.
 The app follows the PS5's output resolution, with 1080p, 1440p, and 4K options.
 
 **Audio to your receiver.** Settings → Audio passthrough sends Dolby
-Digital, Dolby Digital Plus, DTS and Dolby TrueHD (Atmos included) to the
+Digital, Dolby Digital Plus, DTS core and 48 kHz Dolby TrueHD (including source Atmos data) to the
 HDMI receiver as the original bitstream, so the receiver decodes them; the
 console's HDMI output switches to the format for the track and returns to
 PCM afterwards. A format the receiver does not list, and any other track,
@@ -66,8 +63,7 @@ Compatibility depends on the stream's profile and container. The OpenGL
 presentation path draws SDR, and switches the console's scan-out to HDR10
 while an HDR10 or HLG video plays on a display whose link runs in HDR
 (Settings → HDR output; the PS5 setting HDR must be On When Supported). Dolby
-Vision profile 7 and 8 files play their HDR10 base layer on the hardware
-decoder; profile 5 is reshaped by the software decoder and shown in SDR.
+Vision profiles 7 and 8 use hardware for validated BT.2020 PQ-compatible base layers; other variants retain software decoding. Profile 5 is reshaped in software and shown in SDR. Dolby Vision HDMI output is not enabled. TrueHD/Atmos lossless requires an eARC-capable receiver connection; recognition on the test console must be checked separately.
 Playback controls appear when the first video frame reaches the GPU. If audio
 starts without a video picture, the player retries the same source once using
 software decoding, preserving the selected download and starting position.

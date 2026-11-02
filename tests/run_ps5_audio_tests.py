@@ -5,11 +5,13 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
+    subprocess.run([sys.executable, str(ROOT / 'tests/run_truehd_tests.py')], check=True)
     work = Path(os.environ.get('STREMIO_VLC_HOST_ROOT', ROOT / '.deps/vlc-host'))
     source = work / 'src/vlc-3.0.24'
     build = work / 'build-vlc-host'
@@ -25,8 +27,8 @@ def main():
     subprocess.run(command, check=True, timeout=120)
     environment = dict(os.environ, ASAN_OPTIONS='detect_leaks=0:abort_on_error=1',
                        UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
-    run = subprocess.run([str(binary)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                         text=True, timeout=35, env=environment)
+    run = subprocess.run([str(binary), str(ROOT / 'build/tests/truehd/audio.thd')], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         text=True, timeout=60, env=environment)
     (target / 'test-output.txt').write_text(run.stdout)
     print(run.stdout, end='', flush=True)
     run.check_returncode()

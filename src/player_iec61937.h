@@ -86,8 +86,19 @@ class Packer
     {
     }
 
-    void set_codec(Codec codec) { codec_ = codec; }
+    void set_codec(Codec codec) {
+        codec_ = codec;
+        mat_.clear(); mat_filled_ = 0; mat_has_audio_ = false;
+        truehd_previous_size_ = 0; truehd_previous_time_ = 0;
+        truehd_samples_ = 0;
+        startup_bytes_ = startup_units_ = startup_skipped_samples_ = 0;
+    }
     Codec codec() const { return codec_; }
+    unsigned take_startup_skipped_samples() {
+        const unsigned samples = startup_skipped_samples_;
+        startup_skipped_samples_ = 0;
+        return samples;
+    }
 
     // Appends the next burst built from `data` starting at *cursor to `out`
     // and advances *cursor. Returns false at the end of data or on an incomplete/
@@ -98,6 +109,14 @@ class Packer
 
   private:
     Codec codec_;
+    bool next_truehd(Span<std::uint8_t> data, std::size_t* cursor,
+                     std::vector<std::uint8_t>* out, const char** error, bool flush);
+    std::vector<std::uint8_t> mat_;
+    std::size_t mat_filled_ = 0;
+    bool mat_has_audio_ = false;
+    int truehd_previous_size_ = 0, truehd_samples_ = 0;
+    std::uint16_t truehd_previous_time_ = 0;
+    unsigned startup_bytes_ = 0, startup_units_ = 0, startup_skipped_samples_ = 0;
 };
 
 // Writes one burst: header words Pa Pb Pc Pd, the payload as big-endian

@@ -32,9 +32,16 @@ int kernel_mprotect(int pid, unsigned long addr, unsigned long len, int prot) {
 #include <sys/types.h>
 #include <unistd.h>
 
-long pathconf(const char* path, int name) { (void)path; (void)name; errno = EINVAL; return -1; }
-long fpathconf(int fd, int name) { (void)fd; (void)name; errno = EINVAL; return -1; }
-pid_t fork(void) { errno = EAGAIN; return -1; }
+static long path_limit(int name) {
+	switch (name) {
+	case _PC_NAME_MAX: return 255;
+	case _PC_PATH_MAX: return 1024;
+	default: errno = EINVAL; return -1;
+	}
+}
+long pathconf(const char* path, int name) { (void)path; return path_limit(name); }
+long fpathconf(int fd, int name) { (void)fd; return path_limit(name); }
+pid_t fork(void) { errno = ENOSYS; return -1; }
 
 int openat(int dirfd, const char* path, int flags, ...) {
 	mode_t mode = 0;
@@ -44,12 +51,13 @@ int openat(int dirfd, const char* path, int flags, ...) {
 		mode = (mode_t)va_arg(ap, int);
 		va_end(ap);
 	}
-	if (dirfd == AT_FDCWD || (path && path[0] == '/')) return open(path, flags, mode);
+	if (dirfd == AT_FDCWD || path[0] == '/') return open(path, flags, mode);
 	errno = ENOSYS;
 	return -1;
 }
 
 int fstatat(int dirfd, const char* path, struct stat* st, int flags) {
+	if (flags & ~AT_SYMLINK_NOFOLLOW) { errno = EINVAL; return -1; }
 	if (dirfd == AT_FDCWD || (path && path[0] == '/'))
 		return (flags & AT_SYMLINK_NOFOLLOW) ? lstat(path, st) : stat(path, st);
 	errno = ENOSYS;

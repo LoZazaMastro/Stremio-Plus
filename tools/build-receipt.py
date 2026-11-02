@@ -73,8 +73,16 @@ def release_identity(root, app):
     if title_match is None or title_match.group(1) != metadata['titleId']:
         raise SystemExit('Compiled title ID differs from PS5 package metadata')
     major, minor, patch = map(int, version.split('.'))
-    # Existing PS5 releases encode 0.4.5 as 00.045.000.
-    expected_content_version = f'{major:02d}.{minor * 10 + patch:03d}.000'
+    # Preserve historical releases (0.5.20 was 00.070.000). Starting at
+    # 0.6.00, reserve two digits for the patch so the title version remains
+    # increasing across the 0.5.20 -> 0.6.00 update and cannot collide at .10.
+    if (major, minor) >= (0, 6):
+        if minor > 9 or patch > 99:
+            raise SystemExit('Native title versions support minor 0-9 and patch 0-99.')
+        native_revision = minor * 100 + patch
+    else:
+        native_revision = minor * 10 + patch
+    expected_content_version = f'{major:02d}.{native_revision:03d}.000'
     if metadata['contentVersion'] != expected_content_version:
         raise SystemExit(f"PS5 contentVersion {metadata['contentVersion']} differs from {version}")
     return version, title_match.group(1), expected_content_version

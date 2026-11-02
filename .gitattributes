@@ -5,6 +5,9 @@
 *.hpp text eol=lf
 *.c text eol=lf
 *.h text eol=lf
+*.patch text eol=lf
+*.sha256 text eol=lf
+vendor/vlc-ps5/pkg-config text eol=lf
 *.png binary
 *.jpg binary
 *.dds binary

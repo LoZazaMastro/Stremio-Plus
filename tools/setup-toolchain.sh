@@ -10,6 +10,7 @@ SDK_HASH=8cfbc7cd5811e719eb4f0c47eea668d3dc7b40bc8ab11c4a5031d40c23ec02da
 PORTS_HASH=a85f65de418a8e6a898c6c3e3c870d50fff7618a200e4dd59ea9692af6ecec4d
 GL_HASH=f93643c04c843d56143b00951df1f8042ea7706ae9f19e4e9abf158e1ead77c5
 GL_MANIFEST=f4b91f672be037fbac3f82494f1225deaf4c227a03f37ac3ffa56abb213b943f
+GL_REPACK_HASH=a3ce70a1d3278a2367c3135f034d4925dc85cc4bda30916f44aa474d37241053
 ZLIB_HASH=bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16
 for tool in clang-18 clang++-18 llvm-config-18 llvm-ar-18 ld.lld-18 cmake ninja make pkg-config python3 git curl wget unzip tar sha256sum; do
     command -v "$tool" >/dev/null || { echo "Missing $tool; install the host packages listed in BUILDING.md" >&2; exit 2; }
@@ -55,10 +56,18 @@ if [[ ! -f $PS5_OPENGL_PREFIX/manifest.sha256 ]]; then
     [[ $PS5_OPENGL_PREFIX == "$STREMIO_ROOT/.deps/ps5-opengl-sdk-1.0.0/sdk" ]] || {
         echo "The supplied PS5_OPENGL_PREFIX has no manifest" >&2; exit 2;
     }
-    fetch https://github.com/blackbearreloaded/ps5-opengl/releases/download/v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz \
-        "$CACHE/ps5-opengl-sdk-1.0.0.tar.gz" "$GL_HASH" \
-        https://github.com/MyLuxy/overdrive-deps/releases/download/ps5-opengl-v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz
-    tar -xzf "$CACHE/ps5-opengl-sdk-1.0.0.tar.gz" -C "$STREMIO_ROOT/.deps" --no-same-owner \
+    GL_ARCHIVE="$CACHE/ps5-opengl-sdk-1.0.0.tar.gz"
+    if ! (fetch https://github.com/blackbearreloaded/ps5-opengl/releases/download/v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz \
+        "$GL_ARCHIVE" "$GL_HASH" \
+        https://github.com/MyLuxy/overdrive-deps/releases/download/ps5-opengl-v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz); then
+        # The original download hosts disappeared. This independently pinned
+        # repack contains the same SDK: verify the original SDK manifest and
+        # every listed file below, in addition to the repack archive digest.
+        GL_ARCHIVE="$CACHE/ps5-opengl-sdk-1.0.0-repack.tar.gz"
+        fetch https://github.com/cobanov/PS5LM/releases/download/deps-ps5-opengl-1.0.0/ps5-opengl-sdk-1.0.0.tar.gz \
+            "$GL_ARCHIVE" "$GL_REPACK_HASH"
+    fi
+    tar -xzf "$GL_ARCHIVE" -C "$STREMIO_ROOT/.deps" --no-same-owner \
         ps5-opengl-sdk-1.0.0/sdk ps5-opengl-sdk-1.0.0/LICENSE \
         ps5-opengl-sdk-1.0.0/LICENSES ps5-opengl-sdk-1.0.0/THIRD_PARTY_NOTICES.md
 fi

@@ -14,6 +14,11 @@
 
 static thread_local bool emergency_path;
 static void disallow_runtime_services() { if (emergency_path) _exit(120); }
+static void* worker_fault(void* page) {
+    emergency_path = true;
+    *static_cast<volatile int*>(page) = 1;
+    return nullptr;
+}
 
 extern "C" {
 void* __real_malloc(size_t);
@@ -69,11 +74,29 @@ int main(int argc, char** argv) {
     (void)setrlimit(RLIMIT_CORE, &no_core);
     if (!diagnostics_start(argv[1]) || !diagnostics_flush()) return 3;
     void* fault_page = nullptr;
-    if (std::strcmp(argv[2], "segv") == 0) {
+    if (std::strcmp(argv[2], "segv") == 0 || std::strcmp(argv[2], "worker_segv") == 0) {
         fault_page = mmap(nullptr, 4096, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if (fault_page == MAP_FAILED) return 4;
         std::printf("expected_fault=%p\n", fault_page);
         std::fflush(stdout);
+    }
+    if (std::strcmp(argv[2], "worker_segv") == 0) {
+        // The signal frame is near the top of this worker's stack, directly
+        // below a guard page. Scanning beyond the context would fault again.
+        constexpr size_t stack_bytes = 64 * 1024;
+        const size_t page_bytes = size_t(sysconf(_SC_PAGESIZE));
+        void* mapping = mmap(nullptr, stack_bytes + 2 * page_bytes, PROT_NONE,
+                             MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (mapping == MAP_FAILED) return 6;
+        auto* stack = static_cast<char*>(mapping) + page_bytes;
+        if (mprotect(stack, stack_bytes, PROT_READ | PROT_WRITE) != 0) return 7;
+        pthread_attr_t attributes;
+        if (pthread_attr_init(&attributes) || pthread_attr_setstack(&attributes, stack, stack_bytes)) return 8;
+        pthread_t thread;
+        if (pthread_create(&thread, &attributes, worker_fault, fault_page)) return 9;
+        pthread_attr_destroy(&attributes);
+        pthread_join(thread, nullptr);
+        return 10;
     }
     emergency_path = true;
     if (std::strcmp(argv[2], "immediate_exit") == 0) std::_Exit(37);

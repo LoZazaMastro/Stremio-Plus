@@ -11,9 +11,12 @@ namespace diag_server {
 
 constexpr int kDefaultPort = 9029;
 
-// Starts (or keeps) the server for the log directory; stops it when
-// `enabled` is false. Safe to call every frame.
+// Publishes the desired state; socket setup, cancellation and restart run on
+// an owned manager thread. Safe to call every frame, including when disabled.
+// running()/port() expose the asynchronously applied state.
 void configure(bool enabled, const std::string& log_directory, int port = kDefaultPort);
+// Final shutdown: cancels and joins the manager and every client. Call once
+// after the render loop; changing the Settings toggle uses configure(false).
 void stop();
 bool running();
 int port();
