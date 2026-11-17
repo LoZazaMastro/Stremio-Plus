@@ -189,6 +189,7 @@ either in Settings. Signing out returns to the sign-in screen.
 | Square on a stream | Download **only the selected stream** |
 | Up / Down during playback | Show playback controls |
 | Right stick up / down during playback | Increase / decrease PCM volume in 5% steps; center the stick after playback starts or system input returns |
+| R3 during a series episode | Skip to the next episode |
 | Options during playback | Open audio and subtitle controls |
 
 Playback volume is saved independently of interface sound volume. The
@@ -231,6 +232,14 @@ thumbnail, title, and number. Its countdown defaults to 15 seconds. Choose
 card; Circle also dismisses it. When the countdown reaches zero, the same
 choice opens and waits for confirmation before starting the next episode.
 Autoplay and the countdown duration can be changed in Settings.
+
+To skip ahead without waiting for the end, press R3 (click the right stick)
+during an episode. The current episode keeps its saved position and is not
+marked as watched. The next episode opens with the same start/resume choice
+and prefers the same source, as with **Watch now**. This works whether or
+not autoplay is enabled. Offline, R3 opens the next downloaded episode only
+when that exact episode has finished downloading. If there is no next
+episode, a short message says so and playback continues.
 
 ## Video and display options
 

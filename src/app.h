@@ -6,6 +6,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -506,6 +507,16 @@ private:
 	void watch_next_episode_button(Btn b);
 	void watch_cancel_next_episode();
 	void watch_finish_episode();
+	// The episode after the one playing: from series metadata online, or the
+	// exact adjacent completed download offline. Ignores the autoplay setting.
+	struct NextEpisodeTarget {
+		Video video;
+		std::string download_id, local_art;  // download_id is set only offline
+	};
+	std::optional<NextEpisodeTarget> watch_find_next_episode() const;
+	void watch_open_episode(const std::string& id, const std::string& download_id,
+	                        const std::string& binge, const std::string& addon);
+	void watch_skip_to_next_episode();  // R3 during playback
 	bool w_ended_handled_ = false;
 	std::string next_episode_id_, next_episode_series_, next_episode_from_, next_episode_download_id_;
 	int next_episode_account_generation_ = 0;

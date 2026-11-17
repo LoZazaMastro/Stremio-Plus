@@ -224,6 +224,47 @@ struct AppProtocolTest {
         two.state = DownloadState::Complete; inventory = {one, two}; app.watch_finish_episode();
         inventory.pop_back(); monotonic_time = 115; app.watch_next_episode_tick();
         expect(local_plays == 0 && stream_requests == 0, "removed next download never falls back to online provider");
+
+        // R3 during playback skips straight to the next episode.
+        prepare(app); app.on_button(Btn::R3);
+        expect(stream_requests == 1 && requested == "s1e2" && closes == 1 && !app.watching_,
+               "R3 mid-episode closes the player once and requests the next episode");
+        expect(!app.watched_.contains("s1e1") && !app.next_episode_visible,
+               "R3 neither marks the skipped episode watched nor shows the end card");
+        expect(app.autoplay_pending_ && app.autoplay_binge_ == "same-binge" &&
+               app.autoplay_addon_ == "https://provider.invalid/installation", "R3 preserves binge and installed-provider identity");
+        prepare(app, "s1e2"); app.on_button(Btn::R3);
+        expect(stream_requests == 1 && requested == "s2e1", "R3 crosses into the next regular season");
+        prepare(app); app.settings_.autoplay_next = false; app.on_button(Btn::R3);
+        expect(stream_requests == 1 && requested == "s1e2", "R3 works with the end-of-episode card disabled");
+        prepare(app, "s2e2"); app.toast.clear(); app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_ && app.toast == "No next episode",
+               "R3 on the last episode keeps playing and explains why");
+        prepare(app, "special"); app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 never rolls a special into regular seasons");
+        prepare(app); app.d_series = false; app.w_item_.type = "movie"; app.toast.clear(); app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_ && app.toast.empty(), "R3 does nothing for films");
+        prepare(app); app.launch_visible = true; app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 is ignored during the start/resume prompt");
+        prepare(app); app.menu_visible = true; app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 is ignored while the audio/subtitle menu is open");
+        app.menu_visible = false;
+        prepare(app); app.directory_picker_committing = true; app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 cannot race an accepted folder relocation");
+        app.directory_picker_committing = false;
+        prepare(app); app.w_offline_ = true; app.view = "downloads";
+        app.d_item_.id = "unrelated"; app.w_download_id_ = "local-one"; inventory = {one, three, two};
+        app.on_button(Btn::R3);
+        expect(app.dd_visible && local_plays == 0 && closes == 1 && !app.watching(),
+               "offline R3 asks before opening the adjacent downloaded episode");
+        app.on_button(Btn::Cross);
+        expect(local_plays == 1 && app.w_download_id_ == "local-two" && local_played == two.local_path && stream_requests == 0,
+               "offline R3 stays entirely local");
+        prepare(app); app.w_offline_ = true; app.view = "downloads";
+        app.d_item_.id = "unrelated"; app.w_download_id_ = "local-one"; inventory = {one, three};
+        app.on_button(Btn::R3);
+        expect(local_plays == 0 && stream_requests == 0 && closes == 0 && app.watching_,
+               "offline R3 never skips a missing adjacent episode");
         app.watching_ = false;
     }
 };
