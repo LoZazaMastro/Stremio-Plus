@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Improve anime (ASS) subtitles in the existing subtitle renderer. Lines aligned to the top (`\an7`-`\an9`, legacy `\a5`-`\a7` or a top-aligned style) are drawn at the top and middle-aligned signs in the middle, instead of piling up over the dialogue. Translator comments (`{...}` blocks without tags) and vector drawings (`\p1` ... `\p0`) are hidden, as libass hides them. Music notes (♩♪♫♬) were added to the subtitle fonts, and zero-width or direction marks, no-break and ideographic spaces no longer render as `?`. Applies to add-on subtitle files and embedded tracks; SRT lines with `{\an8}` are placed at the top too.
+
 ## 0.6.00 - 2026-11-03
 
 - Integrate PR #11 with additional decoder, rendering, audio and shutdown corrections.

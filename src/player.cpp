@@ -709,15 +709,24 @@ void Player::handle_subtitle_packet(AVPacket* pkt) {
 	             : pkt->duration > 0                         ? pts + pkt->duration * tb
 	                                                         : start + 4;
 	std::string text;
+	std::map<std::string, int> styles;
+	if (ctx->subtitle_header && ctx->subtitle_header_size > 0)
+		styles = ass_style_alignments(std::string(reinterpret_cast<const char*>(ctx->subtitle_header),
+		                                          size_t(ctx->subtitle_header_size)));
 	for (unsigned i = 0; i < sub.num_rects; i++) {
 		AVSubtitleRect* rect = sub.rects[i];
 		std::string t;
 		if (rect->ass) {
 			// "ReadOrder,Layer,Style,Name,MarginL,MarginR,MarginV,Effect,Text"
-			const char* p = rect->ass;
-			for (int commas = 0; *p && commas < 8; p++)
-				if (*p == ',') commas++;
-			t = p;
+			const std::string event = rect->ass;
+			size_t at = 0, style_at = 0, style_end = 0;
+			for (int field = 0; field < 8; ++field) {
+				const size_t comma = event.find(',', at);
+				if (comma == std::string::npos) { at = event.size(); break; }
+				if (field == 2) { style_at = at; style_end = comma; }
+				at = comma + 1;
+			}
+			t = ass_event_text(event.substr(at), event.substr(style_at, style_end - style_at), styles);
 		} else if (rect->text) {
 			t = rect->text;
 		}
@@ -730,12 +739,14 @@ void Player::handle_subtitle_packet(AVPacket* pkt) {
 	Cue c;
 	c.start = start;
 	c.end = end;
-	c.rml = subtitle_text_to_rml(text);
+	auto converted = subtitle_text_to_cue(text);
+	c.rml = std::move(converted.rml);
+	c.place = converted.place;
 	std::lock_guard<std::mutex> lock(sub_m_);
 	auto& cues = embedded_[pkt->stream_index];
 	auto it = std::lower_bound(cues.begin(), cues.end(), c.start, [](const Cue& a, double v) { return a.start < v; });
 	for (auto j = it; j != cues.end() && j->start == c.start; ++j)
-		if (j->rml == c.rml) return;  // seen before (seeking back re-reads packets)
+		if (j->rml == c.rml && j->place == c.place) return;  // seen before (seeking back re-reads packets)
 	cues.insert(it, c);
 }
 
