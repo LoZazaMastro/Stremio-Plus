@@ -111,6 +111,15 @@ effects such as an outline, shadow, or embossing. A live preview shows each
 change before you return to the video. Audio and subtitle language preferences
 are available separately.
 
+**Anime (ASS) subtitles.** SubStation Alpha subtitles, from add-ons or embedded
+in the video, are drawn with your subtitle style rather than their own fonts
+and colours, but their layout is respected where it matters: lines aligned to
+the top of the screen (`\an7`-`\an9`, legacy `\a5`-`\a7`, or a top-aligned
+style) appear at the top and middle-aligned ones (signs) in the middle, so they
+no longer cover the dialogue. Translator comments and vector drawings are
+hidden, and music notes (♪) display correctly. Exact `\pos` placement,
+colours, karaoke effects and Japanese text are not drawn.
+
 **Quick add-on sync.** Your account's add-on collection loads in the background,
 bringing existing configurations across without entering provider URLs on
 the console. Install or configure add-ons in Stremio on your phone or computer,

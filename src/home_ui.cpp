@@ -4,6 +4,7 @@
 
 #include "home_ui.h"
 #include "app.h"
+#include "subtitles.h"
 
 #include "core/input.hpp"
 #include "core/tween.hpp"
@@ -640,7 +641,7 @@ struct HomeUi::Impl {
     int download_open_index = 0;
     std::vector<std::string> download_episode_ids;
     std::vector<UiDownload> download_closing_rows;
-    std::string last_language, sub_source, sub_text;
+    std::string last_language, sub_source, sub_text, sub_top_text, sub_middle_text;
     std::string hero_name, hero_image, hero_logo, hero_desc, hero_meta;
     std::string old_hero_name, old_hero_image, old_hero_logo, old_hero_desc, old_hero_meta;
     hui::tween::Spring row_scroll, page_enter, watch_alpha;
@@ -2207,7 +2208,10 @@ struct HomeUi::Impl {
         watch_alpha.target = app.info_visible ? 1.0f : 0.0f;
         if (app.w_sub_rml != sub_source) {
             sub_source = app.w_sub_rml;
-            sub_text = plain_text(sub_source);
+            const auto rows = caption_rows(sub_source);
+            sub_top_text = plain_text(rows.top);
+            sub_middle_text = plain_text(rows.middle);
+            sub_text = plain_text(rows.bottom);
         }
 
         torrent_stats[0].label = tr("Peer connessi", "Connected peers");
@@ -3087,8 +3091,12 @@ struct HomeUi::Impl {
         }
         return chosen;
     }
+    // y is the last baseline for bottom captions, the top edge for top ones
+    // and the vertical centre for middle ones.
+    enum class CaptionAnchor { bottom, middle, top };
     void paint_caption(Canvas& c, const App& app, const std::string& value,
-                       float center, float bottom, float max_width, float scale = 1) const {
+                       float center, float y, float max_width, float scale = 1,
+                       CaptionAnchor anchor = CaptionAnchor::bottom) const {
         if (value.empty()) return;
         const auto& face = caption_face(c, app, value);
         const auto& prefs = app.settings();
@@ -3097,7 +3105,11 @@ struct HomeUi::Impl {
         const auto wrapped = face.font->wrap(value, size, max_width);
         const int count = std::min(4, static_cast<int>(wrapped.size()));
         if (count == 0) return;
-        const float first = bottom - static_cast<float>(count - 1) * line;
+        const float block = static_cast<float>(count - 1) * line;
+        const float ascent = face.font->ascent(size), descent = face.font->descent(size);
+        const float first = anchor == CaptionAnchor::top ? y + ascent
+            : anchor == CaptionAnchor::middle ? y - (block + ascent + descent) * .5f + ascent
+            : y - block;
         float width = 0;
         for (int i = 0; i < count; ++i)
             width = std::max(width, face.measure(wrapped[static_cast<std::size_t>(i)], size));
@@ -3133,6 +3145,10 @@ struct HomeUi::Impl {
         }
     }
     void paint_subtitles(Canvas& c, const App& app) const {
+        // ASS \an7-9 lines (signs, notes, lyrics) go to the top and \an4-6 to
+        // the middle, so they no longer cover the dialogue at the bottom.
+        if (!sub_top_text.empty()) paint_caption(c, app, sub_top_text, 960, 64, 1600, 1, CaptionAnchor::top);
+        if (!sub_middle_text.empty()) paint_caption(c, app, sub_middle_text, 960, 540, 1600, 1, CaptionAnchor::middle);
         if (sub_text.empty()) return;
         const float bottom = app.menu_visible ? 966.0f : watch_alpha.value > .2f ? 762.0f : 982.0f;
         paint_caption(c, app, sub_text, 960, bottom, 1600);

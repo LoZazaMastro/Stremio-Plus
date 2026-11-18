@@ -723,7 +723,9 @@ struct Player::Vlc {
             Cue cue;
             cue.start = self.media_at(picture->i_start, true);
             cue.end = picture->i_stop > picture->i_start ? self.media_at(picture->i_stop, true) : cue.start + 8;
-            cue.rml = subtitle_text_to_rml(text);
+            auto converted = subtitle_text_to_cue(text);
+            cue.rml = std::move(converted.rml);
+            cue.place = converted.place;
             std::lock_guard lock(self.subtitle_mutex);
             if (generation != self.subtitle_serial || stream != self.wanted_subtitle) return true;
             auto& cues = self.subtitles[stream];
@@ -732,7 +734,8 @@ struct Player::Vlc {
             if (!cue.rml.empty()) {
                 auto at = std::lower_bound(cues.begin(), cues.end(), cue.start,
                     [](const Cue& a, double start) { return a.start < start; });
-                if (at == cues.end() || at->start != cue.start || at->rml != cue.rml) cues.insert(at, std::move(cue));
+                if (at == cues.end() || at->start != cue.start || at->rml != cue.rml || at->place != cue.place)
+                    cues.insert(at, std::move(cue));
             }
             if (cues.size() > 512) cues.erase(cues.begin(), cues.begin() + ptrdiff_t(cues.size() - 512));
             return true;

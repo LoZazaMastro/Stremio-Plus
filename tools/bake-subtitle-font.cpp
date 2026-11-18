@@ -66,11 +66,12 @@ std::vector<int> codepoints(bool european)
     }
     // Middle dot, multiplication sign, copyright, degree, en/em dash, bullet,
     // ellipsis, arrows, check mark, and (in fonts that have them) a full
-    // block, a black circle and four pointing triangles. Glyphs a font lacks
-    // are skipped; test with Font::has_glyph before relying on one.
+    // block, a black circle, four pointing triangles and the music notes
+    // that mark sung lines in subtitles. Glyphs a font lacks are skipped;
+    // test with Font::has_glyph before relying on one.
     const int extra[] = {0x00B7, 0x00D7, 0x00A9, 0x00B0, 0x2013, 0x2014, 0x2022, 0x2026,
                          0x2190, 0x2191, 0x2192, 0x2193, 0x2713, 0x2588, 0x25CF, 0x25B2,
-                         0x25B6, 0x25BC, 0x25C0};
+                         0x25B6, 0x25BC, 0x25C0, 0x2669, 0x266A, 0x266B, 0x266C};
     for (const int c : extra)
     {
         // The european set already has the Latin-1 ones.
