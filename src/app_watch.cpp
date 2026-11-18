@@ -106,6 +106,11 @@ void App::choose_playback_start(const std::string& title, double resume,
                                 std::function<void(double)> chosen, bool live) {
 	const bool italian = settings_.ui_language == "it";
 	const bool can_resume = !live && std::isfinite(resume) && resume > 0;
+	if (playback_direct_) {
+		playback_direct_ = false;
+		if (chosen) chosen(can_resume ? resume : 0);
+		return;
+	}
 	const int account = account_generation_, playback = w_gen_;
 	std::vector<std::string> options{
 		live ? (italian ? "Avvia diretta" : "Start live stream")
@@ -1163,21 +1168,25 @@ void App::watch_next_episode() {
 	const std::string addon = w_stream_.addon_url.empty() ? w_stream_.addon : w_stream_.addon_url;
 	watch_stop(true);
 	if (!valid) return;
-	watch_open_episode(id, download_id, binge, addon);
+	watch_open_episode(id, download_id, binge, addon, false);
 }
 
-// Opens through the usual source and start/resume choice: a completed
-// download stays local, otherwise the detail page picks a matching stream.
+// A completed download stays local, otherwise the detail page picks a
+// matching stream. Direct (R3) starts it without the start/resume dialog.
 void App::watch_open_episode(const std::string& id, const std::string& download_id,
-                             const std::string& binge, const std::string& addon) {
+                             const std::string& binge, const std::string& addon, bool direct) {
 	if (!download_id.empty()) {
 		const auto entry = downloads_.find(download_id);
-		if (entry && entry->state == DownloadState::Complete && entry->video_id == id && !entry->recovery_only)
+		if (entry && entry->state == DownloadState::Complete && entry->video_id == id && !entry->recovery_only) {
+			playback_direct_ = direct;
 			play_download(download_id, false);
+			playback_direct_ = false;
+		}
 		return;
 	}
 	if (!detail_select_episode(id)) return;
 	autoplay_pending_ = true;
+	autoplay_direct_ = direct;
 	autoplay_binge_ = binge;
 	autoplay_addon_ = addon;
 	d_zone = "streams";
@@ -1186,7 +1195,7 @@ void App::watch_open_episode(const std::string& id, const std::string& download_
 }
 
 // R3 during playback. The episode being left keeps its bookmark, as with Back,
-// and is not marked watched; the next one goes through the usual choice.
+// and is not marked watched; the next one starts without the dialog.
 void App::watch_skip_to_next_episode() {
 	if (!watching_ || launch_visible || next_episode_visible || menu_visible) return;
 	if (download_relocation_active()) return;
@@ -1202,5 +1211,7 @@ void App::watch_skip_to_next_episode() {
 	const std::string addon = w_stream_.addon_url.empty() ? w_stream_.addon : w_stream_.addon_url;
 	dlog("Skipping to the next episode");
 	watch_stop(false);
-	watch_open_episode(id, download_id, binge, addon);
+	watch_open_episode(id, download_id, binge, addon, true);
+	if (download_id.empty() && autoplay_pending_)
+		show_toast(settings_.ui_language == "it" ? "Caricamento episodio successivo..." : "Loading next episode...");
 }

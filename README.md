@@ -235,11 +235,17 @@ Autoplay and the countdown duration can be changed in Settings.
 
 To skip ahead without waiting for the end, press R3 (click the right stick)
 during an episode. The current episode keeps its saved position and is not
-marked as watched. The next episode opens with the same start/resume choice
-and prefers the same source, as with **Watch now**. This works whether or
-not autoplay is enabled. Offline, R3 opens the next downloaded episode only
-when that exact episode has finished downloading. If there is no next
-episode, a short message says so and playback continues.
+marked as watched. The next episode starts playing straight away, without
+the start/resume choice: from its own saved position if it has one,
+otherwise from the beginning. R3 prefers the same binge group, then the same
+add-on, and starts as soon as that add-on has answered rather than waiting
+for every add-on; if neither offers a stream, it plays the first one
+available once all have answered. If nothing is playable, the source list
+stays open for a manual choice, and pressing any button while it loads
+cancels the skip. This works whether or not autoplay is enabled. Offline,
+R3 opens the next downloaded episode only when that exact episode has
+finished downloading. If there is no next episode, a short message says so
+and playback continues.
 
 ## Video and display options
 

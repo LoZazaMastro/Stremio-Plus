@@ -756,14 +756,19 @@ void App::detail_refresh_streams() {
 	}
 	if (d_stream_sel >= int(d_streams.size())) d_stream_sel = std::max(0, int(d_streams.size()) - 1);
 
-	if (autoplay_pending_ && d_answered_ >= d_pending_) {
+	if (autoplay_pending_ && (autoplay_direct_ || d_answered_ >= d_pending_)) {
 		// Next episode: same binge group, else same addon; first stream once all answered.
+		// Direct (R3) decides once the previous add-on has answered: the binge
+		// group came from it, so a slower add-on cannot offer a closer match.
+		const bool all = d_answered_ >= d_pending_;
+		bool addon_answered = all;
+		for (size_t i = 0; i < d_stream_source_urls_.size() && i < d_source_answered_.size() && !addon_answered; i++)
+			addon_answered = d_source_answered_[i] && d_stream_source_urls_[i] == autoplay_addon_;
 		int pick = -1;
 		for (size_t i = 0; i < d_stream_list_.size() && pick < 0; i++)
 			if (d_stream_list_[i].playable() && !autoplay_binge_.empty() &&
 			    d_stream_list_[i].binge_group == autoplay_binge_) pick = int(i);
-		bool all = d_answered_ >= d_pending_;
-		if (pick < 0 && all)
+		if (pick < 0 && addon_answered)
 			for (size_t i = 0; i < d_stream_list_.size() && pick < 0; i++)
 				if (d_stream_list_[i].playable() &&
 				    (d_stream_list_[i].addon_url.empty() ? d_stream_list_[i].addon : d_stream_list_[i].addon_url) == autoplay_addon_)
@@ -773,11 +778,16 @@ void App::detail_refresh_streams() {
 				if (d_stream_list_[i].playable()) pick = int(i);
 		if (pick >= 0) {
 			autoplay_pending_ = false;
+			const bool direct = autoplay_direct_;
+			autoplay_direct_ = false;
 			const auto row = std::find(d_view_.begin(), d_view_.end(), pick);
 			d_stream_sel = row == d_view_.end() ? 0 : int(row - d_view_.begin());
+			playback_direct_ = direct;
 			play_stream(d_stream_list_[pick], false);
+			playback_direct_ = false;
 		} else if (all) {
 			autoplay_pending_ = false;
+			autoplay_direct_ = false;
 		}
 	}
 

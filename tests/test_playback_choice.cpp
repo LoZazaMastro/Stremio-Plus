@@ -162,6 +162,25 @@ struct AppProtocolTest {
         expect(opened.headers == original_headers, "the selected source and its request headers are captured by value");
         stopped(app);
 
+        // R3's direct playback: no dialog, its saved position or the beginning,
+        // and the bypass applies to exactly one play call.
+        bookmark(app); app.playback_direct_ = true;
+        int before_direct = player_opens;
+        app.play_stream(source("direct-resume"), false);
+        expect(!app.dd_visible && !app.playback_direct_, "direct playback skips the start/resume choice once");
+        until([&] { return player_opens == before_direct + 1; }, "direct playback reaches Player::open");
+        expect(opened.url == source("direct-resume").url && opened.start == 123.5, "direct playback resumes a saved position");
+        stopped(app);
+        app.video_progress_.erase(key(app)); app.playback_direct_ = true;
+        before_direct = player_opens;
+        app.play_stream(source("direct-start"), false);
+        until([&] { return player_opens == before_direct + 1; }, "direct playback without a bookmark reaches Player::open");
+        expect(!app.dd_visible && opened.start == 0, "direct playback without a bookmark starts from the beginning");
+        stopped(app);
+        prompt(app, source("after-direct"), false);
+        expect(app.dd_visible, "the next ordinary play shows the choice again");
+        stopped(app);
+
         invalidated(app, [&] { ++app.account_generation_; }, "account changes invalidate an outstanding playback choice");
         invalidated(app, [&] { ++app.d_meta_gen_; }, "replacement metadata invalidates the old choice");
         invalidated(app, [&] { ++app.d_gen_; }, "a replacement stream request invalidates the old choice");

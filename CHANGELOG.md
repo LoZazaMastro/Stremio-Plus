@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Press R3 during a series episode to skip to the next episode without going back to the episode list. The skipped episode keeps its bookmark and is not marked watched; the next one opens through the usual start/resume choice and prefers the same binge group or add-on. Offline playback moves only to the exact adjacent completed download. R3 no longer triggers the manual add-on subtitle refresh during playback; subtitles still load automatically when playback starts and again once the file hash and size are known.
+- Press R3 during a series episode to skip to the next episode and start playing it straight away, without going back to the episode list or answering the start/resume choice. The skipped episode keeps its bookmark and is not marked watched; the next one resumes its own saved position if it has one, otherwise starts from the beginning. R3 prefers the same binge group, then the same add-on, and starts as soon as that add-on has answered instead of waiting for every add-on. Offline playback moves only to the exact adjacent completed download. R3 no longer triggers the manual add-on subtitle refresh during playback; subtitles still load automatically when playback starts and again once the file hash and size are known.
 
 ## 0.6.00 - 2026-11-03
 
