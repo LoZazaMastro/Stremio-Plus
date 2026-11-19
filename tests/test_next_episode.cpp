@@ -79,6 +79,7 @@ struct AppProtocolTest {
         app.w_ended_handled_ = false; app.w_offline_ = false;
         app.w_stream_.binge_group = "same-binge"; app.w_stream_.addon_url = "https://provider.invalid/installation";
         app.next_episode_visible = false; app.watched_.clear(); app.autoplay_pending_ = false;
+        app.autoplay_direct_ = false; app.playback_direct_ = false; app.toast.clear();
         app.dd_visible = false; app.dd_chosen_ = nullptr; app.launch_visible = false;
         app.progress_.clear(); app.video_progress_.clear();
     }
@@ -224,6 +225,97 @@ struct AppProtocolTest {
         two.state = DownloadState::Complete; inventory = {one, two}; app.watch_finish_episode();
         inventory.pop_back(); monotonic_time = 115; app.watch_next_episode_tick();
         expect(local_plays == 0 && stream_requests == 0, "removed next download never falls back to online provider");
+
+        // R3 during playback skips straight to the next episode.
+        prepare(app); app.on_button(Btn::R3);
+        expect(stream_requests == 1 && requested == "s1e2" && closes == 1 && !app.watching_,
+               "R3 mid-episode closes the player once and requests the next episode");
+        expect(!app.watched_.contains("s1e1") && !app.next_episode_visible,
+               "R3 neither marks the skipped episode watched nor shows the end card");
+        expect(app.autoplay_pending_ && app.autoplay_binge_ == "same-binge" &&
+               app.autoplay_addon_ == "https://provider.invalid/installation", "R3 preserves binge and installed-provider identity");
+        prepare(app, "s1e2"); app.on_button(Btn::R3);
+        expect(stream_requests == 1 && requested == "s2e1", "R3 crosses into the next regular season");
+        prepare(app); app.settings_.autoplay_next = false; app.on_button(Btn::R3);
+        expect(stream_requests == 1 && requested == "s1e2", "R3 works with the end-of-episode card disabled");
+
+        // R3 plays the next episode: it decides as soon as the previous add-on
+        // answers and starts without the start/resume dialog.
+        const std::string r3_addon = "https://provider.invalid/installation", r3_other = "https://other.invalid/manifest";
+        auto stream = [](const std::string& name, const std::string& addon, const std::string& binge) {
+            Stream s; s.name = name; s.kind = StreamKind::Direct; s.url = "https://media.invalid/" + name + ".mkv";
+            s.addon_url = addon; s.binge_group = binge; return s;
+        };
+        auto begin_sources = [&] {
+            app.d_stream_source_urls_ = {r3_other, r3_addon}; app.d_stream_source_names_ = {"Other", "Provider"};
+            app.d_source_answered_ = {false, false}; app.d_stream_buckets_.assign(2, {}); app.d_stream_errors_.assign(2, "");
+            app.d_video_id_ = requested;  // what the stubbed detail_load_streams would select
+            app.d_pending_ = 2; app.d_answered_ = 0; app.d_stream_list_.clear(); app.detail_refresh_streams();
+        };
+        auto answer = [&](size_t index, std::vector<Stream> streams) {
+            app.d_source_answered_[index] = true; app.d_answered_++; app.d_stream_buckets_[index] = std::move(streams);
+            app.d_stream_list_.clear();
+            for (const auto& bucket : app.d_stream_buckets_)
+                app.d_stream_list_.insert(app.d_stream_list_.end(), bucket.begin(), bucket.end());
+            app.detail_refresh_streams();
+        };
+        prepare(app); app.on_button(Btn::R3);
+        expect(app.autoplay_direct_ && app.toast == "Loading next episode...", "R3 asks for direct playback and says it is loading");
+        begin_sources(); answer(0, {stream("other-first", r3_other, "")});
+        expect(app.autoplay_pending_ && !app.launch_visible && !app.dd_visible,
+               "a faster unrelated add-on cannot take R3's pick before the previous add-on answers");
+        answer(1, {stream("provider-plain", r3_addon, ""), stream("provider-binge", r3_addon, "same-binge")});
+        expect(!app.autoplay_pending_ && !app.dd_visible && app.launch_visible && app.w_stream_.name == "provider-binge" &&
+               app.w_video_id_ == "s1e2", "R3 starts the same binge group immediately, without the start/resume dialog");
+        expect(!app.playback_direct_ && !app.autoplay_direct_, "direct playback never outlives the R3 pick");
+        prepare(app); app.on_button(Btn::R3); begin_sources();
+        answer(1, {stream("provider-plain", r3_addon, "another-binge")});
+        expect(!app.autoplay_pending_ && !app.dd_visible && app.launch_visible && app.w_stream_.name == "provider-plain",
+               "R3 falls back to the previous add-on without waiting for slower ones");
+        prepare(app); app.on_button(Btn::R3); begin_sources(); answer(1, {});
+        expect(app.autoplay_pending_ && !app.launch_visible, "R3 waits for every add-on when the previous one has nothing");
+        answer(0, {stream("other-first", r3_other, "")});
+        expect(!app.dd_visible && app.launch_visible && app.w_stream_.name == "other-first",
+               "R3 then plays the first playable stream directly");
+        prepare(app); app.on_button(Btn::R3); begin_sources(); answer(1, {}); answer(0, {});
+        expect(!app.autoplay_pending_ && !app.autoplay_direct_ && !app.launch_visible && !app.dd_visible,
+               "with no playable stream R3 leaves the source list for a manual choice");
+        prepare(app); app.on_button(Btn::R3); begin_sources(); app.on_button(Btn::Down);
+        answer(1, {stream("provider-binge", r3_addon, "same-binge")});
+        expect(!app.launch_visible && !app.dd_visible, "any button on the details page still cancels R3's pick");
+        prepare(app); app.watch_finish_episode(); app.on_button(Btn::Cross);
+        expect(app.autoplay_pending_ && !app.autoplay_direct_, "Watch now on the end card is not direct");
+        begin_sources(); answer(1, {stream("provider-binge", r3_addon, "same-binge")});
+        expect(app.autoplay_pending_ && !app.launch_visible, "Watch now still waits for every add-on");
+        answer(0, {stream("other-first", r3_other, "")});
+        expect(app.dd_visible && !app.launch_visible, "Watch now still opens the start/resume choice");
+        prepare(app, "s2e2"); app.toast.clear(); app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_ && app.toast == "No next episode",
+               "R3 on the last episode keeps playing and explains why");
+        prepare(app, "special"); app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 never rolls a special into regular seasons");
+        prepare(app); app.d_series = false; app.w_item_.type = "movie"; app.toast.clear(); app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_ && app.toast.empty(), "R3 does nothing for films");
+        prepare(app); app.launch_visible = true; app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 is ignored during the start/resume prompt");
+        prepare(app); app.menu_visible = true; app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 is ignored while the audio/subtitle menu is open");
+        app.menu_visible = false;
+        prepare(app); app.directory_picker_committing = true; app.on_button(Btn::R3);
+        expect(stream_requests == 0 && closes == 0 && app.watching_, "R3 cannot race an accepted folder relocation");
+        app.directory_picker_committing = false;
+        prepare(app); app.w_offline_ = true; app.view = "downloads";
+        app.d_item_.id = "unrelated"; app.w_download_id_ = "local-one"; inventory = {one, three, two};
+        app.on_button(Btn::R3);
+        expect(!app.dd_visible && local_plays == 1 && closes == 1 && !app.playback_direct_,
+               "offline R3 opens the adjacent downloaded episode without the start/resume dialog");
+        expect(app.w_download_id_ == "local-two" && local_played == two.local_path && stream_requests == 0,
+               "offline R3 stays entirely local");
+        prepare(app); app.w_offline_ = true; app.view = "downloads";
+        app.d_item_.id = "unrelated"; app.w_download_id_ = "local-one"; inventory = {one, three};
+        app.on_button(Btn::R3);
+        expect(local_plays == 0 && stream_requests == 0 && closes == 0 && app.watching_,
+               "offline R3 never skips a missing adjacent episode");
         app.watching_ = false;
     }
 };

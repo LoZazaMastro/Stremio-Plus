@@ -106,6 +106,11 @@ void App::choose_playback_start(const std::string& title, double resume,
                                 std::function<void(double)> chosen, bool live) {
 	const bool italian = settings_.ui_language == "it";
 	const bool can_resume = !live && std::isfinite(resume) && resume > 0;
+	if (playback_direct_) {
+		playback_direct_ = false;
+		if (chosen) chosen(can_resume ? resume : 0);
+		return;
+	}
 	const int account = account_generation_, playback = w_gen_;
 	std::vector<std::string> options{
 		live ? (italian ? "Avvia diretta" : "Start live stream")
@@ -669,6 +674,11 @@ void App::watch_button(Btn b) {
 		}
 		return;
 	}
+	// R3 leaves this video, so there is nothing to reveal first.
+	if (b == Btn::R3) {
+		watch_skip_to_next_episode();
+		return;
+	}
 	watch_show_info();
 	switch (b) {
 	case Btn::Cross:
@@ -710,12 +720,6 @@ void App::watch_button(Btn b) {
 		watch_build_menu();
 		menu_visible = true;
 		dirty_all();
-		break;
-	case Btn::R3:
-		w_sub_requests_.clear();
-		watch_load_addon_subtitles();
-		watch_enrich_subtitle_params();
-		dlog("Subtitle refresh requested");
 		break;
 	case Btn::L2:
 		w_sub_delay_ -= 0.25;
@@ -1026,15 +1030,11 @@ void App::watch_finish_episode() {
 	if (!next_episode_visible) watch_stop(true);
 }
 
-void App::watch_offer_next_episode() {
-	watch_cancel_next_episode();
-	if (!settings_.autoplay_next) return;
-	Video local_video;
-	std::string local_art;
-	const Video* next = nullptr;
+std::optional<App::NextEpisodeTarget> App::watch_find_next_episode() const {
+	NextEpisodeTarget target;
 	if (w_offline_) {
 		const auto current = downloads_.find(w_download_id_);
-		if (!current || current->state != DownloadState::Complete || current->media_id != w_item_.id) return;
+		if (!current || current->state != DownloadState::Complete || current->media_id != w_item_.id) return std::nullopt;
 		// Cached complete metadata can establish a season boundary. Without it,
 		// only the exact adjacent numbered episode is safe to infer locally.
 		const Video* expected = d_item_.id == w_item_.id ? detail_next_episode(w_video_id_) : nullptr;
@@ -1048,22 +1048,33 @@ void App::watch_offer_next_episode() {
 			    current->season >= 0 && current->episode > 0 && entry.season == current->season &&
 			    int64_t(entry.episode) == int64_t(current->episode) + 1;
 			if (!follows) continue;
-			local_video = expected ? *expected : Video{};
-			local_video.id = entry.video_id;
-			local_video.season = entry.season; local_video.episode = entry.episode;
-			local_video.raw["season"] = entry.season;
-			if (local_video.title.empty()) local_video.title = entry.episode_title.empty()
+			target.video = expected ? *expected : Video{};
+			target.video.id = entry.video_id;
+			target.video.season = entry.season; target.video.episode = entry.episode;
+			target.video.raw["season"] = entry.season;
+			if (target.video.title.empty()) target.video.title = entry.episode_title.empty()
 			    ? download_legacy_episode_title(entry.season, entry.episode, entry.subtitle) : entry.episode_title;
-			next_episode_download_id_ = entry.id;
-			local_art = entry.background_path.empty() ? entry.poster_path : entry.background_path;
-			next = &local_video;
-			break;
+			target.download_id = entry.id;
+			target.local_art = entry.background_path.empty() ? entry.poster_path : entry.background_path;
+			return target;
 		}
-	} else {
-		if (view != "detail" || w_item_.id != d_item_.id) return;
-		next = detail_next_episode(w_video_id_);
+		return std::nullopt;
 	}
-	if (!next) return;
+	if (view != "detail" || w_item_.id != d_item_.id) return std::nullopt;
+	const Video* next = detail_next_episode(w_video_id_);
+	if (!next) return std::nullopt;
+	target.video = *next;
+	return target;
+}
+
+void App::watch_offer_next_episode() {
+	watch_cancel_next_episode();
+	if (!settings_.autoplay_next) return;
+	const auto target = watch_find_next_episode();
+	if (!target) return;
+	next_episode_download_id_ = target->download_id;
+	const std::string& local_art = target->local_art;
+	const Video* next = &target->video;
 	next_episode_id_ = next->id;
 	next_episode_series_ = w_item_.id;
 	next_episode_from_ = w_video_id_;
@@ -1157,17 +1168,50 @@ void App::watch_next_episode() {
 	const std::string addon = w_stream_.addon_url.empty() ? w_stream_.addon : w_stream_.addon_url;
 	watch_stop(true);
 	if (!valid) return;
-	if (local) {
+	watch_open_episode(id, download_id, binge, addon, false);
+}
+
+// A completed download stays local, otherwise the detail page picks a
+// matching stream. Direct (R3) starts it without the start/resume dialog.
+void App::watch_open_episode(const std::string& id, const std::string& download_id,
+                             const std::string& binge, const std::string& addon, bool direct) {
+	if (!download_id.empty()) {
 		const auto entry = downloads_.find(download_id);
-		if (entry && entry->state == DownloadState::Complete && entry->video_id == id && !entry->recovery_only)
+		if (entry && entry->state == DownloadState::Complete && entry->video_id == id && !entry->recovery_only) {
+			playback_direct_ = direct;
 			play_download(download_id, false);
+			playback_direct_ = false;
+		}
 		return;
 	}
 	if (!detail_select_episode(id)) return;
 	autoplay_pending_ = true;
+	autoplay_direct_ = direct;
 	autoplay_binge_ = binge;
 	autoplay_addon_ = addon;
 	d_zone = "streams";
 	detail_load_streams(id);
 	dirty_all();
+}
+
+// R3 during playback. The episode being left keeps its bookmark, as with Back,
+// and is not marked watched; the next one starts without the dialog.
+void App::watch_skip_to_next_episode() {
+	if (!watching_ || launch_visible || next_episode_visible || menu_visible) return;
+	if (download_relocation_active()) return;
+	const bool series = w_item_.type == "series" || w_item_.type == "anime" || (!w_offline_ && d_series);
+	if (!series) return;
+	const auto target = watch_find_next_episode();
+	if (!target) {
+		show_toast(settings_.ui_language == "it" ? "Nessun episodio successivo" : "No next episode");
+		return;
+	}
+	const std::string id = target->video.id, download_id = target->download_id;
+	const std::string binge = w_stream_.binge_group;
+	const std::string addon = w_stream_.addon_url.empty() ? w_stream_.addon : w_stream_.addon_url;
+	dlog("Skipping to the next episode");
+	watch_stop(false);
+	watch_open_episode(id, download_id, binge, addon, true);
+	if (download_id.empty() && autoplay_pending_)
+		show_toast(settings_.ui_language == "it" ? "Caricamento episodio successivo..." : "Loading next episode...");
 }

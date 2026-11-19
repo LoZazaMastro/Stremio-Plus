@@ -6,6 +6,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -506,6 +507,16 @@ private:
 	void watch_next_episode_button(Btn b);
 	void watch_cancel_next_episode();
 	void watch_finish_episode();
+	// The episode after the one playing: from series metadata online, or the
+	// exact adjacent completed download offline. Ignores the autoplay setting.
+	struct NextEpisodeTarget {
+		Video video;
+		std::string download_id, local_art;  // download_id is set only offline
+	};
+	std::optional<NextEpisodeTarget> watch_find_next_episode() const;
+	void watch_open_episode(const std::string& id, const std::string& download_id,
+	                        const std::string& binge, const std::string& addon, bool direct);
+	void watch_skip_to_next_episode();  // R3 during playback
 	bool w_ended_handled_ = false;
 	std::string next_episode_id_, next_episode_series_, next_episode_from_, next_episode_download_id_;
 	int next_episode_account_generation_ = 0;
@@ -668,4 +679,10 @@ private:
 	// Next episode: play a stream like the last one once streams arrive.
 	bool autoplay_pending_ = false;
 	std::string autoplay_binge_, autoplay_addon_;
+	// R3: pick as soon as the previous add-on has answered, and start the
+	// pick without the start/resume dialog (its saved position, else 0).
+	bool autoplay_direct_ = false;
+	// Skips the start/resume dialog for the play call it surrounds; set and
+	// cleared synchronously, so it can never leak to a later manual choice.
+	bool playback_direct_ = false;
 };
